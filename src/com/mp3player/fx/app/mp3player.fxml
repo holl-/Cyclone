@@ -48,7 +48,7 @@
                               <KeyCodeCombination alt="UP" code="TAB" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator>
                         </MenuItem>
-                        <MenuItem mnemonicParsing="false" text="Manage library...">
+                        <MenuItem disable="true" mnemonicParsing="false" text="Manage library...">
                            <accelerator>
                               <KeyCodeCombination alt="UP" code="L" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
@@ -60,7 +60,7 @@
                               <MenuItem mnemonicParsing="false" onAction="#setStyle" text="AquaFX" />
                           </items>
                         </Menu>
-                    <MenuItem mnemonicParsing="false" text="Settings...">
+                    <MenuItem disable="true" mnemonicParsing="false" text="Settings...">
                            <accelerator>
                               <KeyCodeCombination alt="UP" code="E" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
@@ -80,7 +80,7 @@
               <menus>
                 <Menu fx:id="currentSongMenu" mnemonicParsing="false" text="Song title">
                   <items>
-                        <MenuItem mnemonicParsing="false" text="File information...">
+                        <MenuItem disable="true" mnemonicParsing="false" text="File information...">
                            <accelerator>
                               <KeyCodeCombination alt="UP" code="I" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
@@ -96,12 +96,12 @@
                         <SeparatorMenuItem mnemonicParsing="false" />
                         <MenuItem mnemonicParsing="false" onAction="#removeCurrentFromPlaylist" text="Remove from playlist">
                            <accelerator>
-                              <KeyCodeCombination alt="UP" code="X" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                              <KeyCodeCombination alt="UP" code="DELETE" control="UP" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator>
                         </MenuItem>
                     <MenuItem mnemonicParsing="false" text="Delete file">
                            <accelerator>
-                              <KeyCodeCombination alt="DOWN" code="X" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                              <KeyCodeCombination alt="UP" code="DELETE" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
                   </items>
                 </Menu>

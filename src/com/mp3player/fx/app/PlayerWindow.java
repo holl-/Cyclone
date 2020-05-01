@@ -33,12 +33,16 @@ import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -54,6 +58,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -93,6 +98,7 @@ public class PlayerWindow implements Initializable {
 	private PlayerStatus status;
 	private PlayerStatusWrapper properties;
 	private MediaIndexWrapper index;
+	private Node currentOverlay;
 
 
 	public PlayerWindow(PlayerStatus status, MediaIndex index, Stage stage) throws IOException {
@@ -192,6 +198,7 @@ public class PlayerWindow implements Initializable {
 		else if(searchField == null) {
 			// Initialize playlist view
 			playlist.setItems(properties.getPlaylist());
+			playlist.addEventFilter(KeyEvent.KEY_PRESSED, new TabAndEnterHandler(playlist));
 			removeOthersButton.disableProperty().bind(properties.playlistAvailableProperty().not());
 			playlist.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
 				if(n != null) properties.setCurrentMedia(Optional.of(n.getIdentifier()));
@@ -200,9 +207,9 @@ public class PlayerWindow implements Initializable {
 				playlist.getSelectionModel().select(properties.getCurrentMedia().flatMap(m -> index.getIndex().getInfo(m)).orElse(null));
 			});
 			playlist.setOnMouseReleased(e -> {
-				if(e.getButton() == MouseButton.PRIMARY) {
-					Platform.runLater(() -> closePlaylist());
-				}
+//				if(e.getButton() == MouseButton.PRIMARY) {
+//					Platform.runLater(() -> closePlaylist());
+//				}
 			});
 			playlist.setCellFactory(list -> new MediaCell());
 		}
@@ -316,19 +323,28 @@ public class PlayerWindow implements Initializable {
 		status.getTarget().setTargetMedia(mediaID, true);
 	}
 
-	private void fadeIn(Node node) {
-		Duration time = new Duration(200);
+	private void fadeIn(Node node, Node focus) {
+		if(root.getChildren().contains(node)) {
+			fadeOut(node);
+			return;
+		}
+		if(currentOverlay != null) {
+			fadeOut(currentOverlay);
+		}
+		currentOverlay = node;
 		root.getChildren().add(node);
 
+		Duration time = new Duration(200);
 		TranslateTransition in = new TranslateTransition(time, node);
 		in.setFromY(-20);
 		in.setToY(0);
 		in.play();
-
 		FadeTransition fade = new FadeTransition(time, node);
 		fade.setFromValue(0);
 		fade.setToValue(1);
 		fade.play();
+
+		focus.requestFocus();
 	}
 
 	private void fadeOut(Node node) {
@@ -344,11 +360,12 @@ public class PlayerWindow implements Initializable {
 		fade.setToValue(0);
 		fade.play();
 		fade.setOnFinished(e -> root.getChildren().remove(node));
+
+		currentOverlay = null;
 	}
 
 	public void showPlaylist() {
-		fadeIn(playlistRoot);
-		playlist.requestFocus();
+		fadeIn(playlistRoot, playlist);
 	}
     @FXML
     public void closePlaylist() {
@@ -357,8 +374,7 @@ public class PlayerWindow implements Initializable {
 
     @FXML
 	public void showSearch() {
-		fadeIn(searchRoot);
-		searchField.requestFocus();
+		fadeIn(searchRoot, searchField);
 	}
 
 	@FXML
@@ -500,4 +516,22 @@ public class PlayerWindow implements Initializable {
     	status.getPlaylist().remove(current.get());
     	if(!hasNext) status.next();
     }
+
+
+
+	class TabAndEnterHandler implements EventHandler<KeyEvent> {
+		private Node node;
+
+		public TabAndEnterHandler(Node node) {
+			this.node = node;
+		}
+
+		public void handle(KeyEvent event) {
+			Parent parent = node.getParent();
+			if(event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE) {
+				parent.fireEvent(event.copyFor(parent, parent));
+				event.consume();
+			}
+		}
+	}
 }
