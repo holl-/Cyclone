@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 import com.mp3player.appinstance.ApplicationParameters;
 import com.mp3player.appinstance.InstanceManager;
-import com.mp3player.desktopaudio.AudioEngineException;
+import com.mp3player.audio.AudioEngineException;
 import com.mp3player.fx.playerwrapper.PlayerStatusWrapper;
 import com.mp3player.machine.LocalMachine;
 import com.mp3player.mediacommand.CombinationManager;

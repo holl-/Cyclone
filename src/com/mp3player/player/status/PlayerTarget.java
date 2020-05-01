@@ -35,7 +35,7 @@ public class PlayerTarget extends Distributed {
 	/** The time at which the target position request was issued */
 	private long positionUpdateTime;
 
-	private boolean loop;
+	private boolean loop = true;
 	private boolean shuffled;
 
 	public PlayerTarget() {
