@@ -1,0 +1,19 @@
+
+
+MP3 Libraries
+
+Javazoom MP3SPI (LGPL) http://www.javazoom.net/mp3spi/mp3spi.html
+- Javazoom JLayer (LGPL) http://www.javazoom.net/javalayer/javalayer.html
+- Tritonus (GPL) http://www.tritonus.org/
+
+VorbisSPI (LGPL) http://www.javazoom.net/vorbisspi/vorbisspi.html
+
+MP3SPI and VorbisSPI automatically registers decoder/converter to Java Sound API when in class path.
+
+
+
+Keyboard Libraries
+
+JIntellitype (Apache License 2.0) https://code.google.com/p/jintellitype/
+can detect media keys without window focus on Windows
+

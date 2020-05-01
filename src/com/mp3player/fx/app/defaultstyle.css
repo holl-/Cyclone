@@ -1,0 +1,25 @@
+.circular-slider .axis-tick-mark {
+/*
+ * -fx-stroke: green;
+ */
+}
+
+.circular-slider {
+	-fx-major-tick-unit: 60.0;
+	-fx-minor-tick-count: 6.0;
+	-fx-pref-height: 300.0;
+	-fx-pref-width: 300.0;
+	-fx-diameter: 0.8;
+	-fx-thickness: 0.08;
+/*
+ * -fx-show-tick-marks
+ * -fx-minor-tick-visible
+ *
+ * -fx-tick-length
+ * -fx-minor-tick-length
+ */
+}
+
+.drop-overlay {
+	-fx-opacity: 0.95;
+}

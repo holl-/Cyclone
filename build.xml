@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	<project name="MX Player FX build" default="do-deploy" basedir="."  xmlns:fx="javafx:com.sun.javafx.tools.ant">
+	<target name="init-fx-tasks">
+		<path id="fxant">
+			<filelist>
+				<file name="${java.home}\..\lib\ant-javafx.jar"/>
+				<file name="${java.home}\lib\jfxrt.jar"/>
+			</filelist>
+		</path>
+
+		<taskdef resource="com/sun/javafx/tools/ant/antlib.xml"
+			uri="javafx:com.sun.javafx.tools.ant"
+			classpathref="fxant"/>
+	</target>
+	<target name="setup-staging-area">
+		<delete dir="externalLibs" />
+		<delete dir="project" />
+		<delete dir="projectRefs" />
+
+		<mkdir dir="externalLibs" />
+
+		<copy todir="externalLibs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player\Desktop Audio">
+				<filename name="vorbisspi1.0.3.jar"/>
+			</fileset>
+		</copy>
+		<copy todir="externalLibs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player\Desktop Utilities">
+				<filename name="jintellitype-1.3.9.jar"/>
+			</fileset>
+		</copy>
+		<copy todir="externalLibs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player\Desktop Audio">
+				<filename name="jorbis-0.0.15.jar"/>
+			</fileset>
+		</copy>
+		<copy todir="externalLibs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player\FX UI">
+				<filename name="aquafx-0.1.jar"/>
+			</fileset>
+		</copy>
+		<copy todir="externalLibs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player\Desktop Audio">
+				<filename name="jogg-0.0.7.jar"/>
+			</fileset>
+		</copy>
+		<copy todir="externalLibs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player\Desktop Audio">
+				<filename name="mp3spi1.9.5.jar"/>
+			</fileset>
+		</copy>
+		<copy todir="externalLibs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player\Desktop Audio">
+				<filename name="tritonus_share.jar"/>
+			</fileset>
+		</copy>
+		<copy todir="externalLibs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player\Desktop Audio">
+				<filename name="jl1.0.1.jar"/>
+			</fileset>
+		</copy>
+
+		<mkdir dir="project" />
+		<copy todir="project">
+			<fileset dir="E:\Philipp\java\Workspaces Efxclipse\MP3 Player\MX Player FX build">
+				<include name="src/**" />
+			</fileset>
+		</copy>
+
+		<mkdir dir="projectRefs" />
+		<copy todir="projectRefs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player">
+				<include name="Player Model\src/**" />
+			</fileset>
+		</copy>
+		<copy todir="projectRefs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player">
+				<include name="FX UI\src/**" />
+			</fileset>
+		</copy>
+		<copy todir="projectRefs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player">
+				<include name="Desktop Utilities\src/**" />
+			</fileset>
+		</copy>
+		<copy todir="projectRefs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player">
+				<include name="Virtual Distributed Platform\src/**" />
+			</fileset>
+		</copy>
+		<copy todir="projectRefs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player">
+				<include name="Desktop Audio\src/**" />
+			</fileset>
+		</copy>
+		<copy todir="projectRefs">
+			<fileset dir="C:\Users\Philipp\git\MP3Player">
+				<include name="Playback Engine\src/**" />
+			</fileset>
+		</copy>
+	</target>
+	<target name='do-compile'>
+		<delete dir="build" />
+		<mkdir dir="build/src" />
+		<mkdir dir="build/libs" />
+		<mkdir dir="build/classes" />
+
+		<!-- Copy project-libs references -->
+		<copy todir="build/libs">
+			<fileset dir="externalLibs">
+				<include name="jl1.0.1.jar"/>
+				<include name="tritonus_share.jar"/>
+				<include name="aquafx-0.1.jar"/>
+				<include name="mp3spi1.9.5.jar"/>
+				<include name="vorbisspi1.0.3.jar"/>
+				<include name="jorbis-0.0.15.jar"/>
+				<include name="jintellitype-1.3.9.jar"/>
+				<include name="jogg-0.0.7.jar"/>
+			</fileset>
+		</copy>
+
+		<!-- Copy project references -->
+		<copy todir="build/src">
+			<fileset dir="projectRefs/Playback Engine/src">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		<copy todir="build/src">
+			<fileset dir="projectRefs/Virtual Distributed Platform/src">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		<copy todir="build/src">
+			<fileset dir="projectRefs/FX UI/src">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		<copy todir="build/src">
+			<fileset dir="projectRefs/Player Model/src">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		<copy todir="build/src">
+			<fileset dir="projectRefs/Desktop Audio/src">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		<copy todir="build/src">
+			<fileset dir="projectRefs/Desktop Utilities/src">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+
+		<!-- Copy project sources itself -->
+		<copy todir="build/src">
+			<fileset dir="project/src">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+
+		<javac includeantruntime="false" source="1.8" target="1.8" srcdir="build/src" destdir="build/classes" encoding="Cp1252">
+			<classpath>
+				<fileset dir="build/libs">
+					<include name="*"/>
+				</fileset>
+			</classpath>
+		</javac>
+
+		<!-- Copy over none Java-Files -->
+		<copy todir="build/classes">
+		<fileset dir="project/src">
+			<exclude name="**/*.java"/>
+		</fileset>
+		</copy>
+
+		<copy todir="build/classes">
+			<fileset dir="projectRefs/Playback Engine/src">
+				<exclude name="**/*.java"/>
+			</fileset>
+		</copy>
+		<copy todir="build/classes">
+			<fileset dir="projectRefs/Virtual Distributed Platform/src">
+				<exclude name="**/*.java"/>
+			</fileset>
+		</copy>
+		<copy todir="build/classes">
+			<fileset dir="projectRefs/FX UI/src">
+				<exclude name="**/*.java"/>
+			</fileset>
+		</copy>
+		<copy todir="build/classes">
+			<fileset dir="projectRefs/Player Model/src">
+				<exclude name="**/*.java"/>
+			</fileset>
+		</copy>
+		<copy todir="build/classes">
+			<fileset dir="projectRefs/Desktop Audio/src">
+				<exclude name="**/*.java"/>
+			</fileset>
+		</copy>
+		<copy todir="build/classes">
+			<fileset dir="projectRefs/Desktop Utilities/src">
+				<exclude name="**/*.java"/>
+			</fileset>
+		</copy>
+
+	</target>
+	<target name="do-deploy" depends="setup-staging-area, do-compile, init-fx-tasks">
+		<delete file="dist"/>
+		<delete file="deploy" />
+
+		<mkdir dir="dist" />
+		<mkdir dir="dist/libs" />
+
+		<copy todir="dist/libs">
+			<fileset dir="externalLibs">
+				<include name="*" />
+			</fileset>
+		</copy>
+
+
+		<fx:resources id="appRes">
+			<fx:fileset dir="dist" includes="MX Player FX build.jar"/>
+			<fx:fileset dir="dist" includes="libs/*"/>
+		</fx:resources>
+
+		<fx:application id="fxApplication"
+			name="MX Player"
+			mainClass="com.mp3player.fx.app.Launcher"
+			toolkit="fx"
+		/>
+
+		<mkdir dir="build/classes/META-INF" />
+
+
+
+		<fx:jar destfile="dist/MX Player FX build.jar">
+			<fx:application refid="fxApplication"/>
+			<fileset dir="build/classes">
+			</fileset>
+			<fx:resources refid="appRes"/>
+
+			<manifest>
+				<attribute name="Implementation-Vendor" value="Philipp Holl"/>
+				<attribute name="Implementation-Title" value="MX Player"/>
+				<attribute name="Implementation-Version" value="pre 0.1"/>
+				<attribute name="SplashScreen-Image" value=""/>
+				<attribute name="JavaFX-Feature-Proxy" value="None"/>
+			</manifest>
+		</fx:jar>
+
+
+		<mkdir dir="deploy" />
+		<!-- Need to use ${basedir} because somehow the ant task is calculating the directory differently -->
+		<fx:deploy
+			embedJNLP="false"
+			extension="false"
+			includeDT="true"
+			offlineAllowed="true"
+			outdir="${basedir}/deploy"
+			outfile="MX Player FX build" nativeBundles="msi"
+			updatemode="background" >
+
+			<fx:platform basedir="${java.home}"/>
+			<fx:info title="MX Player FX build" vendor="Philipp Holl"/>
+
+			<fx:application name="MX Player" mainClass="com.mp3player.fx.app.Launcher"/>
+			<fx:resources id="appRes">
+				<fx:fileset dir="dist" includes="*.jar"/>
+				<fx:fileset dir="dist" includes="libs/*"/>
+			</fx:resources>
+		</fx:deploy>
+
+
+	</target>
+</project>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+
+<BorderPane onMouseClicked="#closePlaylist" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
+   <center>
+      <ListView fx:id="playlist" opacity="0.9" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER" />
+   </center>
+   <bottom>
+      <BorderPane BorderPane.alignment="CENTER">
+         <right>
+            <HBox spacing="2.0" BorderPane.alignment="CENTER">
+               <children>
+                  <Button cancelButton="true" mnemonicParsing="false" onAction="#closePlaylist" text="Close" />
+               </children>
+               <padding>
+                  <Insets left="4.0" />
+               </padding>
+            </HBox>
+         </right>
+         <left>
+            <HBox spacing="2.0" BorderPane.alignment="CENTER">
+               <children>
+                  <Button mnemonicParsing="false" onAction="#clearPlaylist" text="Remove all" />
+                  <Button fx:id="removeOthersButton" mnemonicParsing="false" onAction="#clearOthers" text="Remove others" />
+               </children>
+            </HBox>
+         </left>
+         <padding>
+            <Insets top="4.0" />
+         </padding>
+      </BorderPane>
+   </bottom>
+   <padding>
+      <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
+   </padding>
+</BorderPane>

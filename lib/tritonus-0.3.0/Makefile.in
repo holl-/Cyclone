@@ -1,0 +1,299 @@
+# compilation and packing for the tritonus library
+#
+
+SHELL = /bin/sh
+
+prefix=@prefix@
+
+#LIBNAME=tritonus
+
+JAVADIR=$(prefix)
+JAVAEXTPATH=$(JAVADIR)/jre/lib/ext
+
+JAVAC=javac
+#JAVAC=guavac
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+
+%.class: %.java
+	export CLASSPATH=.:src:$$CLASSPATH; $(JAVAC) -d $(DESTDIR) $<
+
+
+SRCDIR_PUB = src/javax/sound
+SRCDIR_PRIV = src/org/tritonus
+SRCDIR_JL = src/javazoom/jl/decoder
+SRCDIR_JESD = src/com/jcraft/jesd
+
+DESTDIR = .
+
+OBJDIR_PUB = $(DESTDIR)/javax/sound
+OBJDIR_PRIV = $(DESTDIR)/org/tritonus
+OBJDIR_JL = $(DESTDIR)/javazoom/jl/decoder
+OBJDIR_JESD = $(DESTDIR)/com/jcraft/jesd
+
+PACKSRCDIR_MAIN = javax/sound org/tritonus com/jcraft/jesd
+PACKSRCDIR_JL = javazoom
+LIBDEST=tritonus.jar
+LIBDEST_JL=javalayer.jar
+LIBDEST_MP3SP=mp3sp.jar
+LIBDEST_GSM=tritonus_gsm.jar
+
+
+vpath %.java $(SRCDIR_PUB)/midi
+vpath %.java $(SRCDIR_PUB)/midi/spi
+vpath %.java $(SRCDIR_PUB)/sampled
+vpath %.java $(SRCDIR_PUB)/sampled/spi
+vpath %.java $(SRCDIR_PRIV)
+vpath %.java $(SRCDIR_PRIV)/lowlevel/alsa
+vpath %.java $(SRCDIR_PRIV)/lowlevel/esd
+vpath %.java $(SRCDIR_PRIV)/lowlevel/gsm
+vpath %.java $(SRCDIR_PRIV)/lowlevel/saint
+vpath %.java $(SRCDIR_PRIV)/sampled
+vpath %.java $(SRCDIR_PRIV)/sampled/convert
+vpath %.java $(SRCDIR_PRIV)/sampled/convert/gsm
+vpath %.java $(SRCDIR_PRIV)/sampled/file
+vpath %.java $(SRCDIR_PRIV)/sampled/file/gsm
+vpath %.java $(SRCDIR_PRIV)/sampled/mixer
+vpath %.java $(SRCDIR_PRIV)/sampled/mixer/alsa
+vpath %.java $(SRCDIR_PRIV)/sampled/mixer/esd
+vpath %.java $(SRCDIR_PRIV)/sampled/mixer/jesd
+vpath %.java $(SRCDIR_PRIV)/midi
+vpath %.java $(SRCDIR_PRIV)/midi/device
+vpath %.java $(SRCDIR_PRIV)/midi/device/alsa
+vpath %.java $(SRCDIR_PRIV)/midi/device/midishare
+vpath %.java $(SRCDIR_PRIV)/midi/device/saint
+vpath %.java $(SRCDIR_PRIV)/midi/file
+vpath %.java $(SRCDIR_PRIV)/util
+vpath %.java $(SRCDIR_JL)
+vpath %.java $(SRCDIR_JESD)
+
+vpath %.class $(OBJDIR_PUB)/midi
+vpath %.class $(OBJDIR_PUB)/midi/spi
+vpath %.class $(OBJDIR_PUB)/sampled
+vpath %.class $(OBJDIR_PUB)/sampled/spi
+vpath %.class $(OBJDIR_PRIV)
+vpath %.class $(OBJDIR_PRIV)/lowlevel/alsa
+vpath %.class $(OBJDIR_PRIV)/lowlevel/esd
+vpath %.class $(OBJDIR_PRIV)/lowlevel/gsm
+vpath %.class $(OBJDIR_PRIV)/lowlevel/saint
+vpath %.class $(OBJDIR_PRIV)/sampled
+vpath %.class $(OBJDIR_PRIV)/sampled/convert
+vpath %.class $(OBJDIR_PRIV)/sampled/convert/gsm
+vpath %.class $(OBJDIR_PRIV)/sampled/file
+vpath %.class $(OBJDIR_PRIV)/sampled/file/gsm
+vpath %.class $(OBJDIR_PRIV)/sampled/mixer
+vpath %.class $(OBJDIR_PRIV)/sampled/mixer/alsa
+vpath %.class $(OBJDIR_PRIV)/sampled/mixer/esd
+vpath %.class $(OBJDIR_PRIV)/sampled/mixer/jesd
+vpath %.class $(OBJDIR_PRIV)/midi
+vpath %.class $(OBJDIR_PRIV)/midi/device
+vpath %.class $(OBJDIR_PRIV)/midi/device/alsa
+vpath %.class $(OBJDIR_PRIV)/midi/device/midishare
+vpath %.class $(OBJDIR_PRIV)/midi/device/saint
+vpath %.class $(OBJDIR_PRIV)/midi/file
+vpath %.class $(OBJDIR_PRIV)/util
+vpath %.class $(OBJDIR_JL)
+vpath %.class $(OBJDIR_JESD)
+
+SRCTMP:=$(wildcard \
+	$(SRCDIR_PUB)/midi/*.java \
+	$(SRCDIR_PUB)/midi/spi/*.java \
+	$(SRCDIR_PUB)/sampled/*.java \
+	$(SRCDIR_PUB)/sampled/spi/*.java \
+	$(SRCDIR_PRIV)/*.java \
+	$(SRCDIR_PRIV)/lowlevel/alsa/*.java \
+	$(SRCDIR_PRIV)/lowlevel/esd/*.java \
+	$(SRCDIR_PRIV)/lowlevel/gsm/*.java \
+	$(SRCDIR_PRIV)/lowlevel/saint/*.java \
+	$(SRCDIR_PRIV)/sampled/*.java \
+	$(SRCDIR_PRIV)/sampled/convert/*.java \
+	$(SRCDIR_PRIV)/sampled/convert/gsm/*.java \
+	$(SRCDIR_PRIV)/sampled/file/*.java \
+	$(SRCDIR_PRIV)/sampled/file/gsm/*.java \
+	$(SRCDIR_PRIV)/sampled/mixer/*.java \
+	$(SRCDIR_PRIV)/sampled/mixer/alsa/*.java \
+	$(SRCDIR_PRIV)/sampled/mixer/esd/*.java \
+	$(SRCDIR_PRIV)/midi/*.java \
+	$(SRCDIR_PRIV)/midi/device/*.java \
+	$(SRCDIR_PRIV)/midi/device/alsa/*.java \
+	$(SRCDIR_PRIV)/midi/file/*.java \
+	$(SRCDIR_PRIV)/util/*.java \
+	$(SRCDIR_JL)/*.java \
+	)
+
+#	$(SRCDIR_PRIV)/midi/device/midishare/*.java \
+#	$(SRCDIR_PRIV)/midi/device/saint/*.java \
+#	$(SRCDIR_PRIV)/sampled/mixer/jesd/*.java \
+#	$(SRCDIR_JESD)/*.java \
+
+SRC:=$(notdir $(SRCTMP))
+OBJ:=$(SRC:.java=.class)
+
+srcdir=.
+DISTFILES=ConvertJDK117 INSTALL LGPL Makefile.in NEWS README README.midi README.mp3 config.guess config.sub configure.in configure  doc src test util #new
+SUBDIRS=@SUBDIRS@
+CONVERTTARGETS = @CONVERTTARGETS@
+MP3SP_OBJ = \
+$(OBJDIR_PRIV)/sampled/file/TAudioFileFormat.class \
+$(OBJDIR_PRIV)/sampled/file/TAudioFileReader.class \
+$(OBJDIR_PRIV)/sampled/file/MpegAudioFileReader.class \
+$(OBJDIR_PRIV)/sampled/file/MpegEncoding.class \
+$(OBJDIR_PRIV)/sampled/file/MpegFileFormatType.class \
+$(OBJDIR_PRIV)/sampled/convert/MpegFormatConversionProvider.class \
+$(OBJDIR_PRIV)/sampled/convert/TMatrixFormatConversionProvider.class \
+$(OBJDIR_PRIV)/sampled/convert/TSimpleFormatConversionProvider.class \
+$(OBJDIR_PRIV)/sampled/convert/TFormatConversionProvider.class \
+$(OBJDIR_PRIV)/sampled/convert/TAsynchronousFilteredAudioInputStream.class \
+$(OBJDIR_PRIV)/sampled/convert/MpegFormatConversionProvider\$$DecodedMpegAudioInputStream.class \
+$(OBJDIR_PRIV)/sampled/convert/MpegFormatConversionProvider\$$DecodedMpegAudioInputStream\$$DMAISObuffer.class \
+$(OBJDIR_PRIV)/TDebug.class \
+$(OBJDIR_PRIV)/TDebug\$$AssertException.class \
+$(OBJDIR_PRIV)/util/ArraySet.class \
+$(OBJDIR_PRIV)/util/TCircularBuffer.class \
+$(OBJDIR_PRIV)/util/TCircularBuffer\$$Trigger.class
+
+GSM_OBJ = \
+$(OBJDIR_PRIV)/lowlevel/gsm/Add.class \
+$(OBJDIR_PRIV)/lowlevel/gsm/Encoder.class \
+$(OBJDIR_PRIV)/lowlevel/gsm/GSMDecoder.class \
+$(OBJDIR_PRIV)/lowlevel/gsm/Gsm_Def.class \
+$(OBJDIR_PRIV)/lowlevel/gsm/Gsm_State.class \
+$(OBJDIR_PRIV)/lowlevel/gsm/InvalidGSMFrameException.class \
+$(OBJDIR_PRIV)/lowlevel/gsm/Long_term.class \
+$(OBJDIR_PRIV)/lowlevel/gsm/Lpc.class \
+$(OBJDIR_PRIV)/lowlevel/gsm/Rpe.class \
+$(OBJDIR_PRIV)/lowlevel/gsm/Short_term.class \
+$(OBJDIR_PRIV)/sampled/AudioUtils.class \
+$(OBJDIR_PRIV)/sampled/TConversionTool.class \
+$(OBJDIR_PRIV)/sampled/file/AudioOutputStream.class \
+$(OBJDIR_PRIV)/sampled/file/HeaderLessAudioOutputStream.class \
+$(OBJDIR_PRIV)/sampled/file/NonSeekableTDOS.class \
+$(OBJDIR_PRIV)/sampled/file/SeekableTDOS.class \
+$(OBJDIR_PRIV)/sampled/file/TAudioFileFormat.class \
+$(OBJDIR_PRIV)/sampled/file/TAudioFileReader.class \
+$(OBJDIR_PRIV)/sampled/file/TAudioFileWriter.class \
+$(OBJDIR_PRIV)/sampled/file/TAudioOutputStream.class \
+$(OBJDIR_PRIV)/sampled/file/TDataOutputStream.class \
+$(OBJDIR_PRIV)/sampled/file/gsm/GSMAudioFileReader.class \
+$(OBJDIR_PRIV)/sampled/file/gsm/GSMAudioFileWriter.class \
+$(OBJDIR_PRIV)/sampled/file/gsm/GSMEncoding.class \
+$(OBJDIR_PRIV)/sampled/file/gsm/GSMFileFormatType.class \
+$(OBJDIR_PRIV)/sampled/convert/TEncodingFormatConversionProvider.class \
+$(OBJDIR_PRIV)/sampled/convert/TSimpleFormatConversionProvider.class \
+$(OBJDIR_PRIV)/sampled/convert/TFormatConversionProvider.class \
+$(OBJDIR_PRIV)/sampled/convert/TAsynchronousFilteredAudioInputStream.class \
+$(OBJDIR_PRIV)/sampled/convert/gsm/GSMFormatConversionProvider.class \
+$(OBJDIR_PRIV)/sampled/convert/gsm/GSMFormatConversionProvider\$$DecodedGSMAudioInputStream.class \
+$(OBJDIR_PRIV)/sampled/convert/gsm/GSMFormatConversionProvider\$$EncodedGSMAudioInputStream.class \
+$(OBJDIR_PRIV)/TDebug.class \
+$(OBJDIR_PRIV)/TDebug\$$AssertException.class \
+$(OBJDIR_PRIV)/util/ArraySet.class \
+$(OBJDIR_PRIV)/util/TCircularBuffer.class \
+$(OBJDIR_PRIV)/util/TCircularBuffer\$$Trigger.class
+
+
+#----------------- rules -------------------
+
+.PHONY: all
+all: $(CONVERTTARGETS) $(LIBDEST) $(LIBDEST_JL)
+	@for d in $(SUBDIRS); do $(MAKE) -C $$d; done
+
+.PHONY: compileinitial
+compileinitial: $(CONVERTTARGETS) compileinitialimpl
+
+.PHONY: compileinitialimpl
+compileinitialimpl: $(SRC)
+	export CLASSPATH=.:$$CLASSPATH; $(JAVAC) -d $(DESTDIR) $(SRCTMP)
+	$(MAKE) all
+
+.PHONY: convert
+convert:
+	@if [ ! -f .converted ]; then ./ConvertJDK117; echo "" > .converted; fi
+
+$(LIBDEST):	$(OBJ) #$(CONFIGFILE2)
+	jar cf $(LIBDEST) $(PACKSRCDIR_MAIN) -C src/packaging/tritonus_core/ META-INF/services/
+
+
+.PHONY: mp3jars
+mp3jars:	$(LIBDEST_JL) $(LIBDEST_MP3SP)
+
+$(LIBDEST_JL):	$(OBJ)
+	cp src/javazoom/jl/decoder/*.ser javazoom/jl/decoder/
+	jar cf $(LIBDEST_JL) $(PACKSRCDIR_JL)
+
+#$(LIBDEST_JL):	../javalayer/$(LIBDEST_JL)
+#	cp ../javalayer/$(LIBDEST_JL) .
+
+
+$(LIBDEST_MP3SP):	$(OBJ)
+	jar cf $(LIBDEST_MP3SP) $(MP3SP_OBJ) -C src/packaging/tritonus_mp3/ META-INF/services/
+
+$(LIBDEST_GSM):	$(OBJ)
+	jar cf $(LIBDEST_GSM) $(GSM_OBJ) -C src/packaging/tritonus_gsm/ META-INF/services/
+
+.PHONY: doc
+doc:	all 
+	$(MAKE) -C doc
+
+.PHONY: test
+test:	all 
+	$(MAKE) -C all
+
+.PHONY: install
+install: all
+	$(INSTALL_DATA) $(LIBDEST) $(JAVAEXTPATH)
+	$(INSTALL_DATA) $(LIBDEST_JL) $(JAVAEXTPATH)
+	@for d in $(SUBDIRS); do $(MAKE) -C $$d install; done
+
+.PHONY: install-link
+install-link:
+	(cd  $(JAVAEXTLIBPATH) && $(LN_S) $(LIBDEST_ABSOLUTE))
+	@for d in $(SUBDIRS); do $(MAKE) -C $$d install-link; done
+
+.PHONY: clean
+clean:
+	rm -rf $(LIBDEST) $(LIBDEST_JL) $(LIBDEST_MP3SP) org javax javazoom
+	find . -name '*~' -exec rm '{}' ';'
+	find . -name '*.class' -exec rm '{}' ';'
+	find . -name '.directory' -exec rm '{}' ';'
+	@for d in $(SUBDIRS); do $(MAKE) -C $$d clean; done
+
+.PHONY: veryclean
+veryclean: clean
+	rm -rf TAGS
+
+.PHONY:tags
+tags: TAGS
+
+TAGS: $(SRCTMP)
+	etags $(SRCTMP)
+
+
+dist:
+	echo tritonus-`cat version` >.fname
+	-rm -rf `cat .fname`
+	mkdir `cat .fname`
+	dst=`cat .fname`; for f in $(DISTFILES); do \
+	ln $(srcdir)/$$f $$dst/$$f || { echo copying $$f; \
+	cp -pr $(srcdir)/$$f $$dst/$$f; } \
+	done
+	tar czhf `cat .fname`.tar.gz `cat .fname`
+	-rm -rf `cat .fname` .fname
+
+devdist:
+	echo tritonus-`date +%Y-%m-%d` >.fname
+	-rm -rf `cat .fname`
+	mkdir `cat .fname`
+	dst=`cat .fname`; for f in $(DISTFILES); do \
+	ln $(srcdir)/$$f $$dst/$$f || { echo copying $$f; \
+	cp -pr $(srcdir)/$$f $$dst/$$f; } \
+	done
+	tar czhf `cat .fname`.tar.gz `cat .fname`
+	-rm -rf `cat .fname` .fname
+
+devdist-upload: devdist
+	echo tritonus-`date +%Y-%m-%d.tar.gz` >.fname
+	scp `cat .fname` pfisterer@tritonus.sourceforge.net:/home/groups/ftp/pub/tritonus/
+	-rm -f .fname

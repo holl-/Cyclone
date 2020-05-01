@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<TabPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
+  <tabs>
+    <Tab text="General">
+         <content>
+            <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
+               <children>
+                  <CheckBox mnemonicParsing="false" selected="true" text="Single instance" />
+                  <Label text="When activated, double-clicking a song will play that song in the already open window." />
+                  <Separator prefWidth="200.0">
+                     <VBox.margin>
+                        <Insets />
+                     </VBox.margin>
+                     <padding>
+                        <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                     </padding>
+                  </Separator>
+                  <Label text="Appearance" />
+                  <ComboBox prefWidth="150.0" promptText="Skin" />
+               </children>
+               <padding>
+                  <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+               </padding>
+            </VBox>
+         </content>
+    </Tab>
+    <Tab text="Audio">
+         <content>
+            <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
+               <children>
+                  <Label text="Audio buffer length" />
+                  <HBox spacing="4.0">
+                     <children>
+                        <Slider max="1000.0" value="200.0" />
+                        <Label text="200" />
+                        <Label text="milliseconds" />
+                     </children>
+                  </HBox>
+                  <Label text="Too small values can cause stuttering, too large values lag in volume control." />
+                  <Separator prefWidth="200.0">
+                     <padding>
+                        <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                     </padding>
+                  </Separator>
+                  <Label text="Minimum volume" />
+                  <HBox>
+                     <children>
+                        <TextField text="0.01" />
+                     </children>
+                  </HBox>
+                  <Label text="The minimum volume defines the range the volume slider." />
+                  <Label text="When the volume slider reaches the left most position, the sound is muted." />
+               </children>
+               <padding>
+                  <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+               </padding>
+            </VBox>
+         </content>
+    </Tab>
+    <Tab text="Library">
+         <content>
+            <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
+               <children>
+                  <Label text="Root directories" />
+                  <ListView prefHeight="200.0" prefWidth="200.0" />
+                  <HBox spacing="4.0">
+                     <children>
+                        <Button mnemonicParsing="false" text="Remove selected" />
+                        <Button mnemonicParsing="false" text="Add directory..." />
+                     </children>
+                  </HBox>
+                  <Label text="Hint: Add a parent directory by playing a song and choosing &quot;Add to library...&quot; from the file menu." />
+                  <Separator prefWidth="200.0">
+                     <padding>
+                        <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                     </padding>
+                  </Separator>
+                  <CheckBox mnemonicParsing="false" text="Follow symbolic links" />
+               </children>
+               <padding>
+                  <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+               </padding>
+            </VBox>
+         </content>
+    </Tab>
+    <Tab text="Network">
+         <content>
+            <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
+               <padding>
+                  <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+               </padding>
+               <children>
+                  <CheckBox mnemonicParsing="false" text="Automatically connect on startup" />
+                  <Separator prefWidth="200.0">
+                     <padding>
+                        <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                     </padding>
+                  </Separator>
+                  <Label text="Computer name" />
+                  <TextField />
+                  <CheckBox mnemonicParsing="false" text="Share libraries" />
+                  <CheckBox mnemonicParsing="false" text="Share speakers" />
+                  <Separator prefWidth="200.0">
+                     <padding>
+                        <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                     </padding>
+                  </Separator>
+                  <Label text="Network configuration" />
+                  <HBox alignment="CENTER_LEFT" spacing="4.0">
+                     <children>
+                        <Label text="Multicast address:" />
+                        <TextField />
+                        <Label text="Port:" />
+                        <TextField prefHeight="25.0" prefWidth="50.0" />
+                     </children>
+                  </HBox>
+                  <Label text="Check for other devices every" />
+                  <HBox spacing="4.0">
+                     <children>
+                        <Slider max="60.0" value="10.0" />
+                        <Label text="10" />
+                        <Label text="seconds" />
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+         </content>
+    </Tab>
+  </tabs>
+</TabPane>
