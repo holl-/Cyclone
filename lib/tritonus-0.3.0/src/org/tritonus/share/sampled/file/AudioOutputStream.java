@@ -48,7 +48,7 @@ import	javax.sound.sampled.AudioFormat;
  *	Data have had to be recorded to a buffer, then written to a file
  *	from that buffer.
  *	This gave problems with long recordings, where the main
- *	memory of the machine is not big enough to hold all data. There are
+ *	memory of the systemcontrol is not big enough to hold all data. There are
  *	two ways so solve this:
  *
  *	a) Having a special AudioInputStream that fetches its data from a

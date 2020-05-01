@@ -104,7 +104,7 @@ public class EsdMixer
 		super(new TMixerInfo(
 			"Esd Mixer",
 			GlobalInfo.getVendor(),
-			"Mixer for the Enlightened Sound Daemon (esd) running on the local machine",
+			"Mixer for the Enlightened Sound Daemon (esd) running on the local systemcontrol",
 			GlobalInfo.getVersion()),
 		      new Line.Info(Mixer.class),
 		      Arrays.asList(FORMATS),

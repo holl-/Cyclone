@@ -178,7 +178,7 @@ public abstract class TAudioFileReader
  *
  * NaN's and infinities are converted to HUGE_VAL or HUGE, which
  * happens to be infinity on IEEE machines.  Unfortunately, it is
- * impossible to preserve NaN's in a machine-independent way.
+ * impossible to preserve NaN's in a systemcontrol-independent way.
  * Infinities are, however, preserved on IEEE machines.
  *
  * These routines have been tested on the following machines:

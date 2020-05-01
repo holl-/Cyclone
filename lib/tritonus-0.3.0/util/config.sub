@@ -2,8 +2,8 @@
 # Configuration validation subroutine script, version 1.1.
 #   Copyright (C) 1991, 92-97, 1998, 1999 Free Software Foundation, Inc.
 # This file is (in principle) common to ALL GNU software.
-# The presence of a machine in this file suggests that SOME GNU software
-# can handle that machine.  It does not imply ALL GNU software can.
+# The presence of a systemcontrol in this file suggests that SOME GNU software
+# can handle that systemcontrol.  It does not imply ALL GNU software can.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@
 # configuration.
 
 # The goal of this file is to map all the various variations of a given
-# machine specification into a single specification in the form:
+# systemcontrol specification into a single specification in the form:
 #	CPU_TYPE-MANUFACTURER-OPERATING_SYSTEM
 # or in some cases, the newer four-part form:
 #	CPU_TYPE-MANUFACTURER-KERNEL-OPERATING_SYSTEM
@@ -54,7 +54,7 @@ then
 	exit 1
 fi
 
-# First pass through any local machine types.
+# First pass through any local systemcontrol types.
 case $1 in
 	*local*)
 		echo $1
@@ -187,7 +187,7 @@ case $basic_machine in
 	  ;;
 	# Object if more than one company name word.
 	*-*-*)
-		echo Invalid configuration \`$1\': machine \`$basic_machine\' not recognized 1>&2
+		echo Invalid configuration \`$1\': systemcontrol \`$basic_machine\' not recognized 1>&2
 		exit 1
 		;;
 	# Recognize the basic CPU types with company name.
@@ -209,7 +209,7 @@ case $basic_machine in
 	      | m88110-* | m680[01234]0-* | m683?2-* | m68360-* | z8k-* | d10v-* \
 	      | thumb-* | v850-* | d30v-* | tic30-* | c30-* )
 		;;
-	# Recognize the various machine names and aliases which stand
+	# Recognize the various systemcontrol names and aliases which stand
 	# for a CPU type and a company and sometimes even an OS.
 	386bsd)
 		basic_machine=i386-unknown
@@ -850,7 +850,7 @@ case $basic_machine in
 		os=-coff
 		;;
 	*)
-		echo Invalid configuration \`$1\': machine \`$basic_machine\' not recognized 1>&2
+		echo Invalid configuration \`$1\': systemcontrol \`$basic_machine\' not recognized 1>&2
 		exit 1
 		;;
 esac
@@ -1000,7 +1000,7 @@ else
 
 # Here we handle the default operating systems that come with various machines.
 # The value should be what the vendor currently ships out the door with their
-# machine or put another way, the most popular os provided with the machine.
+# systemcontrol or put another way, the most popular os provided with the systemcontrol.
 
 # Note that if you're going to try to match "-MANUFACTURER" here (say,
 # "-sun"), then you have to tell the case statement up towards the top

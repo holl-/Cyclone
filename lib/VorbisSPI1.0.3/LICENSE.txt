@@ -227,7 +227,7 @@ the Library into a program that is not a library.
   4. You may copy and distribute the Library (or a portion or
 derivative of it, under Section 2) in object code or executable form
 under the terms of Sections 1 and 2 above provided that you accompany
-it with the complete corresponding machine-readable source code, which
+it with the complete corresponding systemcontrol-readable source code, which
 must be distributed under the terms of Sections 1 and 2 above on a
 medium customarily used for software interchange.
 
@@ -284,10 +284,10 @@ directing the user to the copy of this License.  Also, you must do one
 of these things:
 
     a) Accompany the work with the complete corresponding
-    machine-readable source code for the Library including whatever
+    systemcontrol-readable source code for the Library including whatever
     changes were used in the work (which must be distributed under
     Sections 1 and 2 above); and, if the work is an executable linked
-    with the Library, with the complete machine-readable "work that
+    with the Library, with the complete systemcontrol-readable "work that
     uses the Library", as object code and/or source code, so that the
     user can modify the Library and then relink to produce a modified
     executable containing the modified Library.  (It is understood

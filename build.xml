@@ -226,7 +226,7 @@
 
 		<fx:application id="fxApplication"
 			name="MX Player"
-			mainClass="com.mp3player.fx.app.Launcher"
+			mainClass="player.fx.app.Launcher"
 			toolkit="fx"
 		/>
 
@@ -264,7 +264,7 @@
 			<fx:platform basedir="${java.home}"/>
 			<fx:info title="MX Player FX build" vendor="Philipp Holl"/>
 
-			<fx:application name="MX Player" mainClass="com.mp3player.fx.app.Launcher"/>
+			<fx:application name="MX Player" mainClass="player.fx.app.Launcher"/>
 			<fx:resources id="appRes">
 				<fx:fileset dir="dist" includes="*.jar"/>
 				<fx:fileset dir="dist" includes="libs/*"/>
