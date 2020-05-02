@@ -62,7 +62,7 @@
 
 		<mkdir dir="project" />
 		<copy todir="project">
-			<fileset dir="E:\Philipp\java\Workspaces Efxclipse\MP3 Player\Cyclops FX build">
+			<fileset dir="C:\Users\Philipp\IdeaProjects\Cyclops">
 				<include name="src/**" />
 			</fileset>
 		</copy>
