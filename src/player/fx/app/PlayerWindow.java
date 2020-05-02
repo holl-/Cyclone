@@ -577,10 +577,10 @@ public class PlayerWindow implements Initializable {
                     AudioDataFormat ef = player.getEncodedFormat();
                     eEncoding.setText("Encoding: " + ef.getEncodingName());
                     eChannels.setText("Channels: " + (ef.getChannels() == 2 ? "Stereo" : (ef.getChannels() == 1 ? "Mono" : ef.getChannels())));
-                    eSampleRate.setText("Sample rate: " + ef.getSampleRate());
+                    eSampleRate.setText("Sample rate: " + ef.getSampleRate() + " Hz");
                     eSampleSize.setText("Sample size: " + (ef.getSampleSizeInBits() > 0 ? ef.getSampleSizeInBits() + " bits" : "variable"));
-                    eFrameSize.setText("Frame size: " + (ef.getFrameSize() > 0 ? ef.getFrameSize() : "variable"));
-                    eFrameRate.setText("Frame rate: " + ef.getFrameRate());
+                    eFrameSize.setText("Frame size: " + (ef.getFrameSize() > 0 ? ef.getFrameSize() + " bytes" : "variable"));
+                    eFrameRate.setText("Frame rate: " + ef.getFrameRate() + " Hz");
                     eEndianness.setText("Endianness: " + (ef.isBigEndian() ? "big endian" : "little endian"));
                     eProperties.setText((ef.getProperties().isEmpty() ? "" : ef.getProperties().toString()));
 
@@ -588,10 +588,10 @@ public class PlayerWindow implements Initializable {
                     AudioDataFormat df = player.getDecodedFormat();
                     dEncoding.setText("Encoding: " + df.getEncodingName());
                     dChannels.setText("Channels: " + (df.getChannels() == 2 ? "Stereo" : (df.getChannels() == 1 ? "Mono" : df.getChannels())));
-                    dSampleRate.setText("Sample rate: " + df.getSampleRate());
+                    dSampleRate.setText("Sample rate: " + df.getSampleRate() + " Hz");
                     dSampleSize.setText("Sample size: " + (df.getSampleSizeInBits() > 0 ? df.getSampleSizeInBits() + " bits" : "variable"));
-                    dFrameSize.setText("Frame size: " + (df.getFrameSize() > 0 ? df.getFrameSize() : "variable"));
-                    dFrameRate.setText("Frame rate: " + df.getFrameRate());
+                    dFrameSize.setText("Frame size: " + (df.getFrameSize() > 0 ? df.getFrameSize() + " bytes" : "variable"));
+                    dFrameRate.setText("Frame rate: " + df.getFrameRate() + " Hz");
                     dEndianness.setText("Endianness: " + (df.isBigEndian() ? "big endian" : "little endian"));
                     dProperties.setText((df.getProperties().isEmpty() ? "" : df.getProperties().toString()));
 				} else {
