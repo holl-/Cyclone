@@ -175,6 +175,7 @@ public class PlayerWindow implements Initializable {
 			currentSongMenu.disableProperty().bind(properties.mediaSelectedProperty().not());
 			volume.valueProperty().bindBidirectional(properties.gainProperty());
 			speakerSelection.setItems(properties.getSpeakers());
+			properties.getSpeaker().ifPresent(speaker -> speakerSelection.getSelectionModel().select(speaker));
 			speakerSelection.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
 				if(n != null) properties.setSpeaker(Optional.of(n));
 			});
