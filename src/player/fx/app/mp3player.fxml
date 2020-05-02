@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.CheckMenuItem?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
@@ -53,6 +54,7 @@
                               <KeyCodeCombination alt="UP" code="L" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
                         <SeparatorMenuItem mnemonicParsing="false" />
+                        <CheckMenuItem disable="true" mnemonicParsing="false" text="Share speakers" />
                         <Menu mnemonicParsing="false" text="Skin">
                           <items>
                             <MenuItem mnemonicParsing="false" onAction="#setStyle" text="Modena" />
@@ -99,7 +101,7 @@
                               <KeyCodeCombination alt="UP" code="DELETE" control="UP" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator>
                         </MenuItem>
-                    <MenuItem mnemonicParsing="false" text="Delete file">
+                    <MenuItem disable="true" mnemonicParsing="false" text="Delete file">
                            <accelerator>
                               <KeyCodeCombination alt="UP" code="DELETE" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>

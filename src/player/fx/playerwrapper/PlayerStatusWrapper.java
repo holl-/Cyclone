@@ -198,6 +198,11 @@ public class PlayerStatusWrapper {
 				newValue -> status.getTarget().setTargetMedia(newValue, true));
 
 		speakers = FXCollections.observableArrayList();
+		for(Distributed data : status.getVdp().getAllData()) {
+			if(data instanceof MachineInfo) {
+				speakers.addAll(((MachineInfo) data).getSpeakers());
+			}
+		}
 		status.getVdp().addDataListener(new DataListener() {
 			@Override
 			public void onDataRemoved(DataEvent e) {
