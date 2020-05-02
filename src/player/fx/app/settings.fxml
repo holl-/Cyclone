@@ -20,7 +20,7 @@
          <content>
             <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
                <children>
-                  <CheckBox mnemonicParsing="false" selected="true" text="Single instance" />
+                  <CheckBox fx:id="singleInstance" mnemonicParsing="false" selected="true" text="Single instance" />
                   <Label text="When activated, double-clicking a song will play that song in the already open window." />
                   <Separator prefWidth="200.0">
                      <VBox.margin>
@@ -31,7 +31,7 @@
                      </padding>
                   </Separator>
                   <Label text="Appearance" />
-                  <ComboBox prefWidth="150.0" promptText="Skin" />
+                  <ComboBox fx:id="skin" prefWidth="150.0" promptText="Skin" />
                </children>
                <padding>
                   <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />

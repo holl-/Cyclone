@@ -77,10 +77,11 @@ public class PlaybackEngine {
 
 
 	private void targetChanged() {
-		Optional<AudioDevice> localDevice = findLocalDevice(target.getTargetDevice());
-		if(localDevice.isPresent()) {
+		if(isTarget()) {
 			loadFile();
-			if(player != null) adjustPlayer(localDevice.get());
+			gain = target.getTargetGain();
+			mute = target.isTargetMute();
+			if(player != null) adjustPlayer();
 			publishInfo();
 		}
 		else if(!audio.getPlayers().isEmpty()){
@@ -139,13 +140,12 @@ public class PlaybackEngine {
 	}
 
 
-	private void adjustPlayer(AudioDevice localDevice) {
-		if(mute != target.isTargetMute()) {
-			mute = target.isTargetMute();
+	private void adjustPlayer() {
+		AudioDevice localDevice = findLocalDevice(target.getTargetDevice()).get();
+		if(mute != player.isMute()) {
 			player.setMute(mute);
 		}
-		if(gain != target.getTargetGain()) {
-			gain = target.getTargetGain();
+		if(gain != player.getGain()) {
 			player.setGain(gain);
 		}
 		if(target.wasTargetPositionSetAfter(lastPositionUpdate)) {
@@ -194,6 +194,10 @@ public class PlaybackEngine {
 		if(!speaker.isPresent()) return Optional.empty();
 		String id = speaker.get().getId();
 		return audio.getDevices().stream().filter(dev -> dev.getID().equals(id)).findAny();
+	}
+
+	private boolean isTarget() {
+		return findLocalDevice(target.getTargetDevice()).isPresent();
 	}
 
 

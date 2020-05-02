@@ -2,6 +2,7 @@ package player.fx.app;
 
 import audio.*;
 import com.aquafx_project.AquaFx;
+import com.sun.javafx.css.StyleManager;
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Application;
@@ -85,6 +86,7 @@ public class PlayerWindow implements Initializable {
 	private Node currentOverlay;
 
 	private PlaybackEngine engine;
+	private AppSettings settings;
 
 
 	public PlayerWindow(Stage stage, PlayerStatus status, MediaIndex index, PlaybackEngine engine) throws IOException {
@@ -115,7 +117,8 @@ public class PlayerWindow implements Initializable {
 		overlay.setActionGenerator(files -> generateDropButtons(files));
 
 		stage.setScene(scene = new Scene(root));
-		scene.getStylesheets().add(getClass().getResource("defaultstyle.css").toExternalForm());
+        settings = new AppSettings(properties);
+        settings.getStylableStages().add(stage);
 
 		stage.setTitle("Cyclops");
 		stage.getIcons().add(FXIcons.get("Play2.png", 32).getImage());
@@ -398,17 +401,6 @@ public class PlayerWindow implements Initializable {
 	}
 
 
-	@FXML
-	public void setStyle(ActionEvent e) {
-		MenuItem item = (MenuItem) e.getTarget();
-		String text = item.getText();
-		if(text.equals("AquaFX")) {
-			AquaFx.style();
-		} else {
-			Application.setUserAgentStylesheet(text.toUpperCase());
-		}
-	}
-
 	private void playFromLibrary(Identifier media, boolean append) {
 		Optional<RemoteFile> opFile = media.lookup(status.getVdp());
 		opFile.ifPresent(file -> {
@@ -612,6 +604,12 @@ public class PlayerWindow implements Initializable {
         Stage stage = new Stage();
         stage.setTitle("Media Info");
         stage.setScene(new Scene(playerRoot));
+        settings.getStylableStages().add(stage);
         stage.show();
 	}
+
+	@FXML
+    private void showSettings() {
+        settings.getStage().show();
+    }
 }

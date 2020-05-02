@@ -55,14 +55,7 @@
                            </accelerator></MenuItem>
                         <SeparatorMenuItem mnemonicParsing="false" />
                         <CheckMenuItem disable="true" mnemonicParsing="false" text="Share speakers" />
-                        <Menu mnemonicParsing="false" text="Skin">
-                          <items>
-                            <MenuItem mnemonicParsing="false" onAction="#setStyle" text="Modena" />
-                              <MenuItem mnemonicParsing="false" onAction="#setStyle" text="Caspian" />
-                              <MenuItem mnemonicParsing="false" onAction="#setStyle" text="AquaFX" />
-                          </items>
-                        </Menu>
-                    <MenuItem disable="true" mnemonicParsing="false" text="Settings...">
+                    <MenuItem mnemonicParsing="false" onAction="#showSettings" text="Settings...">
                            <accelerator>
                               <KeyCodeCombination alt="UP" code="E" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
