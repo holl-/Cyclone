@@ -75,6 +75,9 @@ public class MediaFormat implements Serializable {
 	}
 
 
+	/**
+	 * @return encoded audio data format
+	 */
 	public AudioDataFormat getAudioDataFormat() {
 		return audioDataFormat;
 	}

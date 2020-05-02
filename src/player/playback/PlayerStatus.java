@@ -1,4 +1,4 @@
-package player.status;
+package player.playback;
 
 import java.util.Optional;
 

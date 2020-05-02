@@ -4,15 +4,19 @@ import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import audio.*;
 import com.aquafx_project.AquaFx;
+import com.sun.xml.internal.ws.server.UnsupportedMediaException;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import player.fx.FileDropOverlay;
 import player.fx.PlayerControl;
 import player.fx.icons.FXIcons;
@@ -24,8 +28,9 @@ import player.model.MediaIndex;
 import player.model.MediaIndexEvent;
 import player.model.MediaIndexListener;
 import player.model.MediaInfo;
-import player.status.PlayerStatus;
-import player.status.Speaker;
+import player.playback.PlaybackEngine;
+import player.playback.PlayerStatus;
+import player.playback.Speaker;
 import vdp.RemoteFile;
 
 import javafx.animation.FadeTransition;
@@ -42,19 +47,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.Slider;
-import javafx.scene.control.TextField;
-import javafx.scene.control.ToggleButton;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -98,12 +91,15 @@ public class PlayerWindow implements Initializable {
 	private MediaIndexWrapper index;
 	private Node currentOverlay;
 
+	private PlaybackEngine engine;
 
-	public PlayerWindow(PlayerStatus status, MediaIndex index, Stage stage) throws IOException {
+
+	public PlayerWindow(Stage stage, PlayerStatus status, MediaIndex index, PlaybackEngine engine) throws IOException {
 		this.stage = stage;
 		this.status = status;
 		properties = new PlayerStatusWrapper(status, index);
 		this.index = new MediaIndexWrapper(index);
+		this.engine = engine;
 
 		root = new StackPane();
 		root.getChildren().add(loadPlayer());
@@ -531,5 +527,97 @@ public class PlayerWindow implements Initializable {
 				event.consume();
 			}
 		}
+	}
+
+
+	@FXML
+	public void showFileInfo() throws IOException {
+		if(!status.getPlayback().getCurrentMedia().isPresent()) {
+			return;
+		}
+
+		FXMLLoader loader = new FXMLLoader(getClass().getResource("fileinfo.fxml"));
+		loader.setController(new Initializable() {
+		    @FXML
+            private Tab encodingTab, playbackTab;
+			@FXML
+			private Label titleLabel, durationLabel, encodingLabel;
+			@FXML
+			private Hyperlink pathLink;
+			@FXML
+			private TableView<Map.Entry<String, Object>> propertiesTable;
+            @FXML
+            private TableColumn<Map.Entry<String, Object>, String> propertyColumn;
+			@FXML
+            private TableColumn<Map.Entry<String, Object>, Object> valueColumn;
+			@FXML
+            private Label eEncoding, eChannels, eSampleRate, eSampleSize, eFrameSize, eFrameRate, eEndianness, eProperties;
+            @FXML
+            private Label dEncoding, dChannels, dSampleRate, dSampleSize, dFrameSize, dFrameRate, dEndianness, dProperties, playbackEngine;
+
+			@Override
+			public void initialize(URL location, ResourceBundle resources) {
+				if(engine.currentPlayer() != null) {
+					Player player = engine.currentPlayer();
+					try {
+						player.loadMediaFormat();
+					} catch (IOException | UnsupportedMediaFormatException e) {
+						e.printStackTrace();
+						Alert alert = new Alert(AlertType.ERROR);
+						alert.setTitle("File error");
+						alert.setHeaderText("Failed to retrieve media information.");
+						alert.setContentText(e.getMessage());
+						alert.showAndWait();
+						return;
+					}
+					MediaFile file = player.getMediaFile();
+					MediaFormat format = player.getMediaFormat();
+					audio.MediaInfo info = player.getMediaInfo();
+
+					titleLabel.setText(info.getTitle() != null ? info.getTitle() : file.getFileName());
+					pathLink.setText(file.getFile().getAbsolutePath());
+					durationLabel.setText("Duration: " + info.getDuration() + " seconds / " + format.getFrameLength() + " frames");
+					encodingLabel.setText("File type: " + format.getType().getName() + ", size: " + file.getFileSize() / 1024 / 1024 + " MB (" + file.getFileSize() + " bytes)");
+					propertiesTable.getItems().addAll(FXCollections.observableArrayList(format.getProperties().entrySet()));
+
+                    AudioDataFormat ef = player.getEncodedFormat();
+                    eEncoding.setText("Encoding: " + ef.getEncodingName());
+                    eChannels.setText("Channels: " + (ef.getChannels() == 2 ? "Stereo" : (ef.getChannels() == 1 ? "Mono" : ef.getChannels())));
+                    eSampleRate.setText("Sample rate: " + ef.getSampleRate());
+                    eSampleSize.setText("Sample size: " + (ef.getSampleSizeInBits() > 0 ? ef.getSampleSizeInBits() + " bits" : "variable"));
+                    eFrameSize.setText("Frame size: " + (ef.getFrameSize() > 0 ? ef.getFrameSize() : "variable"));
+                    eFrameRate.setText("Frame rate: " + ef.getFrameRate());
+                    eEndianness.setText("Endianness: " + (ef.isBigEndian() ? "big endian" : "little endian"));
+                    eProperties.setText((ef.getProperties().isEmpty() ? "" : ef.getProperties().toString()));
+
+                    playbackEngine.setText("Playback engine: " + format.getAudioEngineName());
+                    AudioDataFormat df = player.getDecodedFormat();
+                    dEncoding.setText("Encoding: " + df.getEncodingName());
+                    dChannels.setText("Channels: " + (df.getChannels() == 2 ? "Stereo" : (df.getChannels() == 1 ? "Mono" : df.getChannels())));
+                    dSampleRate.setText("Sample rate: " + df.getSampleRate());
+                    dSampleSize.setText("Sample size: " + (df.getSampleSizeInBits() > 0 ? df.getSampleSizeInBits() + " bits" : "variable"));
+                    dFrameSize.setText("Frame size: " + (df.getFrameSize() > 0 ? df.getFrameSize() : "variable"));
+                    dFrameRate.setText("Frame rate: " + df.getFrameRate());
+                    dEndianness.setText("Endianness: " + (df.isBigEndian() ? "big endian" : "little endian"));
+                    dProperties.setText((df.getProperties().isEmpty() ? "" : df.getProperties().toString()));
+				} else {
+					status.getPlayback().getCurrentMedia().ifPresent(media -> {
+						titleLabel.setText(media.getFileName());
+						pathLink.setText(media.getPath());
+						durationLabel.setText("Media details are unavailable because file is not stored locally.");
+					});
+					encodingTab.setDisable(true);
+					playbackTab.setDisable(true);
+				}
+				propertyColumn.setCellValueFactory(entry -> new SimpleStringProperty(entry.getValue().getKey()));
+				valueColumn.setCellValueFactory(entry -> new SimpleObjectProperty<>(entry.getValue().getValue()));
+			}
+		});
+
+        BorderPane playerRoot = loader.load();
+        Stage stage = new Stage();
+        stage.setTitle("Media Info");
+        stage.setScene(new Scene(playerRoot));
+        stage.show();
 	}
 }

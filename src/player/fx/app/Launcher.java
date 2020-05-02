@@ -16,7 +16,7 @@ import mediacommand.MediaCommand;
 import mediacommand.MediaCommandManager;
 import player.model.MediaIndex;
 import player.playback.PlaybackEngine;
-import player.status.PlayerStatus;
+import player.playback.PlayerStatus;
 import vdp.VDP;
 
 import javafx.application.Application;
@@ -48,12 +48,12 @@ public class Launcher extends Application {
 		PlayerStatus status = new PlayerStatus(vdp);
 		MediaIndex index = new MediaIndex(vdp, new File("index.jobjs"));
 
-		window = new PlayerWindow(status, index, primaryStage);
+		PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(status, null);
+
+		window = new PlayerWindow(primaryStage, status, index, engine);
 		window.show();
 
 		addControl(window.getStatusWrapper());
-
-		PlaybackEngine.initializeAudioEngine(status, null);
 	}
 
 	private void play(ApplicationParameters parameters) {

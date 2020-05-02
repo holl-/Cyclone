@@ -1,4 +1,4 @@
-package player.status;
+package player.playback;
 
 public class Speaker {
 	private String peerID;

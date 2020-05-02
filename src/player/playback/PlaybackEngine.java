@@ -15,11 +15,6 @@ import audio.LocalMediaFile;
 import audio.MediaFile;
 import audio.Player;
 import player.model.Identifier;
-import player.status.MachineInfo;
-import player.status.PlaybackStatus;
-import player.status.PlayerStatus;
-import player.status.PlayerTarget;
-import player.status.Speaker;
 import vdp.RemoteFile;
 
 /**
@@ -27,6 +22,8 @@ import vdp.RemoteFile;
  * An instance of PlaybackEngine observe a PlayerStatus.
  * Whenever an audio file should be played back on a local device, the PlaybackEngine loads the file and plays it back.
  * It also adjusts position and gain to match the desired status.
+ *
+ * When a playback event occurs like an error or end-of-file, the PlaybackEngine updates the status.
  */
 public class PlaybackEngine {
 	private PlayerStatus status;
@@ -69,13 +66,13 @@ public class PlaybackEngine {
 	}
 
 
-	public static void initializeAudioEngine(PlayerStatus status, String engineName) throws AudioEngineException {
+	public static PlaybackEngine initializeAudioEngine(PlayerStatus status, String engineName) throws AudioEngineException {
 		AudioEngine engine;
 		if(engineName == null) engine = new JavaSoundEngine();
 		else if(engineName.equals("java")) engine = new JavaSoundEngine();
 		else if(engineName.equals("javafx")) engine = new JavaFXAudioEngine();
 		else throw new AudioEngineException("No audio engine registered for name " + engineName);
-		new PlaybackEngine(status, engine);
+		return new PlaybackEngine(status, engine);
 	}
 
 
@@ -103,42 +100,41 @@ public class PlaybackEngine {
 
 			currentMediaID = target.getTargetMedia();
 			currentFile = Identifier.lookup(currentMediaID, status.getVdp());
+			if(!currentFile.isPresent()) return;
 
-			if(currentFile.isPresent()) {
-				MediaFile file;
-				if(currentFile.get().getPeer().isLocal()) {
-					file = new LocalMediaFile(currentFile.get().localFile());
-				} else {
-					// TODO copy to local
-					throw new UnsupportedOperationException("file copying not supported yet");
-				}
-				player = audio.newPlayer(file);
-				try {
-					player.prepare();
-					player.activate(audio.getDefaultDevice());
-					player.setMute(mute);
-					player.setGain(gain);
-					player.addEndOfMediaListener(e -> status.next());
-					if(player.getDuration() < 0) {
-						new Thread(() -> {
-							try {
-								player.waitForDurationProperty();
-							} catch (IllegalStateException e1) {
-								e1.printStackTrace();
-								return;
-							} catch (InterruptedException e1) {
-								return;
-							}
-							publishInfo();
-						}).start();
-					}
-					errorMessage = null;
-				} catch(Exception exc) {
-					player = null;
-					exc.printStackTrace();
-					errorMessage = exc.getMessage();
-				}
-			}
+            MediaFile file;
+            if(currentFile.get().getPeer().isLocal()) {
+                file = new LocalMediaFile(currentFile.get().localFile());
+            } else {
+                // TODO copy to local
+                throw new UnsupportedOperationException("file copying not supported yet");
+            }
+            player = audio.newPlayer(file);
+            try {
+                player.prepare();
+                player.activate(audio.getDefaultDevice());
+                player.setMute(mute);
+                player.setGain(gain);
+                player.addEndOfMediaListener(e -> status.next());
+                if(player.getDuration() < 0) {
+                    new Thread(() -> {
+                        try {
+                            player.waitForDurationProperty();
+                        } catch (IllegalStateException e1) {
+                            e1.printStackTrace();
+                            return;
+                        } catch (InterruptedException e1) {
+                            return;
+                        }
+                        publishInfo();
+                    }).start();
+                }
+                errorMessage = null;
+            } catch(Exception exc) {
+                player = null;
+                exc.printStackTrace();
+                errorMessage = exc.getMessage();
+            }
 		}
 	}
 
@@ -179,8 +175,12 @@ public class PlaybackEngine {
 		}
 	}
 
+    /**
+     * Updates the PlaybackStatus to reflect the current status of the audio engine.
+     * This may result in the information being sent to connected machines.
+     */
 	private void publishInfo() {
-		boolean playing = player != null ? player.isPlaying() : false;
+		boolean playing = player != null && player.isPlaying();
 		double position = player != null ? player.getPosition() : 0;
 		double duration = player != null ? player.getDuration() : 0;
 
@@ -190,10 +190,15 @@ public class PlaybackEngine {
 	}
 
 
-	private Optional<AudioDevice> findLocalDevice(Optional<Speaker> device) {
-		if(!device.isPresent()) return Optional.empty();
-		String id = device.get().getId();
+	private Optional<AudioDevice> findLocalDevice(Optional<Speaker> speaker) {
+		if(!speaker.isPresent()) return Optional.empty();
+		String id = speaker.get().getId();
 		return audio.getDevices().stream().filter(dev -> dev.getID().equals(id)).findAny();
 	}
+
+
+	public Player currentPlayer() {
+	    return player;
+    }
 
 }

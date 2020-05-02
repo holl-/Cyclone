@@ -21,7 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import player.status.PlaybackStatus;
+import player.playback.PlaybackStatus;
 import vdp.Distributed;
 import vdp.RemoteFile;
 import vdp.VDP;
@@ -232,6 +232,9 @@ public class MediaIndex {
 
 		RemoteFile rfile = vdp.mountFile(file);
 		Identifier id = new Identifier(rfile);
+		if(allRoots.contains(id))
+			return;
+
 		localRoots.add(id);
 		allRoots.add(id);
 

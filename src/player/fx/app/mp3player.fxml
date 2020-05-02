@@ -80,7 +80,7 @@
               <menus>
                 <Menu fx:id="currentSongMenu" mnemonicParsing="false" text="Song title">
                   <items>
-                        <MenuItem disable="true" mnemonicParsing="false" text="File information...">
+                        <MenuItem mnemonicParsing="false" onAction="#showFileInfo" text="File information...">
                            <accelerator>
                               <KeyCodeCombination alt="UP" code="I" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
