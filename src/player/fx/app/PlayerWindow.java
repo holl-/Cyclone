@@ -124,7 +124,7 @@ public class PlayerWindow implements Initializable {
 		stage.setScene(scene = new Scene(root));
 		scene.getStylesheets().add(getClass().getResource("defaultstyle.css").toExternalForm());
 
-		stage.setTitle("MX Player");
+		stage.setTitle("Cyclops");
 		stage.getIcons().add(FXIcons.get("Play2.png", 32).getImage());
 
 		stage.setOnHidden(e -> {
@@ -475,8 +475,8 @@ public class PlayerWindow implements Initializable {
     public void displayInfo() {
     	Alert info = new Alert(AlertType.INFORMATION);
     	info.setTitle("Info");
-    	info.setHeaderText("MX Player");
-    	info.setContentText("MX Player pre 0.1\nAuthor: Philipp Holl\nFeb 20, 2017");
+    	info.setHeaderText("Cyclops");
+    	info.setContentText("Version 0.2\nAuthor: Philipp Holl\nMay 2020");
     	info.initOwner(stage);
     	info.initModality(Modality.NONE);
     	info.show();

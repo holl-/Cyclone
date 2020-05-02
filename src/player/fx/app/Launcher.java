@@ -28,7 +28,7 @@ public class Launcher extends Application {
 	@Override
 	public void start(Stage primaryStage) throws Exception
 	{
-		ApplicationParameters appParams = new ApplicationParameters("MX Player", getParameters());
+		ApplicationParameters appParams = new ApplicationParameters("Cyclops", getParameters());
 		InstanceManager im = new InstanceManager(appParams, params -> play(params));
 		Optional<ApplicationParameters> mainAppParams = im.registerIfFirst();
 

@@ -2,7 +2,7 @@
 <anttasks:AntTask xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:anttasks="http://org.eclipse.fx.ide.jdt/1.0" buildDirectory="${project}/build">
   <deploy includeDT="true" splashImage="" packagingFormat="none">
     <application name="FX UI 2" mainclass="player.fx.app.Launcher" version="pre 0.1" toolkit="fx"/>
-    <info title="MX Player" vendor="Philipp Holl"/>
+    <info title="Cyclops" vendor="Philipp Holl"/>
   </deploy>
   <signjar/>
 </anttasks:AntTask>
