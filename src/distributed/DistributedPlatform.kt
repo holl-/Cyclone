@@ -11,7 +11,6 @@ import java.util.function.BiConsumer
 import java.util.function.Consumer
 import java.util.function.Supplier
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException
 import distributed.internal.LocalFile
 
 /**
@@ -128,7 +127,7 @@ class DistributedPlatform {
         return if (peer.isLocal) {
             mountedFiles
         } else {
-            throw NotImplementedException()
+            TODO()
         }
     }
 
@@ -233,8 +232,7 @@ class DistributedPlatform {
 
     fun getPeer(id: String): Peer {
         if (Peer.getLocal().id == id) return Peer.getLocal()
-
-        throw NotImplementedException()
+        TODO()
     }
 
     fun addConnectionListener(l: ConnectionListener) {

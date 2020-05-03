@@ -428,10 +428,7 @@ public class PlayerWindow implements Initializable {
 
     public void show() {
 		stage.show();
-		System.out.println(stage.getWidth()+" x "+stage.getHeight());
-
-		// default values, apply for bundled application
-    	stage.setWidth(314);
+    	stage.setWidth(314);  // default values, apply for bundled application
     	stage.setHeight(402);
     }
 
