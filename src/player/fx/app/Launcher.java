@@ -1,26 +1,24 @@
 package player.fx.app;
 
+import appinstance.ApplicationParameters;
+import appinstance.InstanceManager;
+import audio.AudioEngineException;
+import distributed.DistributedPlatform;
+import javafx.application.Application;
+import javafx.stage.Stage;
+import mediacommand.CombinationManager;
+import mediacommand.MediaCommand;
+import mediacommand.MediaCommandManager;
+import player.model.CyclonePlayer;
+import player.model.MediaLibrary;
+import player.model.PlaybackEngine;
+import systemcontrol.LocalMachine;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import appinstance.ApplicationParameters;
-import appinstance.InstanceManager;
-import audio.AudioEngineException;
-import player.fx.playerwrapper.PlayerStatusWrapper;
-import systemcontrol.LocalMachine;
-import mediacommand.CombinationManager;
-import mediacommand.MediaCommand;
-import mediacommand.MediaCommandManager;
-import player.model.MediaIndex;
-import player.playback.PlaybackEngine;
-import player.playback.PlayerStatus;
-import vdp.VDP;
-
-import javafx.application.Application;
-import javafx.stage.Stage;
 
 public class Launcher extends Application {
 	private PlayerWindow window;
@@ -43,16 +41,11 @@ public class Launcher extends Application {
 	}
 
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
-		VDP vdp = new VDP();
-
-		PlayerStatus status = new PlayerStatus(vdp);
-		MediaIndex index = new MediaIndex(vdp, new File("index.jobjs"));
-
-		PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(status, null);
-
-		window = new PlayerWindow(primaryStage, status, index, engine);
+		DistributedPlatform vdp = new DistributedPlatform();
+		CyclonePlayer player = new CyclonePlayer(vdp, new MediaLibrary());
+		PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(player.getPlayerTarget(), player.getPlaybackStatus(), null);
+		window = new PlayerWindow(primaryStage, player, engine);
 		window.show();
-
 		addControl(window.getStatusWrapper());
 	}
 
@@ -68,7 +61,7 @@ public class Launcher extends Application {
 	}
 
 
-	public static void addControl(PlayerStatusWrapper player) {
+	public static void addControl(CyclonePlayer player) {
 		if(MediaCommandManager.isSupported()) {
         	MediaCommandManager manager = MediaCommandManager.getInstance();
         	CombinationManager cm = new CombinationManager();
@@ -78,8 +71,8 @@ public class Launcher extends Application {
         		player.setPlaying(!player.isPlaying());
         	});
         	cm.addCombination(new MediaCommand[]{ MediaCommand.STOP }, c -> player.stop() );
-        	cm.addCombination(new MediaCommand[]{ MediaCommand.NEXT }, c -> player.getStatus().next() );
-        	cm.addCombination(new MediaCommand[]{ MediaCommand.PREVIOUS }, c -> player.getStatus().previous() );
+        	cm.addCombination(new MediaCommand[]{ MediaCommand.NEXT }, c -> player.next() );
+        	cm.addCombination(new MediaCommand[]{ MediaCommand.PREVIOUS }, c -> player.previous() );
 
         	MediaCommand[] playCombination = new MediaCommand[]{ MediaCommand.VOLUME_UP, MediaCommand.VOLUME_DOWN};
         	MediaCommand[] monitorOffCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_UP};
@@ -94,8 +87,8 @@ public class Launcher extends Application {
         		LocalMachine machine = LocalMachine.getLocalMachine();
         		if(machine != null) machine.turnOffMonitors();
         	});
-        	cm.addCombination(nextCombination, c -> player.getStatus().next());
-        	cm.addCombination(previousCombination, c -> player.getStatus().previous());
+        	cm.addCombination(nextCombination, c -> player.next());
+        	cm.addCombination(previousCombination, c -> player.previous());
         	cm.addCombination(deleteCombination, c -> System.out.println("Delete not implemented yet"));
         }
 	}

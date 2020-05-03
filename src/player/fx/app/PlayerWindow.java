@@ -1,17 +1,13 @@
 package player.fx.app;
 
 import audio.*;
-import com.aquafx_project.AquaFx;
-import com.sun.javafx.css.StyleManager;
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
-import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
-import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -36,17 +32,15 @@ import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import player.AudioFiles;
 import player.fx.FileDropOverlay;
 import player.fx.PlayerControl;
 import player.fx.icons.FXIcons;
-import player.fx.playerwrapper.MediaIndexWrapper;
-import player.fx.playerwrapper.PlayerStatusWrapper;
-import player.model.*;
-import player.model.MediaInfo;
-import player.playback.PlaybackEngine;
-import player.playback.PlayerStatus;
-import player.playback.Speaker;
-import vdp.RemoteFile;
+import player.model.CyclonePlayer;
+import player.model.MediaLibrary;
+import player.model.PlaybackEngine;
+import player.model.data.Speaker;
+import distributed.RemoteFile;
 
 import java.awt.*;
 import java.io.File;
@@ -57,9 +51,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class PlayerWindow implements Initializable {
-	private Scene scene;
 	private Stage stage;
 	private StackPane root;
+	private Node currentOverlay;
 
 	// Default
 	@FXML private Menu currentSongMenu, settingsMenu, addToLibraryMenu;
@@ -67,57 +61,46 @@ public class PlayerWindow implements Initializable {
 	@FXML private MenuBar menuBar;
 	@FXML private Slider volume;
 	@FXML private ComboBox<Speaker> speakerSelection;
-
 	// Playlist
-	private Pane playlistRoot;
-	@FXML private Button removeOthersButton;
-	@FXML private ListView<MediaInfo> playlist;
-
+	private Node playlistRoot, playlistListView;
 	// Search
-	private Pane searchRoot;
-	@FXML private ListView<MediaInfo> searchResult;
-	@FXML private TextField searchField;
+	private Node searchRoot, searchFocus;
 
-	private PlayerControl control;
-
-	private PlayerStatus status;
-	private PlayerStatusWrapper properties;
-	private MediaIndexWrapper index;
-	private Node currentOverlay;
-
-	private PlaybackEngine engine;
+	private CyclonePlayer player;
+	private MediaLibrary library;
+	private PlaybackEngine engine; // can be null
 	private AppSettings settings;
 
 
-	public PlayerWindow(Stage stage, PlayerStatus status, MediaIndex index, PlaybackEngine engine) throws IOException {
+	PlayerWindow(Stage stage, CyclonePlayer player, PlaybackEngine engine) throws IOException {
 		this.stage = stage;
-		this.status = status;
-		properties = new PlayerStatusWrapper(status, index);
-		this.index = new MediaIndexWrapper(index);
+		this.player = player;
 		this.engine = engine;
+		library = player.getLibrary();
 
 		root = new StackPane();
 		root.getChildren().add(loadPlayer());
 		playlistRoot = loadPlaylist();
 		searchRoot = loadSearch();
 
-		properties.currentMediaProperty().addListener((p,o,n) -> updateAddToLibraryMenu());
-		index.addMediaIndexListener(new MediaIndexListener() {
-			@Override
-			public void onRemoved(MediaIndexEvent e) {
-				updateAddToLibraryMenu();
-			}
-			@Override
-			public void onAdded(MediaIndexEvent e) {
-				updateAddToLibraryMenu();
-			}
-		});
+		this.player.currentMediaProperty().addListener((p, o, n) -> updateAddToLibraryMenu());
+//		index.addMediaIndexListener(new MediaIndexListener() {
+//			@Override
+//			public void onRemoved(MediaIndexEvent e) {
+//				updateAddToLibraryMenu();
+//			}
+//			@Override
+//			public void onAdded(MediaIndexEvent e) {
+//				updateAddToLibraryMenu();
+//			}
+//		});
 
 		FileDropOverlay overlay = new FileDropOverlay(root);
 		overlay.setActionGenerator(files -> generateDropButtons(files));
 
+		Scene scene;
 		stage.setScene(scene = new Scene(root));
-        settings = new AppSettings(properties);
+        settings = new AppSettings(this.player);
         settings.getStylableStages().add(stage);
 
 		stage.setTitle("Cyclone");
@@ -133,17 +116,17 @@ public class PlayerWindow implements Initializable {
 		loader.setController(this);
 		BorderPane playerRoot = loader.load();
 
-		control = new PlayerControl();
-		control.durationProperty().bind(properties.durationProperty());
-		control.positionProperty().bindBidirectional(properties.positionProperty());
-		control.playingProperty().bindBidirectional(properties.playingProperty());
-		control.mediaSelectedProperty().bind(properties.mediaSelectedProperty());
-		control.playlistAvailableProperty().bind(properties.playlistAvailableProperty());
-		control.shuffledProperty().bindBidirectional(properties.shuffledProperty());
-		control.loopProperty().bindBidirectional(properties.loopProperty());
-		control.setOnNext(e -> properties.getStatus().next());
-		control.setOnPrevious(e -> properties.getStatus().previous());
-		control.setOnStop(e -> properties.stop());
+		PlayerControl control = new PlayerControl();
+		control.durationProperty().bind(player.durationProperty());
+		control.positionProperty().bindBidirectional(player.positionProperty());
+		control.playingProperty().bindBidirectional(player.playingProperty());
+		control.mediaSelectedProperty().bind(player.mediaSelectedProperty());
+		control.playlistAvailableProperty().bind(player.playlistAvailableProperty());
+		control.shuffledProperty().bindBidirectional(player.shuffledProperty());
+		control.loopProperty().bindBidirectional(player.loopProperty());
+		control.setOnNext(e -> player.next());
+		control.setOnPrevious(e -> player.previous());
+		control.setOnStop(e -> player.stop());
 		control.setOnShowPlaylist(e -> showPlaylist());
 		control.setOnSearch(e -> showSearch());
 		playerRoot.setCenter(control);
@@ -152,7 +135,44 @@ public class PlayerWindow implements Initializable {
 
 	private BorderPane loadPlaylist() throws IOException {
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("playlist.fxml"));
-		loader.setController(this);
+		loader.setController(new Initializable() {
+			@FXML private Button removeOthersButton;
+			@FXML private ListView<RemoteFile> playlist;
+
+			@Override
+			public void initialize(URL location, ResourceBundle resources) {
+				playlist.setItems(player.getPlaylist());
+				playlist.addEventFilter(KeyEvent.KEY_PRESSED, new TabAndEnterHandler(playlist));
+				removeOthersButton.disableProperty().bind(player.playlistAvailableProperty().not());
+				playlist.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
+					if(n != null) player.setCurrentMedia(Optional.of(n));
+				});
+				player.currentMediaProperty().addListener((p, o, n) -> {
+					playlist.getSelectionModel().select(player.getCurrentMedia().orElse(null));
+				});
+				playlist.setCellFactory(list -> new MediaCell());
+				playlistListView = playlist;
+			}
+
+			@FXML
+			public void closePlaylist() {
+				fadeOut(playlistRoot);
+			}
+
+			@FXML
+			public void clearPlaylist() {
+				player.setCurrentMedia(Optional.empty());
+				player.getPlaylist().clear();
+				closePlaylist();
+			}
+
+			@FXML
+			public void clearOthers() {
+				List<RemoteFile> newList = new ArrayList<>();
+				player.getCurrentMedia().ifPresent(m -> newList.add(m));
+				player.setPlaylist(newList, 0, false);
+			}
+		});
 		BorderPane playlistRoot = loader.load();
 		playlistRoot.setBackground(new Background(new BackgroundFill(new Color(0,0,0,0.5), CornerRadii.EMPTY, Insets.EMPTY)));
 		return playlistRoot;
@@ -160,7 +180,69 @@ public class PlayerWindow implements Initializable {
 
 	private BorderPane loadSearch() throws IOException {
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("search.fxml"));
-		loader.setController(this);
+		loader.setController(new Initializable() {
+			@FXML private ListView<RemoteFile> searchResult;
+			@FXML private TextField searchField;
+
+			@Override
+			public void initialize(URL location, ResourceBundle resources) {
+				searchField.textProperty().addListener((p,o,n) -> {
+					if(n.isEmpty()) {
+						searchResult.setItems(library.getRecentlyUsed());
+					} else {
+						searchResult.setItems(library.startSearch(n));
+					}
+					if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
+					searchResult.getItems().addListener((ListChangeListener<RemoteFile>) change -> {
+						if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
+					});
+				});
+				searchResult.setItems(library.getRecentlyUsed());
+				searchResult.setCellFactory(list -> new MediaCell());
+				searchResult.setOnKeyPressed(e -> {
+					if(e.getCode() == KeyCode.ENTER) {
+						RemoteFile m = searchResult.getSelectionModel().getSelectedItem();
+						if(m != null) {
+							playFromLibrary(m, e.isControlDown());
+						}
+						Platform.runLater(() -> closeSearch());
+					}
+				});
+				searchField.setOnKeyPressed(e -> {
+					if(e.getCode() == KeyCode.ENTER) {
+						RemoteFile m = searchResult.getSelectionModel().getSelectedItem();
+						if(m != null) {
+							playFromLibrary(m, e.isControlDown());
+						}
+						e.consume();
+						Platform.runLater(() -> closeSearch());
+					} else if(e.getCode() == KeyCode.DOWN) {
+						int next = searchResult.getSelectionModel().getSelectedIndex()+1;
+						if(searchResult.getItems().size() > next) searchResult.getSelectionModel().select(next);
+						e.consume();
+					} else if(e.getCode() == KeyCode.UP){
+						int prev = searchResult.getSelectionModel().getSelectedIndex() - 1;
+						if(prev >= 0) searchResult.getSelectionModel().select(prev);
+						e.consume();
+					}
+				});
+				searchResult.setOnMouseReleased(e -> {
+					if(e.getButton() == MouseButton.PRIMARY) {
+						RemoteFile m = searchResult.getSelectionModel().getSelectedItem();
+						if(m != null && (!player.getCurrentMedia().isPresent() || !m.equals(player.getCurrentMedia()))) {
+							playFromLibrary(m, e.isControlDown());
+						}
+						Platform.runLater(() -> closeSearch());
+					}
+				});
+				searchFocus = searchField;
+			}
+
+			@FXML
+			public void closeSearch() {
+				fadeOut(searchRoot);
+			}
+		});
 		BorderPane searchRoot = loader.load();
 		searchRoot.setBackground(new Background(new BackgroundFill(new Color(0,0,0,0.5), CornerRadii.EMPTY, Insets.EMPTY)));
 		return searchRoot;
@@ -169,104 +251,31 @@ public class PlayerWindow implements Initializable {
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
-		if(playlist == null) {
-			// Initialize UI
-			settingsMenu.setText(null);
-			settingsMenu.setGraphic(FXIcons.get("Settings.png", 24));
-			currentSongMenu.setGraphic(FXIcons.get("Media.png", 24));
-			currentSongMenu.textProperty().bind(properties.titleProperty());
-			currentSongMenu.disableProperty().bind(properties.mediaSelectedProperty().not());
-			volume.valueProperty().bindBidirectional(properties.gainProperty());
-			speakerSelection.setItems(properties.getSpeakers());
-			properties.getSpeaker().ifPresent(speaker -> speakerSelection.getSelectionModel().select(speaker));
-			speakerSelection.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
-				if(n != null) properties.setSpeaker(Optional.of(n));
-			});
-			properties.speakerProperty().addListener((p,o,n) -> {
-				speakerSelection.getSelectionModel().select(n.orElse(null));
-			});
-		}
-		else if(searchField == null) {
-			// Initialize playlist view
-			playlist.setItems(properties.getPlaylist());
-			playlist.addEventFilter(KeyEvent.KEY_PRESSED, new TabAndEnterHandler(playlist));
-			removeOthersButton.disableProperty().bind(properties.playlistAvailableProperty().not());
-			playlist.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
-				if(n != null) properties.setCurrentMedia(Optional.of(n.getIdentifier()));
-			});
-			properties.currentMediaProperty().addListener((p,o,n) -> {
-				playlist.getSelectionModel().select(properties.getCurrentMedia().flatMap(m -> index.getIndex().getInfo(m)).orElse(null));
-			});
-			playlist.setOnMouseReleased(e -> {
-//				if(e.getButton() == MouseButton.PRIMARY) {
-//					Platform.runLater(() -> closePlaylist());
-//				}
-			});
-			playlist.setCellFactory(list -> new MediaCell());
-		}
-		else {
-			// Initialize search view
-			searchField.textProperty().addListener((p,o,n) -> {
-				if(n.isEmpty()) {
-					searchResult.setItems(index.getRecentlyUsed().getItems());
-				} else {
-					searchResult.setItems(index.startSearch(n).getItems());
-				}
-				if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
-				searchResult.getItems().addListener((ListChangeListener<MediaInfo>) change -> {
-					if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
-				});
-			});
-			searchResult.setItems(index.getRecentlyUsed().getItems());
-			searchResult.setCellFactory(list -> new MediaCell());
-			searchResult.setOnKeyPressed(e -> {
-				if(e.getCode() == KeyCode.ENTER) {
-					MediaInfo m = searchResult.getSelectionModel().getSelectedItem();
-					if(m != null) {
-						playFromLibrary(m.getIdentifier(), e.isControlDown());
-					}
-					Platform.runLater(() -> closeSearch());
-				}
-			});
-			searchField.setOnKeyPressed(e -> {
-				if(e.getCode() == KeyCode.ENTER) {
-					MediaInfo m = searchResult.getSelectionModel().getSelectedItem();
-					if(m != null) {
-						playFromLibrary(m.getIdentifier(), e.isControlDown());
-					}
-					e.consume();
-					Platform.runLater(() -> closeSearch());
-				} else if(e.getCode() == KeyCode.DOWN) {
-					int next = searchResult.getSelectionModel().getSelectedIndex()+1;
-					if(searchResult.getItems().size() > next) searchResult.getSelectionModel().select(next);
-					e.consume();
-				} else if(e.getCode() == KeyCode.UP){
-					int prev = searchResult.getSelectionModel().getSelectedIndex() - 1;
-					if(prev >= 0) searchResult.getSelectionModel().select(prev);
-					e.consume();
-				}
-			});
-			searchResult.setOnMouseReleased(e -> {
-				if(e.getButton() == MouseButton.PRIMARY) {
-					MediaInfo m = searchResult.getSelectionModel().getSelectedItem();
-					if(m != null && (!properties.getCurrentMedia().isPresent() || !m.equals(properties.getCurrentMedia()))) {
-						playFromLibrary(m.getIdentifier(), e.isControlDown());
-					}
-					Platform.runLater(() -> closeSearch());
-				}
-			});
-		}
+		settingsMenu.setText(null);
+		settingsMenu.setGraphic(FXIcons.get("Settings.png", 24));
+		currentSongMenu.setGraphic(FXIcons.get("Media.png", 24));
+		currentSongMenu.textProperty().bind(player.titleProperty());
+		currentSongMenu.disableProperty().bind(player.mediaSelectedProperty().not());
+		volume.valueProperty().bindBidirectional(player.gainProperty());
+		speakerSelection.setItems(player.getSpeakers());
+		player.getSpeaker().ifPresent(speaker -> speakerSelection.getSelectionModel().select(speaker));
+		speakerSelection.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
+			if(n != null) player.setSpeaker(Optional.of(n));
+		});
+		player.speakerProperty().addListener((p, o, n) -> {
+			speakerSelection.getSelectionModel().select(n.orElse(null));
+		});
 	}
 
-	public PlayerStatusWrapper getStatusWrapper() {
-		return properties;
+	public CyclonePlayer getStatusWrapper() {
+		return player;
 	}
 
 	private List<ToggleButton> generateDropButtons(List<File> files) {
 		List<ToggleButton> result = new ArrayList<>(3);
 
 		List<File> audioFiles = AudioFiles.trim(AudioFiles.unfold(files));
-		boolean cold = status.getPlaylist().isEmpty();
+		boolean cold = player.getPlaylist().isEmpty();
 
 		// Play / New Playlist
 		if(!audioFiles.isEmpty()) {
@@ -279,10 +288,10 @@ public class PlayerWindow implements Initializable {
 		if(!cold && !audioFiles.isEmpty()) {
 			ToggleButton append = new ToggleButton("Add to playlist", FXIcons.get("Append.png", 32));
 			append.setOnAction(e -> {
-				List<RemoteFile> remoteFiles = audioFiles.stream().map(file -> status.getVdp().mountFile(file)).collect(Collectors.toList());
-				Identifier mediaID = status.getPlaylist().addAll(remoteFiles, 0, status.getTarget().isShuffled(), status.getPlayback().getCurrentMedia());
-				if(!status.getPlayback().getCurrentMedia().isPresent()) {
-					status.getTarget().setTargetMedia(mediaID, true);
+				List<RemoteFile> remoteFiles = audioFiles.stream().map(RemoteFile::fromFile).collect(Collectors.toList());
+				RemoteFile mediaID = player.addToPlaylist(remoteFiles, 0);
+				if(!player.getCurrentMedia().isPresent()) {
+					player.setCurrentMedia(Optional.of(mediaID));
 				}
 			});
 			result.add(append);
@@ -304,14 +313,14 @@ public class PlayerWindow implements Initializable {
 
 	public void play(List<File> localFiles, File startFile) {
 		int startIndex = localFiles.indexOf(startFile);
-		List<RemoteFile> remoteFiles = localFiles.stream().map(file -> status.getVdp().mountFile(file)).collect(Collectors.toList());
-		for(RemoteFile file : remoteFiles) {
-			if(!properties.getIndex().isIndexed(file)) {
-				properties.getIndex().getOrAdd(file);
-			}
-		}
-		Identifier mediaID = status.getPlaylist().setAll(remoteFiles, startIndex, status.getTarget().isShuffled(), false);
-		status.getTarget().setTargetMedia(mediaID, true);
+		List<RemoteFile> remoteFiles = localFiles.stream().map(RemoteFile::fromFile).collect(Collectors.toList());
+//		for(RemoteFile file : remoteFiles) {
+//			if(!player.getLibrary().isIndexed(file)) {
+//				player.getLibrary().getOrAdd(file);
+//			}
+//		}
+		RemoteFile mediaID = player.setPlaylist(remoteFiles, startIndex, false);
+		player.setCurrentMedia(Optional.of(mediaID));
 	}
 
 	private void fadeIn(Node node, Node focus) {
@@ -356,30 +365,21 @@ public class PlayerWindow implements Initializable {
 	}
 
 	public void showPlaylist() {
-		fadeIn(playlistRoot, playlist);
+		fadeIn(playlistRoot, playlistListView);
 	}
-    @FXML
-    public void closePlaylist() {
-    	fadeOut(playlistRoot);
-    }
 
     @FXML
 	public void showSearch() {
-		fadeIn(searchRoot, searchField);
-	}
-
-	@FXML
-	public void closeSearch() {
-		fadeOut(searchRoot);
+		fadeIn(searchRoot, searchFocus);
 	}
 
 	private void updateAddToLibraryMenu() {
 		addToLibraryMenu.getItems().clear();
 
-		Optional<RemoteFile> op = properties.getCurrentMedia().flatMap(id -> id.lookup(status.getVdp()));
+		Optional<RemoteFile> op = player.getCurrentMedia();
 		if(op.isPresent() && op.get().localFile() != null) {
 			File file = op.get().localFile().getAbsoluteFile();
-			while(op.isPresent() && index.getIndex().isIndexed(op.get())) {
+			while(op.isPresent() && library.isIndexed(op.get())) {
 				op = op.get().getParentFile();
 				file = file.getParentFile();
 			}
@@ -388,7 +388,7 @@ public class PlayerWindow implements Initializable {
 					File ffile = file;
 					MenuItem item = new MenuItem(file.getName().isEmpty() ? file.getAbsolutePath() : file.getName());
 					item.setGraphic(FXIcons.get(file.isDirectory() ? "PlayFolder.png" : "Media.png", 28) );
-					item.setOnAction(e -> index.getIndex().addLocalRoot(ffile));
+					item.setOnAction(e -> library.getRoots().add(RemoteFile.fromFile(ffile)));
 					addToLibraryMenu.getItems().add(item);
 					file = file.getParentFile();
 				} while(file != null);
@@ -401,30 +401,27 @@ public class PlayerWindow implements Initializable {
 	}
 
 
-	private void playFromLibrary(Identifier media, boolean append) {
-		Optional<RemoteFile> opFile = media.lookup(status.getVdp());
-		opFile.ifPresent(file -> {
-			List<RemoteFile> remoteFiles = Arrays.asList(file);
-			if(!append) {
-				Identifier mediaID = status.getPlaylist().setAll(remoteFiles, 0, status.getTarget().isShuffled(), true);
-				status.getTarget().setTargetMedia(mediaID, true);
-			} else {
-				Identifier mediaID = status.getPlaylist().addAll(remoteFiles, 0, status.getTarget().isShuffled(), status.getPlayback().getCurrentMedia());
-				if(!status.getPlayback().getCurrentMedia().isPresent()) {
-					status.getTarget().setTargetMedia(mediaID, true);
-				}
+	private void playFromLibrary(RemoteFile file, boolean append) {
+		List<RemoteFile> remoteFiles = Arrays.asList(file);
+		if(!append) {
+			RemoteFile mediaID = player.setPlaylist(remoteFiles, 0, true);
+			player.setCurrentMedia(Optional.of(mediaID));
+		} else {
+			RemoteFile mediaID = player.addToPlaylist(remoteFiles, 0);
+			if(!player.getCurrentMedia().isPresent()) {
+				player.setCurrentMedia(Optional.of(mediaID));
 			}
-		});
+		}
 	}
 
 
-	static class MediaCell extends ListCell<MediaInfo>
+	static class MediaCell extends ListCell<RemoteFile>
 	{
 		@Override
-		protected void updateItem(MediaInfo item, boolean empty) {
+		protected void updateItem(RemoteFile item, boolean empty) {
 			super.updateItem(item, empty);
 			if(item != null) {
-				setText(item.getDisplayTitle());
+				setText(AudioFiles.inferTitle(item.getPath()));
 			} else setText(null);
 		}
 	}
@@ -444,20 +441,6 @@ public class PlayerWindow implements Initializable {
     }
 
     @FXML
-    public void clearPlaylist() {
-    	status.getTarget().setTargetMedia(Optional.empty(), false);
-    	status.getPlaylist().clear();
-    	closePlaylist();
-    }
-
-    @FXML
-    public void clearOthers() {
-    	List<Identifier> newList = new ArrayList<>();
-    	properties.getStatus().getPlayback().getCurrentMedia().ifPresent(m -> newList.add(m));
-    	properties.getStatus().getPlaylist().setAll(newList);
-    }
-
-    @FXML
     public void displayInfo() {
     	Alert info = new Alert(AlertType.INFORMATION);
     	info.setTitle("Info");
@@ -470,7 +453,7 @@ public class PlayerWindow implements Initializable {
 
     @FXML
     public void openFileLocation() {
-    	status.getPlayback().getCurrentMedia().flatMap(id -> id.lookup(status.getVdp())).ifPresent(file -> {
+    	player.getCurrentMedia().ifPresent(file -> {
     		if(file.localFile() != null) {
     			try {
 					Desktop.getDesktop().browse(file.localFile().getParentFile().toURI());
@@ -486,15 +469,15 @@ public class PlayerWindow implements Initializable {
 
     @FXML
     public void removeCurrentFromPlaylist() {
-    	Optional<Identifier> current = status.getPlayback().getCurrentMedia();
+    	Optional<RemoteFile> current = player.getCurrentMedia();
     	if(!current.isPresent()) return;
 
-    	boolean hasNext = status.getNext() != current;
+    	boolean hasNext = player.getNext() != current;
     	if(hasNext) {
-    		status.next();
+    		player.next();
     	}
-    	status.getPlaylist().remove(current.get());
-    	if(!hasNext) status.next();
+    	player.getPlaylist().remove(current.get());
+    	if(!hasNext) player.next();
     }
 
 
@@ -518,7 +501,7 @@ public class PlayerWindow implements Initializable {
 
 	@FXML
 	public void showFileInfo() throws IOException {
-		if(!status.getPlayback().getCurrentMedia().isPresent()) {
+		if(!player.getCurrentMedia().isPresent()) {
 			return;
 		}
 
@@ -587,8 +570,8 @@ public class PlayerWindow implements Initializable {
                     dEndianness.setText("Endianness: " + (df.isBigEndian() ? "big endian" : "little endian"));
                     dProperties.setText((df.getProperties().isEmpty() ? "" : df.getProperties().toString()));
 				} else {
-					status.getPlayback().getCurrentMedia().ifPresent(media -> {
-						titleLabel.setText(media.getFileName());
+					player.getCurrentMedia().ifPresent(media -> {
+						titleLabel.setText(media.getName());
 						pathLink.setText(media.getPath());
 						durationLabel.setText("Media details are unavailable because file is not stored locally.");
 					});

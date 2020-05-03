@@ -10,14 +10,13 @@ import javafx.scene.Scene
 import javafx.scene.control.CheckBox
 import javafx.scene.control.ComboBox
 import javafx.stage.Stage
-import player.fx.playerwrapper.PlayerStatusWrapper
-import player.playback.PlayerTarget
+import player.model.CyclonePlayer
 import java.io.File
 import java.net.URL
 import java.util.*
 import java.util.stream.Collectors
 
-class AppSettings(var player: PlayerStatusWrapper) : Initializable {
+class AppSettings(var player: CyclonePlayer) : Initializable {
 
     @FXML var skin: ComboBox<String>? = null
     @FXML var singleInstance: CheckBox? = null
