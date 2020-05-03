@@ -120,7 +120,7 @@ public class PlayerWindow implements Initializable {
         settings = new AppSettings(properties);
         settings.getStylableStages().add(stage);
 
-		stage.setTitle("Cyclops");
+		stage.setTitle("Cyclone");
 		stage.getIcons().add(FXIcons.get("Play2.png", 32).getImage());
 
 		stage.setOnHidden(e -> {
@@ -461,7 +461,7 @@ public class PlayerWindow implements Initializable {
     public void displayInfo() {
     	Alert info = new Alert(AlertType.INFORMATION);
     	info.setTitle("Info");
-    	info.setHeaderText("Cyclops");
+    	info.setHeaderText("Cyclone");
     	info.setContentText("Version 0.2\nAuthor: Philipp Holl\nMay 2020");
     	info.initOwner(stage);
     	info.initModality(Modality.NONE);

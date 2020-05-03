@@ -23,7 +23,7 @@ class AppSettings(var player: PlayerStatusWrapper) : Initializable {
     @FXML var singleInstance: CheckBox? = null
     var stage: Stage = Stage()
     var stylableStages: List<Stage> = mutableListOf(stage)
-    val settingsFile: File = File(System.getProperty("user.home") + "/AppData/Roaming/Cyclops/settings.txt").absoluteFile
+    val settingsFile: File = File(System.getProperty("user.home") + "/AppData/Roaming/Cyclone/settings.txt").absoluteFile
 
     init {
         var loader = FXMLLoader(javaClass.getResource("settings.fxml"))

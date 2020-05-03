@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-	<project name="Cyclops FX build" default="do-deploy" basedir="."  xmlns:fx="javafx:com.sun.javafx.tools.ant">
+	<project name="Cyclone FX build" default="do-deploy" basedir="."  xmlns:fx="javafx:com.sun.javafx.tools.ant">
 	<target name="init-fx-tasks">
 		<path id="fxant">
 			<filelist>
@@ -34,7 +34,7 @@
 		</copy>
 
 		<copy todir="out/build/classes">
-			<fileset dir="out/production/Cyclops">
+			<fileset dir="out/production/Cyclone">
 				<include name="**/*"/>
 			</fileset>
 		</copy>
@@ -61,12 +61,12 @@
 
 
 		<fx:resources id="appRes">
-			<fx:fileset dir="out/dist" includes="Cyclops FX build.jar"/>
+			<fx:fileset dir="out/dist" includes="Cyclone FX build.jar"/>
 			<fx:fileset dir="out/dist" includes="libs/*"/>
 		</fx:resources>
 
 		<fx:application id="fxApplication"
-			name="Cyclops"
+			name="Cyclone"
 			mainClass="player.fx.app.Launcher"
 			toolkit="fx"
 		/>
@@ -75,7 +75,7 @@
 
 
 
-		<fx:jar destfile="out/dist/Cyclops FX build.jar">
+		<fx:jar destfile="out/dist/Cyclone FX build.jar">
 			<fx:application refid="fxApplication"/>
 			<fileset dir="out/build/classes">
 			</fileset>
@@ -83,7 +83,7 @@
 
 			<manifest>
 				<attribute name="Implementation-Vendor" value="Philipp Holl"/>
-				<attribute name="Implementation-Title" value="Cyclops"/>
+				<attribute name="Implementation-Title" value="Cyclone"/>
 				<attribute name="Implementation-Version" value="pre 0.1"/>
 				<attribute name="SplashScreen-Image" value=""/>
 				<attribute name="JavaFX-Feature-Proxy" value="None"/>
@@ -99,13 +99,13 @@
 			includeDT="true"
 			offlineAllowed="true"
 			outdir="${basedir}/out/deploy"
-			outfile="Cyclops FX build" nativeBundles="msi"
+			outfile="Cyclone FX build" nativeBundles="msi"
 			updatemode="background" >
 
 			<fx:platform basedir="${java.home}"/>
-			<fx:info title="Cyclops FX build" vendor="Philipp Holl"/>
+			<fx:info title="Cyclone FX build" vendor="Philipp Holl"/>
 
-			<fx:application name="Cyclops" mainClass="player.fx.app.Launcher"/>
+			<fx:application name="Cyclone" mainClass="player.fx.app.Launcher"/>
 			<fx:resources id="appRes">
 				<fx:fileset dir="out/dist" includes="*.jar"/>
 				<fx:fileset dir="out/dist" includes="libs/*"/>
