@@ -1,0 +1,23 @@
+<component name="ArtifactManager">
+  <artifact type="javafx" name="Cyclone">
+    <output-path>$PROJECT_DIR$/out/artifacts/Cyclone</output-path>
+    <properties id="javafx-properties">
+      <options>
+        <option name="appClass" value="player.fx.app.Launcher" />
+        <option name="description" value="Media Player" />
+        <option name="height" value="350" />
+        <option name="htmlPlaceholderId" value="" />
+        <option name="nativeBundle" value="msi" />
+        <option name="title" value="Cyclone" />
+        <option name="vendor" value="" />
+        <option name="version" value="0.2" />
+        <option name="width" value="350" />
+      </options>
+    </properties>
+    <root id="root">
+      <element id="archive" name="Cyclone.jar">
+        <element id="module-output" name="Cyclone" />
+      </element>
+    </root>
+  </artifact>
+</component>
