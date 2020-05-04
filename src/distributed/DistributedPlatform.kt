@@ -2,12 +2,14 @@ package distributed
 
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.function.BiConsumer
 import java.util.function.Consumer
+import java.util.stream.Stream
 import kotlin.collections.HashMap
 
 /**
@@ -91,6 +93,16 @@ class DistributedPlatform {
     @Throws(IOException::class)
     fun send(message: Serializable, target: Peer) {
 
+    }
+
+    @Throws(IOException::class)
+    internal fun<T : Serializable> query(query: Serializable, target: Peer): Stream<T> {
+        TODO()
+    }
+
+    @Throws(IOException::class)
+    internal fun openStream(peer: Peer, path: String): InputStream {
+        TODO()
     }
 
 

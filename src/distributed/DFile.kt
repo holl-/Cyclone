@@ -1,5 +1,6 @@
 package distributed
 
+import distributed.internal.ListDirRequest
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -8,24 +9,11 @@ import java.util.*
 import java.util.stream.Stream
 
 class DFile(file: File) : Distributed(false, true) {
-    /** The peer that hosts this file */
-    private val originPeer: Peer = Peer.getLocal()
     private val path: String = file.path
     private var size: Long? = null  // read upon serialization
     private var isDir: Boolean? = null // read upon serialization
 
 
-    /**
-     * Gets the path to this file under which it is mounted.
-     *
-     *
-     * Example: The folder C:/music which contains the file song.mp3 was mounted
-     * using [DistributedPlatform.mountFile]. Then the path to song.mp3 will be
-     * music/song.mp3.
-     *
-     *
-     * @return the path to this file under which it is mounted
-     */
     fun getPath(): String {
         return path
     }
@@ -35,13 +23,6 @@ class DFile(file: File) : Distributed(false, true) {
         return parts[parts.size - 1]
     }
 
-    /**
-     * Returns true if this object represents a directory. This method may not
-     * check if the path is still available. If not, the result of this method
-     * is undefined.
-     *
-     * @return true if this object represents a directory
-     */
     fun isDirectory(): Boolean {
         if(isDir == null && originatesHere())
             isDir = File(path).isDirectory
@@ -51,11 +32,9 @@ class DFile(file: File) : Distributed(false, true) {
     /**
      * Returns the size of this file in bytes.
      *
-     *
      * Files should not be modified while they are being mounted by a
      * [DistributedPlatform]. Therefore this method also returns a valid size if the
      * hosting peer is not available.
-     *
      *
      * @return the size of this file in bytes
      * @throws UnsupportedOperationException
@@ -87,7 +66,7 @@ class DFile(file: File) : Distributed(false, true) {
             val names = dir.list()
             return Arrays.stream(names).map { name -> DFile(File(dir, name)) }
         } else {
-            TODO("Query from host")
+            return platform.query(ListDirRequest(this), origin)
         }
     }
 
@@ -106,7 +85,7 @@ class DFile(file: File) : Distributed(false, true) {
         if(originatesHere()) {
             return FileInputStream(File(path))
         } else {
-            TODO()
+            return platform.openStream(origin, getPath())
         }
     }
 
@@ -117,7 +96,7 @@ class DFile(file: File) : Distributed(false, true) {
      * @see Peer.isLocal
      */
     fun originatesHere(): Boolean {
-        return Peer.getLocal().id == originPeer.id
+        return Peer.getLocal().id == origin.id
     }
 
 
@@ -132,14 +111,14 @@ class DFile(file: File) : Distributed(false, true) {
 
         other as DFile
 
-        if (originPeer != other.originPeer) return false
+        if (origin != other.origin) return false
         if (path != other.path) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = originPeer.hashCode()
+        var result = origin.hashCode()
         result = 31 * result + path.hashCode()
         return result
     }

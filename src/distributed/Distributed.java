@@ -32,7 +32,7 @@ import java.util.function.Consumer;
  */
 public abstract class Distributed implements Serializable {
 
-	private Peer owner = Peer.getLocal();
+	Peer origin = Peer.getLocal();
 
 	/**
 	 * Permanent objects should keep their values even after restarting the application.
@@ -77,7 +77,7 @@ public abstract class Distributed implements Serializable {
 	public boolean exists() {
 		if(platform == null)
 			return true;
-		return platform.getAllPeers().contains(owner);
+		return platform.getAllPeers().contains(origin);
 	}
 
 	/**
