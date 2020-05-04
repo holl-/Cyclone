@@ -19,8 +19,6 @@ import distributed.Distributed;
 public class PlaybackStatus extends Distributed {
 	private static final long serialVersionUID = -5405377670442949541L;
 
-	public static final String DistributedPlatform_ID = "playback-status";
-
 	private Optional<Speaker> device = Optional.empty();
 	private List<String> supportedFormats = Collections.emptyList();
 
@@ -39,7 +37,7 @@ public class PlaybackStatus extends Distributed {
 	private double duration;
 
 	public PlaybackStatus() {
-		super(DistributedPlatform_ID, false, false);
+		super(false, false);
 	}
 
 	@Override

@@ -11,16 +11,23 @@ import player.model.data.*;
 import distributed.*;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.*;
+import java.util.stream.Collectors;
 
 public class CyclonePlayer {
-	private PlayerStatus status;
 	private MediaLibrary library;
+
+	// Data objects
+	private PlaybackStatus playbackData;
+	private PlayerTarget targetData;
+	private Playlist playlistData;
+	private SpeakerList devicesData;
 
 	private String noMediaText = "No media selected.";
 
@@ -90,55 +97,59 @@ public class CyclonePlayer {
 
 
 
-	public CyclonePlayer(DistributedPlatform platform, MediaLibrary index) {
-		this.status = new PlayerStatus(platform);
-		this.library = index;
-		status.getPlayback().addDataChangeListener(e -> {
-			status.getPlayback().getCurrentMedia().ifPresent(m -> library.getRecentlyUsed().add(0, m));
-			if(status.getPlayback().getEndOfMediaReached()) {
+	public CyclonePlayer(MediaLibrary library) {
+		playbackData = new PlaybackStatus();
+		playlistData = new Playlist();
+		targetData = new PlayerTarget();
+		devicesData = new SpeakerList();
+
+		this.library = library;
+		playbackData.addDataChangeListener(e -> {
+			playbackData.getCurrentMedia().ifPresent(m -> this.library.getRecentlyUsed().add(0, m));
+			if(playbackData.getEndOfMediaReached()) {
 				next();  // ToDo only if this is the active controller
 			}
 		});
 
 		playing = new DistributedBooleanProperty("playing", this,
-				status.getPlayback(),
-				() -> status.getPlayback().isPlaying(),
+				playbackData,
+				() -> playbackData.isPlaying(),
 				newValue -> {
-					if(!status.getPlayback().getCurrentMedia().isPresent() && !status.getPlaylist().isEmpty()) next();
-					else status.getTarget().setTargetPlaying(newValue);
+					if(!playbackData.getCurrentMedia().isPresent() && !playlistData.isEmpty()) next();
+					else targetData.setTargetPlaying(newValue);
 					});
 
 		duration = new DistributedDoubleProperty("duration", this,
-				status.getPlayback(),
-				() -> status.getPlayback().getDuration(),
+				playbackData,
+				() -> playbackData.getDuration(),
 				newValue -> { throw new UnsupportedOperationException("cannot set duration"); });
 
 		title = new DistributedReadOnlyStringProperty("title", this,
-				status.getPlayback(),
+				playbackData,
 				() -> {
-					if(status.getPlayback().getBusyText() != null) return status.getPlayback().getBusyText();
-					return status.getPlayback().getCurrentMedia().map(m -> new File(m.getPath()).getName()).orElse(noMediaText);
+					if(playbackData.getBusyText() != null) return playbackData.getBusyText();
+					return playbackData.getCurrentMedia().map(m -> new File(m.getPath()).getName()).orElse(noMediaText);
 					});
 
 		mediaSelected = new DistributedBooleanProperty("mediaSelected", this,
-				status.getPlayback(),
-				() -> status.getPlayback().getCurrentMedia() != null && status.getPlayback().getCurrentMedia().isPresent(),
-				newValue -> status.getTarget().setTargetPlaying(newValue));
+				playbackData,
+				() -> playbackData.getCurrentMedia() != null && playbackData.getCurrentMedia().isPresent(),
+				newValue -> targetData.setTargetPlaying(newValue));
 
 		playlistAvailable = new DistributedBooleanProperty("playlistAvailable", this,
-				status.getPlaylist(), status.getPlayback(),
-				() -> status.getPlaylist().size() > 1 || (status.getPlaylist().size() == 1 && !status.getPlayback().getCurrentMedia().isPresent()),
+				playlistData, playbackData,
+				() -> playlistData.size() > 1 || (playlistData.size() == 1 && !playbackData.getCurrentMedia().isPresent()),
 				newValue -> { throw new UnsupportedOperationException("cannot set duration"); });
 
 		position = new DistributedDoubleProperty("position", this,
-				status.getPlayback(),
-				() -> status.getPlayback().getCurrentPosition(),
+				playbackData,
+				() -> playbackData.getCurrentPosition(),
 				newValue -> {
-					if(newValue >= 0) status.getTarget().setTargetPosition(newValue, true);
+					if(newValue >= 0) targetData.setTargetPosition(newValue, true);
 				}) {
 			@Override
 			public double get() {
-				return status.getPlayback().getCurrentPosition();
+				return playbackData.getCurrentPosition();
 			}
 		};
 		Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
@@ -148,77 +159,66 @@ public class CyclonePlayer {
 		}, 50, 50, TimeUnit.MILLISECONDS);
 
 		gain = new DistributedDoubleProperty("gain", this,
-				status.getPlayback(),
-				() -> status.getPlayback().getGain(),
-				newValue -> status.getTarget().setTargetGain(newValue));
+				playbackData,
+				() -> playbackData.getGain(),
+				newValue -> targetData.setTargetGain(newValue));
 
 		mute = new DistributedBooleanProperty("mute", this,
-				status.getPlayback(),
-				() -> status.getPlayback().isMute(),
-				newValue -> status.getTarget().setTargetMute(newValue));
+				playbackData,
+				() -> playbackData.isMute(),
+				newValue -> targetData.setTargetMute(newValue));
 
 		loop = new DistributedBooleanProperty("loop", this,
-				status.getTarget(),
-				() -> status.getTarget().isLoop(),
-				newValue -> status.getTarget().setLoop(newValue));
+				targetData,
+				() -> targetData.isLoop(),
+				newValue -> targetData.setLoop(newValue));
 
 		shuffled = new DistributedBooleanProperty("shuffled", this,
-				status.getTarget(),
-				() -> status.getTarget().isShuffled(),
+				targetData,
+				() -> targetData.isShuffled(),
 				newValue -> {
-					status.getTarget().setShuffled(newValue);
-					status.getPlaylist().shuffle(status.getPlayback().getCurrentMedia());
+					targetData.setShuffled(newValue);
+					playlistData.shuffle(playbackData.getCurrentMedia());
 				});
 
 		playlist = FXCollections.observableArrayList();
-		status.getPlaylist().addDataChangeListener(e -> {
-			Platform.runLater(() -> playlist.setAll(status.getPlaylist().list()));
+		playlistData.addDataChangeListener(e -> {
+			Platform.runLater(() -> playlist.setAll(playlistData.list()));
 		});
 
 		currentMedia = new DistributedObjectProperty<>("currentMedia", this,
-				status.getPlayback(),
-				() -> status.getPlayback().getCurrentMedia(),
-				newValue -> status.getTarget().setTargetMedia(newValue, true));
+				playbackData,
+				() -> playbackData.getCurrentMedia(),
+				newValue -> targetData.setTargetMedia(newValue, true));
 
-		speakers = FXCollections.observableArrayList();
-		for(Distributed data : status.getVdp().getAllData()) {
-			if(data instanceof MachineInfo) {
-				speakers.addAll(((MachineInfo) data).getSpeakers());
-			}
-		}
-		status.getVdp().addDataListener(new DataListener() {
-			@Override
-			public void onDataRemoved(DataEvent e) {
-				// TODO Auto-generated method stub
-
-			}
-			@Override
-			public void onDataChanged(DataEvent e) {
-				// TODO Auto-generated method stub
-
-			}
-			@Override
-			public void onDataAdded(DataEvent e) {
-				if(MachineInfo.getPeer(e.getData()).isPresent()) {
-					MachineInfo info = (MachineInfo)e.getData();
-					speakers.addAll(info.getSpeakers());
-				}
-			}
+		speakers = FXCollections.observableArrayList(devicesData.getSpeakers());
+		devicesData.addDataChangeListener(e -> {
+			List<Speaker> availableSpeakers = devicesData.getSpeakers().stream().filter(Distributed::exists).collect(Collectors.toList());
+			Platform.runLater(() -> speakers.setAll(availableSpeakers));
 		});
 
 		speaker = new DistributedObjectProperty<>("speaker", this,
-				status.getPlayback(),
-				() -> status.getPlayback().getDevice(),
-				newValue -> status.getTarget().setTargetDevice(newValue));
+				playbackData,
+				() -> playbackData.getDevice(),
+				newValue -> targetData.setTargetDevice(newValue));
+	}
+
+
+	public List<Distributed> getDistributedObjects() {
+		return Arrays.asList(targetData, playbackData, playlistData, devicesData);
+	}
+
+	public SpeakerList getDevicesData() {
+		return devicesData;
 	}
 
 
 	public PlaybackStatus getPlaybackStatus() {
-		return status.getPlayback();
+		return playbackData;
 	}
 
 	public PlayerTarget getPlayerTarget() {
-		return status.getTarget();
+		return targetData;
 	}
 
 	public MediaLibrary getLibrary() {
@@ -226,73 +226,31 @@ public class CyclonePlayer {
 	}
 
 	public void stop() {
-		status.getTarget().stop();
+		targetData.stop();
 	}
 
 	public DFile addToPlaylist(List<DFile> files, int returnIndex) {
-		return status.getPlaylist().addAll(files, returnIndex, isShuffled(), getCurrentMedia());
+		return playlistData.addAll(files, returnIndex, isShuffled(), getCurrentMedia());
 	}
 
 	public DFile setPlaylist(List<DFile> files, int returnIndex, boolean firstStayFirst) {
-		return status.getPlaylist().setAll(files, returnIndex, isShuffled(), firstStayFirst);
+		return playlistData.setAll(files, returnIndex, isShuffled(), firstStayFirst);
 	}
 
 
 	public Optional<DFile> getNext() {
-		return status.playlist.getNext(status.playback.getCurrentMedia(), status.target.isLoop());
+		return playlistData.getNext(playbackData.getCurrentMedia(), targetData.isLoop());
 	}
 	public void next() {
-		status.target.setTargetMedia(getNext(), true);
+		targetData.setTargetMedia(getNext(), true);
 	}
 
 	public Optional<DFile> getPrevious() {
-		return status.playlist.getPrevious(status.playback.getCurrentMedia(), status.target.isLoop());
+		return playlistData.getPrevious(playbackData.getCurrentMedia(), targetData.isLoop());
 	}
 	public void previous() {
-		status.target.setTargetMedia(getPrevious(), true);
+		targetData.setTargetMedia(getPrevious(), true);
 	}
-
-
-	class PlayerStatus {
-		private DistributedPlatform vdp;
-
-		private PlaybackStatus playback;
-		private PlayerTarget target;
-		private Playlist playlist;
-
-
-		public PlayerStatus(DistributedPlatform vdp) {
-			this.vdp = vdp;
-
-			playback = vdp.getOrAddData(new PlaybackStatus());
-			target = vdp.getOrAddData(new PlayerTarget());
-			playlist = vdp.getOrAddData(new Playlist());
-		}
-
-
-		public DistributedPlatform getVdp() {
-			return vdp;
-		}
-
-
-		public PlaybackStatus getPlayback() {
-			return playback;
-		}
-
-
-		public PlayerTarget getTarget() {
-			return target;
-		}
-
-		public Playlist getPlaylist() {
-			return playlist;
-		}
-
-		public Optional<MachineInfo> getInfo(Peer peer) {
-			return vdp.getData(MachineInfo.id(peer)).map(data -> (MachineInfo)data);
-		}
-	}
-
 
 
 	private static class DistributedDoubleProperty extends DoubleProperty
@@ -653,9 +611,5 @@ public class CyclonePlayer {
 		public void set(T value) {
 			if(!lastValue.equals(value)) setter.accept(value);
 		}
-	}
-
-	public DistributedPlatform getVdp() {
-		return status.getVdp();
 	}
 }

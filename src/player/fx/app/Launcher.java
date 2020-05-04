@@ -12,6 +12,7 @@ import mediacommand.MediaCommandManager;
 import player.model.CyclonePlayer;
 import player.model.MediaLibrary;
 import player.model.PlaybackEngine;
+import player.model.data.SpeakerList;
 import systemcontrol.LocalMachine;
 
 import java.io.File;
@@ -41,12 +42,17 @@ public class Launcher extends Application {
 	}
 
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
-		DistributedPlatform vdp = new DistributedPlatform();
-		CyclonePlayer player = new CyclonePlayer(vdp, new MediaLibrary());
+		CyclonePlayer player = new CyclonePlayer(new MediaLibrary());
 		PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(player.getPlayerTarget(), player.getPlaybackStatus(), null);
+//		player.getDevicesData().setSpeakers(engine.getSpeakers());
+
 		window = new PlayerWindow(primaryStage, player, engine);
 		window.show();
 		addControl(window.getStatusWrapper());
+
+		DistributedPlatform platform = new DistributedPlatform();
+		platform.putData(player.getDistributedObjects());
+		platform.getData(SpeakerList.class).setSpeakers(engine.getSpeakers());
 	}
 
 	private void play(ApplicationParameters parameters) {

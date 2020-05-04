@@ -1,89 +1,29 @@
-package player.model.data;
+package player.model.data
 
-public class Speaker {
-	private String peerID;
-	private String id;
-	private String name;
-	private double minGain, maxGain;
-	private boolean peerDefault;
+import distributed.Distributed
+import distributed.Peer
+import java.util.*
 
+class Speaker(val peer: Peer,
+              val speakerId: String,
+              val name: String,
+              val minGain: Double,
+              val maxGain: Double,
+              val isPeerDefault: Boolean) : Distributed(false, true) {
 
-	public Speaker(String peerID, String id, String name, double minGain, double maxGain, boolean peerDefault) {
-		this.peerID = peerID;
-		this.id = id;
-		this.name = name;
-		this.minGain = minGain;
-		this.maxGain = maxGain;
-		this.peerDefault = peerDefault;
-	}
+    override fun toString(): String {
+        return name
+    }
 
+    override fun equals(o: Any?): Boolean {
+        if (this === o) return true
+        if (o == null || javaClass != o.javaClass) return false
+        val speaker = o as Speaker
+        return peer == speaker.peer && speakerId == speaker.speakerId
+    }
 
-	public String getPeerID() {
-		return peerID;
-	}
-
-
-	public String getId() {
-		return id;
-	}
-
-
-	public String getName() {
-		return name;
-	}
-
-
-	public double getMinGain() {
-		return minGain;
-	}
-
-
-	public double getMaxGain() {
-		return maxGain;
-	}
-
-
-	public boolean isPeerDefault() {
-		return peerDefault;
-	}
-
-	@Override
-	public String toString() {
-		return name;
-	}
-
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((peerID == null) ? 0 : peerID.hashCode());
-		return result;
-	}
-
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Speaker other = (Speaker) obj;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (peerID == null) {
-			if (other.peerID != null)
-				return false;
-		} else if (!peerID.equals(other.peerID))
-			return false;
-		return true;
-	}
-
+    override fun hashCode(): Int {
+        return Objects.hash(peer, speakerId)
+    }
 
 }

@@ -31,15 +31,12 @@ import java.util.function.Consumer;
  *
  */
 public abstract class Distributed implements Serializable {
-	private static final long serialVersionUID = 1L;
+
+	private Peer owner = Peer.getLocal();
 
 	/**
-	 * Unique data ID
-	 */
-	private String id;
-	/**
-	 * This object will only be serialized and written to file if this flag is
-	 * set to true.
+	 * Permanent objects should keep their values even after restarting the application.
+	 * They are written to and read from file.
 	 */
 	private boolean permanent;
 	/**
@@ -57,27 +54,30 @@ public abstract class Distributed implements Serializable {
 	 */
 	private transient List<Consumer<DataEvent>> changeListeners = new CopyOnWriteArrayList<>();
 	/**
-	 * Associated DistributedPlatform, set when {@link DistributedPlatform#putData(Distributed)} is invoked.
+	 * Associated DistributedPlatform, set when {@link DistributedPlatform#putObject(Distributed)} is invoked.
 	 */
 	DistributedPlatform platform;
 
 	/**
 	 * Creates a new {@link Distributed} object which is not yet bound to any
 	 * network. Binding to a network happens automatically when
-	 * {@link DistributedPlatform#putData(Distributed)} is called.
+	 * {@link DistributedPlatform#putObject(Distributed)} is called.
 	 *
-	 * @param id
-	 *            unique data ID with which the object can be found
 	 * @param permanent
 	 *            whether the data should be saved to file
 	 * @param ownerBound
 	 *            whether the data is only valid as long as it's owner is
 	 *            available
 	 */
-	public Distributed(String id, boolean permanent, boolean ownerBound) {
-		this.id = id;
+	public Distributed(boolean permanent, boolean ownerBound) {
 		this.permanent = permanent;
 		this.ownerBound = ownerBound;
+	}
+
+	public boolean exists() {
+		if(platform == null)
+			return true;
+		return platform.getAllPeers().contains(owner);
 	}
 
 	/**
@@ -92,7 +92,9 @@ public abstract class Distributed implements Serializable {
 	 *         <code>other</code> or a newly created object. All other objects
 	 *         are discarded.
 	 */
-	public abstract Distributed resolveConflict(Conflict conflict);
+	public Distributed resolveConflict(Conflict conflict) {
+		return this;
+	}
 
 	void _fireChanged(DataEvent e) {
 		for (Consumer<DataEvent> l : changeListeners)
@@ -137,15 +139,6 @@ public abstract class Distributed implements Serializable {
 	 */
 	public void removeDataChangeListener(Consumer<DataEvent> l) {
 		changeListeners.remove(l);
-	}
-
-	/**
-	 * Returns the unique ID of this distributed object.
-	 *
-	 * @return the unique ID
-	 */
-	public final String getID() {
-		return id;
 	}
 
 	public final DistributedPlatform getPlatform() {

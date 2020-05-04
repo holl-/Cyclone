@@ -21,12 +21,10 @@ import distributed.Distributed;
 public class Playlist extends Distributed {
 	private static final long serialVersionUID = 7881884218273201562L;
 
-	public static final String DistributedPlatform_ID = "playlist";
-
 	private List<DFile> list = new ArrayList<>();
 
 	public Playlist() {
-		super(DistributedPlatform_ID, true, false);
+		super(true, false);
 	}
 
 	@Override

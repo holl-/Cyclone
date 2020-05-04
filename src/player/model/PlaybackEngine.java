@@ -42,6 +42,8 @@ public class PlaybackEngine {
 	private boolean endOfMediaReached;
 	private String errorMessage;
 
+	private List<Speaker> speakers;
+
 
 	private PlaybackEngine(PlayerTarget target, PlaybackStatus status, AudioEngine audioEngine) throws AudioEngineException {
 		this.target = target;
@@ -51,11 +53,9 @@ public class PlaybackEngine {
 		supportedTypes = new ArrayList<>(audio.getSupportedMediaTypes().stream().map(t -> t.getFileExtension()).collect(Collectors.toList()));
 
 		// Publish audio devices
-		String peerID = Peer.getLocal().getId();
-		List<Speaker> speakers = audio.getDevices().stream()
-				.map(dev -> new Speaker(peerID, dev.getID(), dev.getName(), dev.getMinGain(), dev.getMaxGain(), dev.isDefault()))
+		speakers = audio.getDevices().stream()
+				.map(dev -> new Speaker(Peer.getLocal(), dev.getID(), dev.getName(), dev.getMinGain(), dev.getMaxGain(), dev.isDefault()))
 				.collect(Collectors.toList());
-		status.getPlatform().putData(new MachineInfo(Peer.getLocal(), speakers));
 
 		// Set device if not present
 		if(!target.getTargetDevice().isPresent()) {
@@ -63,6 +63,11 @@ public class PlaybackEngine {
 		}
 
 		target.addDataChangeListener(e -> targetChanged());
+	}
+
+
+	public List<Speaker> getSpeakers() {
+		return speakers;
 	}
 
 
@@ -192,7 +197,7 @@ public class PlaybackEngine {
 
 	private Optional<AudioDevice> findLocalDevice(Optional<Speaker> speaker) {
 		if(!speaker.isPresent()) return Optional.empty();
-		String id = speaker.get().getId();
+		String id = speaker.get().getSpeakerId();
 		return audio.getDevices().stream().filter(dev -> dev.getID().equals(id)).findAny();
 	}
 

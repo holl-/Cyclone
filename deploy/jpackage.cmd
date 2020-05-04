@@ -15,3 +15,5 @@ set JAVA_HOME="C:\Program Files\Java\jdkfx-14"
 "C:\Program Files\Java\jdkfx-14\bin\jpackage" --name "Cyclone" --type "msi" --app-version "0.2" --win-menu --icon "deploy\icon.ico" --description "Media Player" --file-associations "deploy\file-associations.properties" --input "out\artifacts\Cyclone_jar" --main-class player.fx.app.Launcher --main-jar Cyclone.jar
 
 --win-shortcut --win-dir-chooser
+
+# How to add JIntellitype64.dll?

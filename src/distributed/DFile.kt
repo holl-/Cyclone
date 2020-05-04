@@ -7,7 +7,7 @@ import java.io.InputStream
 import java.util.*
 import java.util.stream.Stream
 
-class DFile(file: File) : Distributed("file:${Peer.getLocal().id}:${file.path}", false, true) {
+class DFile(file: File) : Distributed(false, true) {
     /** The peer that hosts this file */
     private val originPeer: Peer = Peer.getLocal()
     private val path: String = file.path

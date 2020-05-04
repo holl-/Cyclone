@@ -8,6 +8,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.function.BiConsumer
 import java.util.function.Consumer
+import kotlin.collections.HashMap
 
 /**
  * Main class for setting up a virtual distributed platform.
@@ -26,13 +27,10 @@ class DistributedPlatform {
     private val dataListeners = CopyOnWriteArrayList<DataListener>()
     var onMessageReceived: Consumer<Serializable>? = null
 
-    private val localData = HashMap<String, Distributed>()
+    private val rootObjects = HashMap<Class<out Distributed>, Distributed>()
 
     private val eventHandler = Executors.newSingleThreadExecutor()
 
-    // TODO stub implementation
-    val allData: Collection<Distributed>
-        get() = localData.values
 
     val remotePeers: List<Peer>?
         get() = null
@@ -96,16 +94,26 @@ class DistributedPlatform {
     }
 
 
-    fun putData(data: Distributed) {
+    fun putObject(data: Distributed) {
         if (data.platform != null)
             throw IllegalArgumentException("data is already bound")
         data.platform = this
 
-        localData[data.id] = data
+        if(data.javaClass in rootObjects) {
+            throw IllegalStateException("An instance of class ${data.javaClass} is already registered.")
+        }
+
+        rootObjects[data.javaClass] = data
 
         val time = System.currentTimeMillis()
         val e = DataEvent(data, Peer.getLocal(), Peer.getLocal(), time, time)
         dataListeners.forEach { l -> l.onDataAdded(e) }
+    }
+
+    fun putData(objects: List<Distributed>) {
+        for(obj in objects) {
+            putObject(obj)
+        }
     }
 
     fun removeData(data: Distributed) {
@@ -127,19 +135,12 @@ class DistributedPlatform {
         }
     }
 
-    fun getData(id: String): Optional<Distributed> {
-        // TODO stub implementation
-        return Optional.ofNullable(localData[id])
+    fun<T : Distributed> getData(cls: Class<T>): T? {
+        return rootObjects[cls] as T
     }
 
-    fun <T : Distributed> getOrAddData(addIfNotPresent: T): T {
-        val p = getData(addIfNotPresent.id)
-        if (p.isPresent) {
-            return p.get() as T
-        } else {
-            putData(addIfNotPresent)
-            return addIfNotPresent
-        }
+    fun hasData(cls: Class<out Distributed>): Boolean {
+        return cls in rootObjects
     }
 
     fun saveAllData(saveFile: File) {

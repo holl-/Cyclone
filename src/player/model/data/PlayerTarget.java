@@ -18,8 +18,6 @@ import distributed.Distributed;
 public class PlayerTarget extends Distributed {
 	private static final long serialVersionUID = 3507019847042275473L;
 
-	public static final String DistributedPlatform_ID = "player-target";
-
 	private Optional<Speaker> targetDevice = Optional.empty();
 
 	/**
@@ -39,7 +37,7 @@ public class PlayerTarget extends Distributed {
 	private boolean shuffled;
 
 	public PlayerTarget() {
-		super(DistributedPlatform_ID, true, false);
+		super(true, false);
 	}
 
 	@Override
