@@ -16,5 +16,6 @@
     <orderEntry type="library" name="jl1.0.1" level="project" />
     <orderEntry type="library" name="jintellitype-1.3.9" level="project" />
     <orderEntry type="library" name="aquafx-0.1" level="project" />
+    <orderEntry type="library" name="lib" level="project" />
   </component>
 </module>
