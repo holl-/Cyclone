@@ -34,6 +34,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import player.AudioFiles;
+import player.CycloneConfig;
 import player.fx.FileDropOverlay;
 import player.fx.PlayerControl;
 import player.fx.icons.FXIcons;
@@ -73,7 +74,7 @@ public class PlayerWindow implements Initializable {
 	private AppSettings settings;
 
 
-	PlayerWindow(Stage stage, CyclonePlayer player, PlaybackEngine engine) throws IOException {
+	PlayerWindow(Stage stage, CyclonePlayer player, PlaybackEngine engine, CycloneConfig config) throws IOException {
 		this.stage = stage;
 		this.player = player;
 		this.engine = engine;
@@ -101,7 +102,7 @@ public class PlayerWindow implements Initializable {
 
 		Scene scene;
 		stage.setScene(scene = new Scene(root));
-        settings = new AppSettings(this.player);
+        settings = new AppSettings(config, this.player);
         settings.getStylableStages().add(stage);
 
 		stage.setTitle("Cyclone");

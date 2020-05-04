@@ -81,7 +81,7 @@
                   <HBox spacing="4.0">
                      <children>
                         <Button mnemonicParsing="false" onAction="#removeLibraryRoot" text="Remove selected" />
-                        <Button mnemonicParsing="false" text="Add directory..." />
+                        <Button mnemonicParsing="false" onAction="#addLibraryRoot" text="Add directory..." />
                      </children>
                   </HBox>
                   <Label text="Hint: Add a parent directory by playing a song and choosing &quot;Add to library...&quot; from the file menu." />

@@ -92,9 +92,9 @@ class MediaLibrary {
         }
     }
 
-    private fun<T> removeDuplicates(list: ObservableList<T>, maxSize: Int) {
+    private fun<T> removeDuplicates(list: ObservableList<T>, maxSize: Int?) {
         var result = list.stream().distinct().collect(Collectors.toList())
-        if(result.size > maxSize) {
+        if(maxSize != null && result.size > maxSize) {
             result = result.subList(0, maxSize)
         }
         if(result.size < list.size) {

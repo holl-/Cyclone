@@ -9,6 +9,7 @@ import javafx.stage.Stage;
 import mediacommand.CombinationManager;
 import mediacommand.MediaCommand;
 import mediacommand.MediaCommandManager;
+import player.CycloneConfig;
 import player.model.CyclonePlayer;
 import player.model.MediaLibrary;
 import player.model.PlaybackEngine;
@@ -23,22 +24,27 @@ import java.util.stream.Collectors;
 
 public class Launcher extends Application {
 	private PlayerWindow window;
+	private CycloneConfig config;
 
 	@Override
 	public void start(Stage primaryStage) throws Exception
 	{
 		ApplicationParameters appParams = new ApplicationParameters("Cyclone", getParameters());
-		InstanceManager im = new InstanceManager(appParams, params -> play(params));
-		Optional<ApplicationParameters> mainAppParams = im.registerIfFirst();
 
-		if(!mainAppParams.isPresent()) {
-			setup(primaryStage);
-			play(appParams);
+		config = CycloneConfig.Companion.getGlobal();
+		boolean singleInstance = Boolean.parseBoolean(config.getString("singleInstance", "true"));
+		if(singleInstance) {
+			InstanceManager im = new InstanceManager(appParams, params -> play(params));
+			Optional<ApplicationParameters> mainAppParams = im.registerIfFirst();
+
+			if (mainAppParams.isPresent()) {
+				System.exit(0);  // Parameters have been passed to the main instance
+				return;
+			}
 		}
-		else {
-			// Parameters have been passed to the main instance
-			System.exit(0);
-		}
+
+		setup(primaryStage);
+		play(appParams);
 	}
 
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
@@ -46,7 +52,7 @@ public class Launcher extends Application {
 		PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(player.getPlayerTarget(), player.getPlaybackStatus(), null);
 //		player.getDevicesData().setSpeakers(engine.getSpeakers());
 
-		window = new PlayerWindow(primaryStage, player, engine);
+		window = new PlayerWindow(primaryStage, player, engine, config);
 		window.show();
 		addControl(window.getStatusWrapper());
 
