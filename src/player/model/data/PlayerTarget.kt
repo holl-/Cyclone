@@ -1,11 +1,8 @@
-package player.model.data;
+package player.model.data
 
-import java.util.Optional;
-import java.util.OptionalDouble;
-
-import distributed.DFile;
-import distributed.Conflict;
-import distributed.Distributed;
+import distributed.DFile
+import distributed.Distributed
+import java.util.*
 
 /**
  * This shared data object contains all commands for the playback engine. This
@@ -13,138 +10,91 @@ import distributed.Distributed;
  * all fields should indicate the values the playback engine should use.
  *
  * @author Philipp Holl
- *
  */
-public class PlayerTarget extends Distributed {
-	private static final long serialVersionUID = 3507019847042275473L;
+class PlayerTarget : Distributed(true, false) {
+    var programControllerId: String? = null
 
-	private Optional<Speaker> targetDevice = Optional.empty();
+    var targetDevice: Optional<Speaker> = Optional.empty()
+        set(targetDevice) {
+            field = targetDevice
+            fireChangedLocally()
+        }
 
-	/**
-	 * if empty, dispose of player
-	 */
-	private Optional<DFile> targetMedia = Optional.empty();
+    /**
+     * if empty, dispose of player
+     */
+    var targetMedia: Optional<DFile> = Optional.empty()
+        private set
+    var targetGain = 0.0
+        set(targetGain) {
+            field = targetGain
+            fireChangedLocally()
+        }
+    var isTargetMute = false
+        set(targetMute) {
+            field = targetMute
+            fireChangedLocally()
+        }
+    private var targetPlaying = false
+    var targetPosition = OptionalDouble.empty()
+        private set
 
-	private double targetGain;
-	private boolean targetMute;
-	private boolean targetPlaying;
+    /** The time at which the target position request was issued  */
+    var positionUpdateTime: Long = 0
+        private set
+    var isLoop = true
+        set(loop) {
+            field = loop
+            fireChangedLocally()
+        }
+    var isShuffled = false
+        set(shuffled) {
+            field = shuffled
+            fireChangedLocally()
+        }
 
-	private OptionalDouble targetPosition = OptionalDouble.empty();
-	/** The time at which the target position request was issued */
-	private long positionUpdateTime;
+    fun setTargetMedia(targetMedia: DFile?, startPlayingImmediately: Boolean, controllerId: String) {
+        setTargetMedia(Optional.of(targetMedia!!), startPlayingImmediately, controllerId)
+    }
 
-	private boolean loop = true;
-	private boolean shuffled;
+    fun setTargetMedia(targetMedia: Optional<DFile>, startPlayingImmediately: Boolean, controllerId: String) {
+        this.targetMedia = targetMedia
+        if (startPlayingImmediately) {
+            targetPlaying = true
+        }
+        if (!targetMedia.isPresent) {
+            targetPlaying = false
+        }
+        setTargetPosition(0.0, false)
+        this.programControllerId = controllerId;
+    }
 
-	public PlayerTarget() {
-		super(true, false);
-	}
+    fun isTargetPlaying(): Boolean {
+        return targetPlaying
+    }
 
-	@Override
-	public Distributed resolveConflict(Conflict conflict) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    fun setTargetPlaying(targetPlaying: Boolean) {
+        this.targetPlaying = targetPlaying
+        fireChangedLocally()
+    }
 
-	public Optional<Speaker> getTargetDevice() {
-		return targetDevice;
-	}
+    fun setTargetPosition(targetPosition: Double, startPlaying: Boolean) {
+        if (targetPosition < 0) throw IllegalArgumentException("position < 0")
+        this.targetPosition = OptionalDouble.of(targetPosition)
+        positionUpdateTime = System.currentTimeMillis()
+        if (startPlaying) {
+            targetPlaying = true
+        }
+        fireChangedLocally()
+    }
 
-	public void setTargetDevice(Optional<Speaker> targetDevice) {
-		this.targetDevice = targetDevice;
-		fireChangedLocally();
-	}
+    fun wasTargetPositionSetAfter(lastUpdateTime: Long): Boolean {
+        return positionUpdateTime > lastUpdateTime && targetPosition.isPresent
+    }
 
-	public Optional<DFile> getTargetMedia() {
-		return targetMedia;
-	}
-
-	public void setTargetMedia(DFile targetMedia, boolean startPlayingImmediately) {
-		setTargetMedia(Optional.of(targetMedia), startPlayingImmediately);
-	}
-
-	public void setTargetMedia(Optional<DFile> targetMedia, boolean startPlayingImmediately) {
-		this.targetMedia = targetMedia;
-		if (startPlayingImmediately) {
-			targetPlaying = true;
-		}
-		if(!targetMedia.isPresent()) {
-			targetPlaying = false;
-		}
-		setTargetPosition(0, false);
-	}
-
-	public double getTargetGain() {
-		return targetGain;
-	}
-
-	public void setTargetGain(double targetGain) {
-		this.targetGain = targetGain;
-		fireChangedLocally();
-	}
-
-	public boolean isTargetMute() {
-		return targetMute;
-	}
-
-	public void setTargetMute(boolean targetMute) {
-		this.targetMute = targetMute;
-		fireChangedLocally();
-	}
-
-	public boolean isTargetPlaying() {
-		return targetPlaying;
-	}
-
-	public void setTargetPlaying(boolean targetPlaying) {
-		this.targetPlaying = targetPlaying;
-		fireChangedLocally();
-	}
-
-	public OptionalDouble getTargetPosition() {
-		return targetPosition;
-	}
-
-	public long getPositionUpdateTime() {
-		return positionUpdateTime;
-	}
-
-	public void setTargetPosition(double targetPosition, boolean startPlaying) {
-		if(targetPosition < 0) throw new IllegalArgumentException("position < 0");
-		this.targetPosition = OptionalDouble.of(targetPosition);
-		positionUpdateTime = System.currentTimeMillis();
-		if(startPlaying) {
-			targetPlaying = true;
-		}
-		fireChangedLocally();
-	}
-
-	public boolean wasTargetPositionSetAfter(long lastUpdateTime) {
-		return positionUpdateTime > lastUpdateTime && targetPosition.isPresent();
-	}
-
-	public boolean isLoop() {
-		return loop;
-	}
-
-	public void setLoop(boolean loop) {
-		this.loop = loop;
-		fireChangedLocally();
-	}
-
-	public void stop() {
-		targetPlaying = false;
-		setTargetPosition(0, false);
-	}
-
-	public boolean isShuffled() {
-		return shuffled;
-	}
-
-	public void setShuffled(boolean shuffled) {
-		this.shuffled = shuffled;
-		fireChangedLocally();
-	}
-
+    fun stop() {
+        targetPlaying = false
+        setTargetPosition(0.0, false)
+    }
 
 }

@@ -14,6 +14,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 
 public class CyclonePlayer {
 	private MediaLibrary library;
+	private String controllerId = UUID.randomUUID().toString();
 
 	// Data objects
 	private PlaybackStatus playbackData;
@@ -107,7 +109,8 @@ public class CyclonePlayer {
 		playbackData.addDataChangeListener(e -> {
 			playbackData.getCurrentMedia().ifPresent(m -> this.library.getRecentlyUsed().add(0, m));
 			if(playbackData.getEndOfMediaReached()) {
-				next();  // ToDo only if this is the active controller
+				if(controllerId.equals(targetData.getProgramControllerId()))
+					next();
 			}
 		});
 
@@ -189,7 +192,7 @@ public class CyclonePlayer {
 		currentMedia = new DistributedObjectProperty<>("currentMedia", this,
 				playbackData,
 				() -> playbackData.getCurrentMedia(),
-				newValue -> targetData.setTargetMedia(newValue, true));
+				newValue -> targetData.setTargetMedia(newValue, true, controllerId));
 
 		speakers = FXCollections.observableArrayList(devicesData.getSpeakers());
 		devicesData.addDataChangeListener(e -> {
@@ -242,14 +245,14 @@ public class CyclonePlayer {
 		return playlistData.getNext(playbackData.getCurrentMedia(), targetData.isLoop());
 	}
 	public void next() {
-		targetData.setTargetMedia(getNext(), true);
+		targetData.setTargetMedia(getNext(), true, controllerId);
 	}
 
 	public Optional<DFile> getPrevious() {
 		return playlistData.getPrevious(playbackData.getCurrentMedia(), targetData.isLoop());
 	}
 	public void previous() {
-		targetData.setTargetMedia(getPrevious(), true);
+		targetData.setTargetMedia(getPrevious(), true, controllerId);
 	}
 
 

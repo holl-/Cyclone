@@ -24,31 +24,6 @@ import java.net.URI;
  */
 public interface MediaFile {
 
-	
-//	/**
-//	 * Returns true, if the media can be deleted.
-//	 * @see #delete()
-//	 * @return true, if the media can be deleted
-//	 */
-//	public abstract boolean canDelete();
-//	/**
-//	 * Deletes all files or resources associated with this <code>MediaFile</code>.
-//	 * @throws IOException if deleting failed
-//	 * @throws UnsupportedOperationException if deleting is not supported
-//	 * @see #canDelete()
-//	 */
-//	public abstract void delete() throws IOException, UnsupportedOperationException;
-//	
-//	/**
-//	 * Tests if the media is still available, meaning that
-//	 * {@link #openStream()} will return a valid stream if requested.
-//	 * Usually, but not necessarily, this means that the storing file exists.
-//	 * @return true if the media is still available.
-//	 * @see #openStream()
-//	 * @see #canDelete()
-//	 */
-//	public abstract boolean available();
-
 	/**
 	 * Reads the media as a file, ignoring all format information.
 	 * @return an <code>InputStream</code> for the media file

@@ -1,23 +1,19 @@
 package player.model;
 
-import java.io.File;
+import audio.*;
+import audio.javafx.JavaFXAudioEngine;
+import audio.javasound.JavaSoundEngine;
+import distributed.DFile;
+import distributed.Peer;
+import player.model.data.PlaybackStatus;
+import player.model.data.PlayerTarget;
+import player.model.data.Speaker;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import audio.javafx.JavaFXAudioEngine;
-import audio.javasound.JavaSoundEngine;
-import audio.AudioDevice;
-import audio.AudioEngine;
-import audio.AudioEngineException;
-import audio.LocalMediaFile;
-import audio.MediaFile;
-import audio.Player;
-import distributed.Peer;
-import player.model.data.*;
-import distributed.DFile;
 
 /**
  * Controls the isLocal audio engine.
@@ -108,13 +104,7 @@ public class PlaybackEngine {
 			currentFile = target.getTargetMedia();
 			if(!currentFile.isPresent()) return;
 
-            MediaFile file;
-            if(currentFile.get().originatesHere()) {
-                file = new LocalMediaFile(new File(currentFile.get().getPath()));
-            } else {
-                // TODO copy to isLocal
-                throw new UnsupportedOperationException("file copying not supported yet");
-            }
+            MediaFile file = new DMediaFile(currentFile.get());
             player = audio.newPlayer(file);
             try {
                 player.prepare();
