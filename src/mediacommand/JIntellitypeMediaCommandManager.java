@@ -55,10 +55,7 @@ public class JIntellitypeMediaCommandManager extends MediaCommandManager impleme
 		}
 	}
 	
-	
-	
 	private static File getLibraryFile() {
-		
 		String bitnessJVM = System.getProperty("sun.arch.data.model");
 		String filename;
 		if(bitnessJVM.equals("64")) {
@@ -66,6 +63,9 @@ public class JIntellitypeMediaCommandManager extends MediaCommandManager impleme
 		}else {
 			filename = "JIntellitype.dll";
 		}
+
+		File inAppDir = new File("app", filename);
+		if(inAppDir.exists()) return inAppDir;
 		
 		File extracted = new File(filename);
 		if(!extracted.exists()) {
@@ -73,8 +73,9 @@ public class JIntellitypeMediaCommandManager extends MediaCommandManager impleme
 			InputStream in = JIntellitypeMediaCommandManager.class.getResourceAsStream(filename);
 			try {
 				Files.copy(in, extracted.toPath());
-			} catch (IOException e) {}
-			
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		return extracted;
 	}
