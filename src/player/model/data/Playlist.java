@@ -27,12 +27,6 @@ public class Playlist extends Distributed {
 		super(true, false);
 	}
 
-	@Override
-	public Distributed resolveConflict(Conflict conflict) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	public List<DFile> list() {
 		return new ArrayList<>(list);
 	}

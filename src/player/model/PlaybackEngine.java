@@ -147,11 +147,8 @@ public class PlaybackEngine {
 			lastPositionUpdate = target.getPositionUpdateTime();
 			try {
 				player.setPositionBlocking(target.getTargetPosition().getAsDouble(), 1.0);
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
+			} catch (InterruptedException | IOException e1) {
+				errorMessage = e1.getMessage();
 				e1.printStackTrace();
 			}
 		}

@@ -40,12 +40,6 @@ public class PlaybackStatus extends Distributed {
 		super(false, false);
 	}
 
-	@Override
-	public Distributed resolveConflict(Conflict conflict) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	public void setStatus(Optional<Speaker> device, List<String> supportedFormats, Optional<DFile> currentMedia, double gain,
 			boolean mute, boolean playing, boolean busy, String busyText,
 			double lastKnownPosition, long lastUpdateTime, double duration, boolean endOfMediaReached) {
