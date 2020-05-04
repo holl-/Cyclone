@@ -39,7 +39,7 @@
             </VBox>
          </content>
     </Tab>
-    <Tab text="Audio">
+    <Tab disable="true" text="Audio">
          <content>
             <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
                <children>
@@ -98,7 +98,7 @@
             </VBox>
          </content>
     </Tab>
-    <Tab text="Network">
+    <Tab disable="true" text="Network">
          <content>
             <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
                <padding>

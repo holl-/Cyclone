@@ -24,6 +24,7 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -202,23 +203,11 @@ public class PlayerWindow implements Initializable {
 				});
 				searchResult.setItems(library.getRecentlyUsed());
 				searchResult.setCellFactory(list -> new MediaCell());
-				searchResult.setOnKeyPressed(e -> {
-					if(e.getCode() == KeyCode.ENTER) {
-						DFile m = searchResult.getSelectionModel().getSelectedItem();
-						if(m != null) {
-							playFromLibrary(m, e.isControlDown());
-						}
-						Platform.runLater(() -> closeSearch());
-					}
-				});
+				searchResult.setOnKeyPressed(e -> { if(e.getCode() == KeyCode.ENTER) playSelected(e.isControlDown()); });
 				searchField.setOnKeyPressed(e -> {
 					if(e.getCode() == KeyCode.ENTER) {
-						DFile m = searchResult.getSelectionModel().getSelectedItem();
-						if(m != null) {
-							playFromLibrary(m, e.isControlDown());
-						}
+						playSelected(e.isControlDown());
 						e.consume();
-						Platform.runLater(() -> closeSearch());
 					} else if(e.getCode() == KeyCode.DOWN) {
 						int next = searchResult.getSelectionModel().getSelectedIndex()+1;
 						if(searchResult.getItems().size() > next) searchResult.getSelectionModel().select(next);
@@ -229,21 +218,21 @@ public class PlayerWindow implements Initializable {
 						e.consume();
 					}
 				});
-				searchResult.setOnMouseReleased(e -> {
-					if(e.getButton() == MouseButton.PRIMARY) {
-						DFile m = searchResult.getSelectionModel().getSelectedItem();
-						if(m != null && (!player.getCurrentMedia().isPresent() || !m.equals(player.getCurrentMedia()))) {
-							playFromLibrary(m, e.isControlDown());
-						}
-						Platform.runLater(() -> closeSearch());
-					}
-				});
+				searchResult.setOnMouseReleased(e -> { if(e.getButton() == MouseButton.PRIMARY) playSelected(e.isControlDown()); });
 				searchFocus = searchField;
 			}
 
 			@FXML
 			public void closeSearch() {
 				fadeOut(searchRoot);
+			}
+
+			private void playSelected(boolean append) {
+				DFile m = searchResult.getSelectionModel().getSelectedItem();
+				if(m != null) {
+					playFromLibrary(m, append);
+				}
+				Platform.runLater(() -> closeSearch());
 			}
 		});
 		BorderPane searchRoot = loader.load();
@@ -407,14 +396,19 @@ public class PlayerWindow implements Initializable {
 
 
 	private void playFromLibrary(DFile file, boolean append) {
-		List<DFile> remoteFiles = Arrays.asList(file);
+		List<DFile> files;
+		if(file.isDirectory()) {
+			List<File> allFiles = AudioFiles.unfold(Arrays.asList(new File(file.getPath())));
+			files = allFiles.stream().filter(AudioFiles::isAudioFile).map(DFile::new).collect(Collectors.toList());
+		}
+		else files = Arrays.asList(file);
 		if(!append) {
-			DFile mediaID = player.setPlaylist(remoteFiles, 0, true);
-			player.setCurrentMedia(Optional.of(mediaID));
+			DFile mediaID = player.setPlaylist(files, 0, true);
+			player.setCurrentMedia(Optional.ofNullable(mediaID));
 		} else {
-			DFile mediaID = player.addToPlaylist(remoteFiles, 0);
+			DFile mediaID = player.addToPlaylist(files, 0);
 			if(!player.getCurrentMedia().isPresent()) {
-				player.setCurrentMedia(Optional.of(mediaID));
+				player.setCurrentMedia(Optional.ofNullable(mediaID));
 			}
 		}
 	}
@@ -422,12 +416,19 @@ public class PlayerWindow implements Initializable {
 
 	static class MediaCell extends ListCell<DFile>
 	{
+		ImageView fileIcon = FXIcons.get("Play.png", 32);
+		ImageView dirIcon = FXIcons.get("PlayFolder.png", 32);
+
 		@Override
 		protected void updateItem(DFile item, boolean empty) {
 			super.updateItem(item, empty);
 			if(item != null) {
 				setText(AudioFiles.inferTitle(item.getPath()));
-			} else setText(null);
+				setGraphic(item.isDirectory() ? dirIcon : fileIcon);
+			} else {
+				setText(null);
+				setGraphic(null);
+			}
 		}
 	}
 
@@ -458,7 +459,7 @@ public class PlayerWindow implements Initializable {
     	player.getCurrentMedia().ifPresent(file -> {
     		if(file.originatesHere()) {
     			try {
-					Desktop.getDesktop().browse(new File(file.getPath()).toURI());
+					Desktop.getDesktop().browse(new File(file.getPath()).getParentFile().toURI());
 				} catch (NoSuchElementException | IOException e) {
 					e.printStackTrace();
 					new Alert(AlertType.ERROR, "Could not open location: "+file.getPath(), ButtonType.OK).show();
