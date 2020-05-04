@@ -125,10 +125,6 @@ public abstract class AudioEngine {
 	 */
 	public abstract boolean isStreamingSupported();
 
-	public abstract boolean isBufferManagementSupported();
-
-	// private Thread pauseOnStandbyThread; TODO pause on standby events with
-	// PlayerEvent.EXTERNAL_INTERRUPT
 	private SystemTimeManager stm;
 
 	public void setPauseOnStandby(boolean pauseOnStandby) {

@@ -195,10 +195,4 @@ public class JavaSoundEngine extends AudioEngine
 	}
 
 
-
-	@Override
-	public boolean isBufferManagementSupported() {
-		return false; // TODO support this in the future
-	}
-
 }

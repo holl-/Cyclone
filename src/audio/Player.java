@@ -244,29 +244,6 @@ public interface Player {
 
 	Player getNext();
 
-//	/**
-//	 * Queues the given player to start when <code>this</code> player has finished.
-//	 * In contrast to {@link #setNext(Player)}, this method works with all players,
-//	 * even ones of a different {@link AudioEngine}.
-//	 * <p>This method blocks until the next player has started playing.
-//	 * </p>
-//	 * <p>The given player need not be prepared. If it isn't already, it will be
-//	 * prepared in time before this player finishes.
-//	 * </p>
-//	 * <p>If the argument is <code>null</code>, nothing will happen, when this player
-//	 * finishes.
-//	 * </p>
-//	 * @param next the player to start after this player
-//	 * @throws InterruptedException when {@link #queueBlocking(Player)} or
-//	 * {@link #setNext(Player)} are called on a different thread while this thread
-//	 * is blocking.
-//	 * @throws AudioEngineException
-//	 * @throws IOException
-//	 * @throws UnsupportedMediaFormatException
-//	 */
-//	void queueBlocking(Player next) throws InterruptedException, AudioEngineException, IOException, UnsupportedMediaFormatException;
-	// TODO move to util class
-
 
 	/**
 	 * Returns a reference to the data buffer of this player.
@@ -334,10 +311,6 @@ public interface Player {
 
 	void addEndOfMediaListener(PlayerEventListener l);
 	void removeEndOfMediaListener(PlayerEventListener l);
-
-
-	void addMarker(double position, MarkerListener l);
-	void removeMarker(MarkerListener l);
 
 
 	double getGain();

@@ -283,10 +283,8 @@ public class JSPlayer extends AbstractPlayer
 	@Override
 	public void setNext(Player nextPlayer) throws IllegalStateException,
 			IllegalArgumentException {
-
 		next = nextPlayer;
-		// TODO Auto-generated method stub
-
+		throw new UnsupportedOperationException("not yet implemented");
 	}
 
 	@Override
@@ -320,19 +318,4 @@ public class JSPlayer extends AbstractPlayer
 		if(!isPrepared()) throw new IllegalStateException("not prepared");
 		media.waitUntilBufferFilled();
 	}
-
-
-	@Override
-	public void addMarker(double position, MarkerListener l) {
-		// TODO Auto-generated method stub
-
-	}
-
-
-	@Override
-	public void removeMarker(MarkerListener l) {
-		// TODO Auto-generated method stub
-
-	}
-
 }

@@ -90,11 +90,6 @@ public class JavaFXAudioEngine extends AudioEngine
 		return false;
 	}
 
-	@Override
-	public boolean isBufferManagementSupported() {
-		return false;
-	}
-
 
 	public static final AudioDevice DEVICE = new AudioDevice() {
 

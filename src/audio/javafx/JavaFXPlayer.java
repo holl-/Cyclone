@@ -374,21 +374,21 @@ public class JavaFXPlayer extends AbstractPlayer {
 
 
 
-	@Override
-	public void addMarker(double position, MarkerListener l) {
-		Marker marker = new Marker(position, l);
-		markersByKey.put(marker.key, marker);
-		media.getFXMedia().getMarkers().put(marker.key, Duration.seconds(position));
-	}
-
-	@Override
-	public void removeMarker(MarkerListener l) {
-		for(String key : markersByKey.keySet()) {
-			if(markersByKey.get(key).listener == l) {
-				markersByKey.remove(key);
-			}
-		}
-	}
+//	@Override
+//	public void addMarker(double position, MarkerListener l) {
+//		Marker marker = new Marker(position, l);
+//		markersByKey.put(marker.key, marker);
+//		media.getFXMedia().getMarkers().put(marker.key, Duration.seconds(position));
+//	}
+//
+//	@Override
+//	public void removeMarker(MarkerListener l) {
+//		for(String key : markersByKey.keySet()) {
+//			if(markersByKey.get(key).listener == l) {
+//				markersByKey.remove(key);
+//			}
+//		}
+//	}
 
 
 	private static class Marker
