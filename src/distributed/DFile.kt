@@ -121,9 +121,10 @@ class DFile(file: File) : Distributed(false, true) {
     }
 
 
-    override fun resolveConflict(conflict: Conflict): Distributed {
-        TODO("Not yet implemented")
+    override fun toString(): String {
+        return path
     }
+
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

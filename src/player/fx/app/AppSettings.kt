@@ -1,6 +1,7 @@
 package player.fx.app
 
 import com.aquafx_project.AquaFx
+import distributed.DFile
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.fxml.FXML
@@ -9,6 +10,7 @@ import javafx.fxml.Initializable
 import javafx.scene.Scene
 import javafx.scene.control.CheckBox
 import javafx.scene.control.ComboBox
+import javafx.scene.control.ListView
 import javafx.stage.Stage
 import player.model.CyclonePlayer
 import java.io.File
@@ -17,9 +19,12 @@ import java.util.*
 import java.util.stream.Collectors
 
 class AppSettings(var player: CyclonePlayer) : Initializable {
-
+    // General
     @FXML var skin: ComboBox<String>? = null
     @FXML var singleInstance: CheckBox? = null
+    // Library
+    @FXML var libraryDirectories: ListView<DFile>? = null
+
     var stage: Stage = Stage()
     var stylableStages: List<Stage> = mutableListOf(stage)
     val settingsFile: File = File(System.getProperty("user.home") + "/AppData/Roaming/Cyclone/settings.txt").absoluteFile
@@ -48,6 +53,11 @@ class AppSettings(var player: CyclonePlayer) : Initializable {
         player.shuffledProperty().addListener{_ -> save()}
         player.gain = settings.getOrDefault("gain", "0.0").toDouble()
         player.gainProperty().addListener{_ -> save()}
+
+        libraryDirectories!!.items = player.library.roots
+        if(!player.library.roots.isEmpty()) {
+            libraryDirectories!!.selectionModel.select(0)
+        }
     }
 
 
@@ -102,7 +112,11 @@ class AppSettings(var player: CyclonePlayer) : Initializable {
         } else {
             emptyMap()
         }
+    }
 
+    @FXML
+    private fun removeLibraryRoot() {
+        player.library.roots.remove(libraryDirectories!!.selectionModel.selectedItem)
     }
 
 }

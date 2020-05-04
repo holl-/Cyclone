@@ -395,6 +395,7 @@ public class PlayerWindow implements Initializable {
 						addToLibraryMenu.getItems().add(item);
 						localFile = localFile.getParentFile();
 					} while(localFile != null);
+					addToLibraryMenu.setDisable(false);
 				}
 			}
 		});
