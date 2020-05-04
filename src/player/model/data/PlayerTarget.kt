@@ -65,8 +65,8 @@ class PlayerTarget : Distributed(true, false) {
         if (!targetMedia.isPresent) {
             targetPlaying = false
         }
-        setTargetPosition(0.0, false)
         this.programControllerId = controllerId;
+        setTargetPosition(0.0, false)
     }
 
     fun isTargetPlaying(): Boolean {

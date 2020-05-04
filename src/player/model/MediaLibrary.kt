@@ -73,7 +73,8 @@ class MediaLibrary {
 
     private fun recursiveAdd(file: DFile, list: MutableCollection<DFile>) {
         if (file in list) return
-        list.add(file)
+        if(file.isDirectory() or AudioFiles.isAudioFile(file.getName()))
+            list.add(file)
         if(file.isDirectory()) {
             file.list().forEach { child -> recursiveAdd(child, list) }
         }
