@@ -9,7 +9,7 @@ import javafx.stage.Stage;
 import mediacommand.CombinationManager;
 import mediacommand.MediaCommand;
 import mediacommand.MediaCommandManager;
-import player.CycloneConfig;
+import player.model.CycloneConfig;
 import player.model.CyclonePlayer;
 import player.model.MediaLibrary;
 import player.model.PlaybackEngine;
@@ -48,7 +48,7 @@ public class Launcher extends Application {
 	}
 
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
-		CyclonePlayer player = new CyclonePlayer(new MediaLibrary());
+		CyclonePlayer player = new CyclonePlayer(config);
 		PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(player.getPlayerTarget(), player.getPlaybackStatus(), null);
 //		player.getDevicesData().setSpeakers(engine.getSpeakers());
 

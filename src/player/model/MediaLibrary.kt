@@ -11,7 +11,6 @@ import java.util.stream.Collectors
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
-import player.getConfigFile
 import distributed.DFile
 
 class MediaLibrary {
@@ -26,14 +25,11 @@ class MediaLibrary {
     private val localIndex: ObservableList<DFile> = FXCollections.observableArrayList()
     private val indexingService: ExecutorService
 
-    private val savefile: File = getConfigFile("library.txt")
-
 
     init {
         indexingService = Executors.newSingleThreadExecutor { r -> Thread(r, "Index Service") }
         roots.addListener{ e: ListChangeListener.Change<out DFile> -> updateIndex() }
         recentlyUsed.addListener {e: ListChangeListener.Change<out DFile> -> removeDuplicates(recentlyUsed, recentlyUsedSize); }
-        load(savefile, true)
     }
 
     @Throws(IOException::class)
@@ -41,16 +37,7 @@ class MediaLibrary {
         TODO()
     }
 
-    private fun load(file: File, elseLoadDefault: Boolean) {
-        if (!file.exists()) {
-            if (elseLoadDefault)
-                addDefaultRoots()
-        } else {
-            TODO()
-        }
-    }
-
-    private fun addDefaultRoots() {
+    fun addDefaultRoots() {
         val music = File(System.getProperty("user.home"), "Music")
         if (music.exists() && music.isDirectory) {
             roots.add(DFile(music))

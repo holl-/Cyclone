@@ -22,6 +22,7 @@ import java.util.function.*;
 import java.util.stream.Collectors;
 
 public class CyclonePlayer {
+	private CycloneConfig config;
 	private MediaLibrary library;
 	private String controllerId = UUID.randomUUID().toString();
 
@@ -99,13 +100,21 @@ public class CyclonePlayer {
 
 
 
-	public CyclonePlayer(MediaLibrary library) {
+	public CyclonePlayer(CycloneConfig config) {
+		this.config = config;
+		library = new MediaLibrary();
+		if(config.getProperties().containsKey("library")) {
+			String[] roots = config.getString("library", "").split(";");
+			for(String root : roots) {
+				library.getRoots().add(new DFile(new File(root)));
+			}
+		} else library.addDefaultRoots();
+		// Create data objects
 		playbackData = new PlaybackStatus();
 		playlistData = new Playlist();
 		targetData = new PlayerTarget();
 		devicesData = new SpeakerList();
 
-		this.library = library;
 		playbackData.addDataChangeListener(e -> {
 			playbackData.getCurrentMedia().ifPresent(m -> this.library.getRecentlyUsed().add(0, m));
 			if(playbackData.getEndOfMediaReached()) {

@@ -4,6 +4,7 @@ import com.aquafx_project.AquaFx
 import distributed.DFile
 import javafx.application.Application
 import javafx.application.Platform
+import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
@@ -12,9 +13,8 @@ import javafx.scene.control.CheckBox
 import javafx.scene.control.ComboBox
 import javafx.scene.control.ListView
 import javafx.stage.DirectoryChooser
-import javafx.stage.FileChooser
 import javafx.stage.Stage
-import player.CycloneConfig
+import player.model.CycloneConfig
 import player.model.CyclonePlayer
 import java.io.File
 import java.net.URL
@@ -58,6 +58,7 @@ class AppSettings(val config: CycloneConfig, var player: CyclonePlayer) : Initia
         if(!player.library.roots.isEmpty()) {
             libraryDirectories!!.selectionModel.select(0)
         }
+        player.library.roots.addListener(ListChangeListener { e -> save() })
     }
 
 
@@ -88,7 +89,8 @@ class AppSettings(val config: CycloneConfig, var player: CyclonePlayer) : Initia
                 "singleInstance" to singleInstance!!.isSelected,
                 "looping" to player.isLoop,
                 "shuffled" to player.isShuffled,
-                "gain" to player.gain
+                "gain" to player.gain,
+                "library" to player.library.roots.stream().map { f -> f.getPath() }.collect(Collectors.joining("; "))
         ))
         config.write()
     }
@@ -103,9 +105,11 @@ class AppSettings(val config: CycloneConfig, var player: CyclonePlayer) : Initia
     @FXML
     private fun addLibraryRoot() {
         val chooser = DirectoryChooser()
-        val dir = chooser.showDialog(stage)
-        player.library.roots.add(DFile(dir))
-        save()
+        val dir: File? = chooser.showDialog(stage)
+        if(dir != null) {
+            player.library.roots.add(DFile(dir))
+            save()
+        }
     }
 
 }

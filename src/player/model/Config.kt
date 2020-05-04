@@ -1,4 +1,4 @@
-package player
+package player.model
 
 import java.io.File
 import java.util.*
