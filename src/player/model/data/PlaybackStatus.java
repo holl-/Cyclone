@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import distributed.RemoteFile;
+import distributed.DFile;
 import distributed.Conflict;
 import distributed.Distributed;
 
@@ -24,7 +24,7 @@ public class PlaybackStatus extends Distributed {
 	private Optional<Speaker> device = Optional.empty();
 	private List<String> supportedFormats = Collections.emptyList();
 
-	private Optional<RemoteFile> currentMedia = Optional.empty(); // media ID
+	private Optional<DFile> currentMedia = Optional.empty(); // media ID
 
 	private double gain;
 	private boolean mute;
@@ -48,7 +48,7 @@ public class PlaybackStatus extends Distributed {
 		return null;
 	}
 
-	public void setStatus(Optional<Speaker> device, List<String> supportedFormats, Optional<RemoteFile> currentMedia, double gain,
+	public void setStatus(Optional<Speaker> device, List<String> supportedFormats, Optional<DFile> currentMedia, double gain,
 			boolean mute, boolean playing, boolean busy, String busyText,
 			double lastKnownPosition, long lastUpdateTime, double duration, boolean endOfMediaReached) {
 		if(currentMedia == null) throw new IllegalArgumentException("currentMedia = null");
@@ -84,7 +84,7 @@ public class PlaybackStatus extends Distributed {
 		return device;
 	}
 
-	public Optional<RemoteFile> getCurrentMedia() {
+	public Optional<DFile> getCurrentMedia() {
 		return currentMedia;
 	}
 

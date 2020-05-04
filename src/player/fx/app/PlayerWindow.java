@@ -40,7 +40,7 @@ import player.model.CyclonePlayer;
 import player.model.MediaLibrary;
 import player.model.PlaybackEngine;
 import player.model.data.Speaker;
-import distributed.RemoteFile;
+import distributed.DFile;
 
 import java.awt.*;
 import java.io.File;
@@ -140,7 +140,7 @@ public class PlayerWindow implements Initializable {
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("playlist.fxml"));
 		loader.setController(new Initializable() {
 			@FXML private Button removeOthersButton;
-			@FXML private ListView<RemoteFile> playlist;
+			@FXML private ListView<DFile> playlist;
 
 			@Override
 			public void initialize(URL location, ResourceBundle resources) {
@@ -171,7 +171,7 @@ public class PlayerWindow implements Initializable {
 
 			@FXML
 			public void clearOthers() {
-				List<RemoteFile> newList = new ArrayList<>();
+				List<DFile> newList = new ArrayList<>();
 				player.getCurrentMedia().ifPresent(m -> newList.add(m));
 				player.setPlaylist(newList, 0, false);
 			}
@@ -184,7 +184,7 @@ public class PlayerWindow implements Initializable {
 	private BorderPane loadSearch() throws IOException {
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("search.fxml"));
 		loader.setController(new Initializable() {
-			@FXML private ListView<RemoteFile> searchResult;
+			@FXML private ListView<DFile> searchResult;
 			@FXML private TextField searchField;
 
 			@Override
@@ -196,7 +196,7 @@ public class PlayerWindow implements Initializable {
 						searchResult.setItems(library.startSearch(n));
 					}
 					if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
-					searchResult.getItems().addListener((ListChangeListener<RemoteFile>) change -> {
+					searchResult.getItems().addListener((ListChangeListener<DFile>) change -> {
 						if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
 					});
 				});
@@ -204,7 +204,7 @@ public class PlayerWindow implements Initializable {
 				searchResult.setCellFactory(list -> new MediaCell());
 				searchResult.setOnKeyPressed(e -> {
 					if(e.getCode() == KeyCode.ENTER) {
-						RemoteFile m = searchResult.getSelectionModel().getSelectedItem();
+						DFile m = searchResult.getSelectionModel().getSelectedItem();
 						if(m != null) {
 							playFromLibrary(m, e.isControlDown());
 						}
@@ -213,7 +213,7 @@ public class PlayerWindow implements Initializable {
 				});
 				searchField.setOnKeyPressed(e -> {
 					if(e.getCode() == KeyCode.ENTER) {
-						RemoteFile m = searchResult.getSelectionModel().getSelectedItem();
+						DFile m = searchResult.getSelectionModel().getSelectedItem();
 						if(m != null) {
 							playFromLibrary(m, e.isControlDown());
 						}
@@ -231,7 +231,7 @@ public class PlayerWindow implements Initializable {
 				});
 				searchResult.setOnMouseReleased(e -> {
 					if(e.getButton() == MouseButton.PRIMARY) {
-						RemoteFile m = searchResult.getSelectionModel().getSelectedItem();
+						DFile m = searchResult.getSelectionModel().getSelectedItem();
 						if(m != null && (!player.getCurrentMedia().isPresent() || !m.equals(player.getCurrentMedia()))) {
 							playFromLibrary(m, e.isControlDown());
 						}
@@ -291,8 +291,8 @@ public class PlayerWindow implements Initializable {
 		if(!cold && !audioFiles.isEmpty()) {
 			ToggleButton append = new ToggleButton("Add to playlist", FXIcons.get("Append.png", 32));
 			append.setOnAction(e -> {
-				List<RemoteFile> remoteFiles = audioFiles.stream().map(RemoteFile::fromFile).collect(Collectors.toList());
-				RemoteFile mediaID = player.addToPlaylist(remoteFiles, 0);
+				List<DFile> remoteFiles = audioFiles.stream().map(DFile::new).collect(Collectors.toList());
+				DFile mediaID = player.addToPlaylist(remoteFiles, 0);
 				if(!player.getCurrentMedia().isPresent()) {
 					player.setCurrentMedia(Optional.of(mediaID));
 				}
@@ -316,13 +316,13 @@ public class PlayerWindow implements Initializable {
 
 	public void play(List<File> localFiles, File startFile) {
 		int startIndex = localFiles.indexOf(startFile);
-		List<RemoteFile> remoteFiles = localFiles.stream().map(RemoteFile::fromFile).collect(Collectors.toList());
-//		for(RemoteFile file : remoteFiles) {
+		List<DFile> remoteFiles = localFiles.stream().map(DFile::new).collect(Collectors.toList());
+//		for(DFile file : remoteFiles) {
 //			if(!player.getLibrary().isIndexed(file)) {
 //				player.getLibrary().getOrAdd(file);
 //			}
 //		}
-		RemoteFile mediaID = player.setPlaylist(remoteFiles, startIndex, false);
+		DFile mediaID = player.setPlaylist(remoteFiles, startIndex, false);
 		player.setCurrentMedia(Optional.of(mediaID));
 	}
 
@@ -378,25 +378,26 @@ public class PlayerWindow implements Initializable {
 
 	private void updateAddToLibraryMenu() {
 		addToLibraryMenu.getItems().clear();
+		addToLibraryMenu.setDisable(true);
 
-		Optional<RemoteFile> op = player.getCurrentMedia();
-		if(op.isPresent() && op.get().localFile() != null) {
-			File file = op.get().localFile().getAbsoluteFile();
-			while(op.isPresent() && library.isIndexed(op.get())) {
-				op = op.get().getParentFile();
-				file = file.getParentFile();
+		player.getCurrentMedia().ifPresent(file -> {
+			if(file.originatesHere()) {
+				File localFile = new File(file.getPath()).getAbsoluteFile();
+				while(localFile != null && library.isIndexed(new DFile(localFile))) {
+					localFile = localFile.getParentFile();
+				}
+				if(localFile != null) {
+					do {
+						File finalFile = localFile;
+						MenuItem item = new MenuItem(localFile.getName().isEmpty() ? localFile.getAbsolutePath() : localFile.getName());
+						item.setGraphic(FXIcons.get(localFile.isDirectory() ? "PlayFolder.png" : "Media.png", 28) );
+						item.setOnAction(e -> library.getRoots().add(new DFile(finalFile)));
+						addToLibraryMenu.getItems().add(item);
+						localFile = localFile.getParentFile();
+					} while(localFile != null);
+				}
 			}
-			if(file != null) {
-				do {
-					File ffile = file;
-					MenuItem item = new MenuItem(file.getName().isEmpty() ? file.getAbsolutePath() : file.getName());
-					item.setGraphic(FXIcons.get(file.isDirectory() ? "PlayFolder.png" : "Media.png", 28) );
-					item.setOnAction(e -> library.getRoots().add(RemoteFile.fromFile(ffile)));
-					addToLibraryMenu.getItems().add(item);
-					file = file.getParentFile();
-				} while(file != null);
-			}
-		}
+		});
 
 		if(addToLibraryMenu.getItems().isEmpty()) {
 			addToLibraryMenu.getItems().setAll(Arrays.asList(cannotAddToLibraryItem));
@@ -404,13 +405,13 @@ public class PlayerWindow implements Initializable {
 	}
 
 
-	private void playFromLibrary(RemoteFile file, boolean append) {
-		List<RemoteFile> remoteFiles = Arrays.asList(file);
+	private void playFromLibrary(DFile file, boolean append) {
+		List<DFile> remoteFiles = Arrays.asList(file);
 		if(!append) {
-			RemoteFile mediaID = player.setPlaylist(remoteFiles, 0, true);
+			DFile mediaID = player.setPlaylist(remoteFiles, 0, true);
 			player.setCurrentMedia(Optional.of(mediaID));
 		} else {
-			RemoteFile mediaID = player.addToPlaylist(remoteFiles, 0);
+			DFile mediaID = player.addToPlaylist(remoteFiles, 0);
 			if(!player.getCurrentMedia().isPresent()) {
 				player.setCurrentMedia(Optional.of(mediaID));
 			}
@@ -418,10 +419,10 @@ public class PlayerWindow implements Initializable {
 	}
 
 
-	static class MediaCell extends ListCell<RemoteFile>
+	static class MediaCell extends ListCell<DFile>
 	{
 		@Override
-		protected void updateItem(RemoteFile item, boolean empty) {
+		protected void updateItem(DFile item, boolean empty) {
 			super.updateItem(item, empty);
 			if(item != null) {
 				setText(AudioFiles.inferTitle(item.getPath()));
@@ -454,12 +455,12 @@ public class PlayerWindow implements Initializable {
     @FXML
     public void openFileLocation() {
     	player.getCurrentMedia().ifPresent(file -> {
-    		if(file.localFile() != null) {
+    		if(file.originatesHere()) {
     			try {
-					Desktop.getDesktop().browse(file.localFile().getParentFile().toURI());
+					Desktop.getDesktop().browse(new File(file.getPath()).toURI());
 				} catch (NoSuchElementException | IOException e) {
 					e.printStackTrace();
-					new Alert(AlertType.ERROR, "Could not open location: "+file.localFile(), ButtonType.OK).show();
+					new Alert(AlertType.ERROR, "Could not open location: "+file.getPath(), ButtonType.OK).show();
 				}
     		} else {
     			new Alert(AlertType.INFORMATION, "The file is not located on this systemcontrol.", ButtonType.OK).show();
@@ -469,7 +470,7 @@ public class PlayerWindow implements Initializable {
 
     @FXML
     public void removeCurrentFromPlaylist() {
-    	Optional<RemoteFile> current = player.getCurrentMedia();
+    	Optional<DFile> current = player.getCurrentMedia();
     	if(!current.isPresent()) return;
 
     	boolean hasNext = player.getNext() != current;

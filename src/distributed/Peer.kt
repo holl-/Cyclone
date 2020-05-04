@@ -1,5 +1,6 @@
 package distributed
 
+import java.io.Serializable
 import java.util.*
 
 /**
@@ -14,7 +15,7 @@ import java.util.*
  *
  * @author Philipp Holl
  */
-class Peer(val isLocal: Boolean, val name: String, val address: String, val id: String) {
+class Peer(val isLocal: Boolean, val name: String, val address: String, val id: String) : Serializable {
 
     companion object {
         @JvmStatic

@@ -14,7 +14,7 @@
  * peer through one of {@link distributed.DistributedPlatform}'s mount methods are seen as
  * root files. Directories implicitly mount all contained files and folders.
  * Other peers can then access these files as
- * {@link distributed.RemoteFile}s through the corresponding instance of
+ * {@link distributed.DFile}s through the corresponding instance of
  * {@link distributed.Peer}.
  * </p>
  * <p>

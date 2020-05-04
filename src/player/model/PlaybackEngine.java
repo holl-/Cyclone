@@ -1,5 +1,6 @@
 package player.model;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +17,7 @@ import audio.MediaFile;
 import audio.Player;
 import distributed.Peer;
 import player.model.data.*;
-import distributed.RemoteFile;
+import distributed.DFile;
 
 /**
  * Controls the isLocal audio engine.
@@ -32,7 +33,7 @@ public class PlaybackEngine {
 	private AudioEngine audio;
 	private final List<String> supportedTypes;
 
-	private Optional<RemoteFile> currentFile = Optional.empty(); // locally playing media
+	private Optional<DFile> currentFile = Optional.empty(); // locally playing media
 	private Player player;
 	private long lastPositionUpdate;
 
@@ -103,8 +104,8 @@ public class PlaybackEngine {
 			if(!currentFile.isPresent()) return;
 
             MediaFile file;
-            if(currentFile.get().getPeer().isLocal()) {
-                file = new LocalMediaFile(currentFile.get().localFile());
+            if(currentFile.get().originatesHere()) {
+                file = new LocalMediaFile(new File(currentFile.get().getPath()));
             } else {
                 // TODO copy to isLocal
                 throw new UnsupportedOperationException("file copying not supported yet");

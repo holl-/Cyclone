@@ -2,16 +2,12 @@ package distributed
 
 import java.io.File
 import java.io.IOException
-import java.io.InputStream
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.function.BiConsumer
 import java.util.function.Consumer
-import java.util.function.Supplier
-
-import distributed.internal.LocalFile
 
 /**
  * Main class for setting up a virtual distributed platform.
@@ -24,7 +20,7 @@ import distributed.internal.LocalFile
  * called.
  */
 class DistributedPlatform {
-    private val mountedFiles = HashSet<RemoteFile>()
+    private val mountedFiles = HashSet<DFile>()
 
     private val connectionListeners = CopyOnWriteArrayList<ConnectionListener>()
     private val dataListeners = CopyOnWriteArrayList<DataListener>()
@@ -83,54 +79,6 @@ class DistributedPlatform {
 
     }
 
-    /**
-     * Allows other peers to read the given file. The file will be available
-     * using getMountedFiles or getFile where
-     * the path equals the returned filename. If the file is a directory, all
-     * contained files and folders are also shared.
-     *
-     *
-     * *Warning:* While mounted, files should not be modified.
-     *
-     *
-     * @return the mounted filename with which other peers can access the file.
-     * This may be different from the real file name if a file with that
-     * name has already been mounted before.
-     * @param file
-     * file to share
-     * @see .unmountFile
-     */
-    fun mountFile(file: RemoteFile) {
-        mountedFiles.add(file)
-    }
-
-    @Throws(IllegalArgumentException::class)
-    fun mountVirtual(name: String, length: Long, lastModified: Long, streamSupplier: Supplier<InputStream>): RemoteFile? {
-        return null
-    }
-
-    fun unmountFile(name: String) {
-
-    }
-
-    /**
-     * Returns a list of all files mounted directly by the peer. Files can be
-     * mounted using one of [DistributedPlatform]'s mount methods.
-     *
-     * @return a list of all files mounted by the peer
-     * @throws IOException
-     * if the peer is no longer available
-     * @see .getFile
-     */
-    @Throws(IOException::class)
-    fun getMountedFiles(peer: Peer): Collection<RemoteFile> {
-        return if (peer.isLocal) {
-            mountedFiles
-        } else {
-            TODO()
-        }
-    }
-
 
     /**
      * Sends a message to the peer. Messages can be any serializable object. The
@@ -145,34 +93,6 @@ class DistributedPlatform {
     @Throws(IOException::class)
     fun send(message: Serializable, target: Peer) {
 
-    }
-
-
-    /**
-     * Returns the file mounted at the given relative path. For more on
-     * mounting, see [RemoteFile].
-     *
-     * @param path
-     * mounted file path
-     * @return the file mounted at the given relative path
-     * @throws IOException
-     * if the peer is no longer available
-     */
-    @Throws(IOException::class)
-    fun getFile(path: String): RemoteFile {
-        var rootName = path
-        if (rootName.contains("/")) {
-            rootName = rootName.substring(0, path.indexOf("/"))
-        }
-        if (rootName.contains("\\")) {
-            rootName = rootName.substring(0, path.indexOf("\\"))
-        }
-        var root: LocalFile? = null
-        for (file in mountedFiles) {
-            if (file.path == rootName) root = file as LocalFile
-        }
-        if (root == null) throw IllegalArgumentException("Not found: $path")
-        return if (path == rootName) root else LocalFile.createChild(root, path)
     }
 
 

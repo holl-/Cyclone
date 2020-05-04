@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import distributed.RemoteFile;
+import distributed.DFile;
 import distributed.Conflict;
 import distributed.Distributed;
 
@@ -23,7 +23,7 @@ public class Playlist extends Distributed {
 
 	public static final String DistributedPlatform_ID = "playlist";
 
-	private List<RemoteFile> list = new ArrayList<>();
+	private List<DFile> list = new ArrayList<>();
 
 	public Playlist() {
 		super(DistributedPlatform_ID, true, false);
@@ -35,7 +35,7 @@ public class Playlist extends Distributed {
 		return null;
 	}
 
-	public List<RemoteFile> list() {
+	public List<DFile> list() {
 		return new ArrayList<>(list);
 	}
 
@@ -43,17 +43,17 @@ public class Playlist extends Distributed {
 		return list.size();
 	}
 
-	public Optional<RemoteFile> first() {
+	public Optional<DFile> first() {
 		if(isEmpty()) return Optional.empty();
 		return Optional.of(list.get(0));
 	}
 
-	public Optional<RemoteFile> last() {
+	public Optional<DFile> last() {
 		if(isEmpty()) return Optional.empty();
 		return Optional.of(list.get(size()-1));
 	}
 
-	public Optional<RemoteFile> getNext(Optional<RemoteFile> current, boolean loop) throws IllegalArgumentException {
+	public Optional<DFile> getNext(Optional<DFile> current, boolean loop) throws IllegalArgumentException {
 		if(isEmpty()) return Optional.empty();
 		if(!current.isPresent()) return first();
 
@@ -68,7 +68,7 @@ public class Playlist extends Distributed {
 			return Optional.empty();
 	}
 
-	public Optional<RemoteFile> getPrevious(Optional<RemoteFile> mediaID, boolean loop) throws IllegalArgumentException {
+	public Optional<DFile> getPrevious(Optional<DFile> mediaID, boolean loop) throws IllegalArgumentException {
 		if(isEmpty()) return Optional.empty();
 		if(!mediaID.isPresent()) return first();
 
@@ -83,9 +83,9 @@ public class Playlist extends Distributed {
 			return Optional.empty();
 	}
 
-	public RemoteFile setAll(List<RemoteFile> files, int returnIDIndex, boolean shuffle, boolean firstStayFirst) {
+	public DFile setAll(List<DFile> files, int returnIDIndex, boolean shuffle, boolean firstStayFirst) {
 		_clear();
-		RemoteFile returnID = null;
+		DFile returnID = null;
 		if(!files.isEmpty()) {
 			list.clear();
 			list.addAll(files);
@@ -102,20 +102,20 @@ public class Playlist extends Distributed {
 		return returnID;
 	}
 
-	public RemoteFile addAll(List<RemoteFile> files, int returnIDIndex, boolean shuffle, Optional<RemoteFile> shuffleToFirst) {
+	public DFile addAll(List<DFile> files, int returnIDIndex, boolean shuffle, Optional<DFile> shuffleToFirst) {
 		list.addAll(files);
-		RemoteFile returnID = returnIDIndex >= 0 ? files.get(returnIDIndex) : null;
+		DFile returnID = returnIDIndex >= 0 ? files.get(returnIDIndex) : null;
 		if(shuffle) _shuffle(shuffleToFirst);
 		fireChangedLocally();
 		return returnID;
 	}
 
-	public void shuffle(Optional<RemoteFile> makeFirst) {
+	public void shuffle(Optional<DFile> makeFirst) {
 		_shuffle(makeFirst);
 		fireChangedLocally();
 	}
 
-	private void _shuffle(Optional<RemoteFile> makeFirst) {
+	private void _shuffle(Optional<DFile> makeFirst) {
 		Collections.shuffle(list);
 		makeFirst.ifPresent(first -> {
 			if(list.remove(first)) list.add(0, first);
@@ -123,7 +123,7 @@ public class Playlist extends Distributed {
 		});
 	}
 
-	public void add(RemoteFile file) {
+	public void add(DFile file) {
 		list.add(file);
 		fireChangedLocally();
 	}
@@ -141,13 +141,13 @@ public class Playlist extends Distributed {
 		return list.isEmpty();
 	}
 
-	public void setAll(List<RemoteFile> newList) {
+	public void setAll(List<DFile> newList) {
 		list.clear();
 		list.addAll(newList);
 		fireChangedLocally();
 	}
 
-	public void remove(RemoteFile identifier) {
+	public void remove(DFile identifier) {
 		boolean removed = list.remove(identifier);
 		if(removed) fireChangedLocally();
 	}

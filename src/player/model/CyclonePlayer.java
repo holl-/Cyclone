@@ -72,13 +72,13 @@ public class CyclonePlayer {
 	public void setShuffled(boolean value) { shuffled.set(value); }
 	public BooleanProperty shuffledProperty() { return shuffled; }
 
-	private ObservableList<RemoteFile> playlist;
-	public ObservableList<RemoteFile> getPlaylist() { return playlist; }
+	private ObservableList<DFile> playlist;
+	public ObservableList<DFile> getPlaylist() { return playlist; }
 
-	private ObjectProperty<Optional<RemoteFile>> currentMedia;
-	public Optional<RemoteFile> getCurrentMedia() { return currentMedia.get(); }
-	public void setCurrentMedia(Optional<RemoteFile> value) { currentMedia.set(value); }
-	public ObjectProperty<Optional<RemoteFile>> currentMediaProperty() { return currentMedia; }
+	private ObjectProperty<Optional<DFile>> currentMedia;
+	public Optional<DFile> getCurrentMedia() { return currentMedia.get(); }
+	public void setCurrentMedia(Optional<DFile> value) { currentMedia.set(value); }
+	public ObjectProperty<Optional<DFile>> currentMediaProperty() { return currentMedia; }
 
 	private ObservableList<Speaker> speakers;
 	public ObservableList<Speaker> getSpeakers() { return speakers; }
@@ -229,23 +229,23 @@ public class CyclonePlayer {
 		status.getTarget().stop();
 	}
 
-	public RemoteFile addToPlaylist(List<RemoteFile> files, int returnIndex) {
+	public DFile addToPlaylist(List<DFile> files, int returnIndex) {
 		return status.getPlaylist().addAll(files, returnIndex, isShuffled(), getCurrentMedia());
 	}
 
-	public RemoteFile setPlaylist(List<RemoteFile> files, int returnIndex, boolean firstStayFirst) {
+	public DFile setPlaylist(List<DFile> files, int returnIndex, boolean firstStayFirst) {
 		return status.getPlaylist().setAll(files, returnIndex, isShuffled(), firstStayFirst);
 	}
 
 
-	public Optional<RemoteFile> getNext() {
+	public Optional<DFile> getNext() {
 		return status.playlist.getNext(status.playback.getCurrentMedia(), status.target.isLoop());
 	}
 	public void next() {
 		status.target.setTargetMedia(getNext(), true);
 	}
 
-	public Optional<RemoteFile> getPrevious() {
+	public Optional<DFile> getPrevious() {
 		return status.playlist.getPrevious(status.playback.getCurrentMedia(), status.target.isLoop());
 	}
 	public void previous() {
