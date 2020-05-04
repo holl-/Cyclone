@@ -16,6 +16,7 @@ import javafx.geometry.VPos;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Group;
+import javafx.scene.Parent;
 import javafx.scene.control.SkinBase;
 import javafx.scene.control.Tooltip;
 import javafx.scene.effect.DropShadow;
@@ -173,9 +174,9 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
 
         styledBarBox.backgroundProperty().addListener(e -> updateBarStyle());
 
+        // Mouse events
         getSkinnable().setOnMouseMoved(e -> updateMouseOver(e, false));
         getSkinnable().setOnMouseDragged(e -> updateMouseOver(e, true));
-
         getSkinnable().setOnMouseExited(e -> {
             mouseTooltipAnimation = fadeTooltip(mouseTooltipFadeOutLength, 0, mouseTooltip, mouseTooltipAnimation);
             thumb.setOpacity(0);
@@ -185,12 +186,12 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
             updateMouseOver(e, false);
             barTooltipAnimation = fadeTooltip(barTooltipFadeInLength, 1, barTooltip, barTooltipAnimation);
         });
-
         getSkinnable().setOnMouseReleased(e -> {
             if(onBar) {
                 getSkinnable().setValue(getValueAt(e.getX(), e.getY()));
                 showTooltipAtPos(barTooltip, getSkinnable().getValue());
             }
+            onBar = false;
         });
     }
 
@@ -217,15 +218,18 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
     private void updateMouseOver(MouseEvent e, boolean isDragged) {
         double angle = getAngle(e.getX(), e.getY());
         double pos = getValueAt(e.getX(), e.getY());
-        onBar = isDragged || isOnBar(e.getX(), e.getY());
+        onBar = (onBar && isDragged) || isOnBar(e.getX(), e.getY());
 
         // update tooltip
         if(onBar) {
             mouseTooltip.setText(getLabelAt(pos));
             showTooltipAtAngle(mouseTooltip, angle);
             mouseTooltipAnimation = fadeTooltip(mouseTooltipFadeInLength, 1, mouseTooltip, mouseTooltipAnimation);
+            e.consume();
         } else {
             mouseTooltipAnimation = fadeTooltip(mouseTooltipFadeOutLength, 0, mouseTooltip, mouseTooltipAnimation);
+            Parent parent = getNode().getParent();
+            parent.fireEvent(e.copyFor(parent, parent));
         }
 
         // update thumb
@@ -407,8 +411,6 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
      * Called when the size of the control changes.
      * @param contentWidth
      * @param contentHeight
-     * @param radius
-     * @param arcWidth
      */
     private void recalculateShapes(double contentWidth, double contentHeight) {
         if(foregroundMask != null) {

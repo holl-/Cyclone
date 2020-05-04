@@ -130,6 +130,9 @@ public class PlayerWindow implements Initializable {
 		control.setOnShowPlaylist(e -> showPlaylist());
 		control.setOnSearch(e -> showSearch());
 		playerRoot.setCenter(control);
+
+//		control.setOnMouseDragged(e -> e.);
+
 		return playerRoot;
 	}
 
