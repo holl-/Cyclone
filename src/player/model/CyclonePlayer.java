@@ -106,7 +106,9 @@ public class CyclonePlayer {
 		if(config.getProperties().containsKey("library")) {
 			String[] roots = config.getString("library", "").split(";");
 			for(String root : roots) {
-				library.getRoots().add(new DFile(new File(root)));
+				root = root.trim();
+				if(!root.isEmpty())
+					library.getRoots().add(new DFile(new File(root)));
 			}
 		} else library.addDefaultRoots();
 		// Create data objects
