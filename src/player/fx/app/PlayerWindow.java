@@ -404,7 +404,7 @@ public class PlayerWindow implements Initializable {
 		}
 		else files = Arrays.asList(file);
 		if(!append) {
-			DFile mediaID = player.setPlaylist(files, 0, true);
+			DFile mediaID = player.setPlaylist(files, 0, false);
 			player.setCurrentMedia(Optional.ofNullable(mediaID));
 		} else {
 			DFile mediaID = player.addToPlaylist(files, 0);
