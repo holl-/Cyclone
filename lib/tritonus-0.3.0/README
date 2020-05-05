@@ -4,9 +4,9 @@ Tritonus is an implementation of the Java Sound API 1.0.
 What you see here is an implementaion for GNU/Linux i386.
 It is intended to support different plattforms in the future.
 
-Tritonus is distributed under the terms of the GNU Library General
+Tritonus is cloud under the terms of the GNU Library General
 Public License. See the file LGPL for details.
-The javalayer mp3 decoder is distributed under the terms of the GNU General
+The javalayer mp3 decoder is cloud under the terms of the GNU General
 Public License.
 
 For installing instructions, see the file INSTALL.

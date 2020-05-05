@@ -1,14 +1,15 @@
-package distributed
+package cloud
 
-import distributed.internal.ListDirRequest
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStream
+import java.io.Serializable
 import java.util.*
 import java.util.stream.Stream
 
-class DFile(file: File) : Distributed(false, true) {
+
+class DFile(file: File) : Data() {
     private val path: String = file.path
     private var size: Long? = null  // read upon serialization
     private var isDir: Boolean? = null // read upon serialization
@@ -33,7 +34,7 @@ class DFile(file: File) : Distributed(false, true) {
      * Returns the size of this file in bytes.
      *
      * Files should not be modified while they are being mounted by a
-     * [DistributedPlatform]. Therefore this method also returns a valid size if the
+     * [Cloud]. Therefore this method also returns a valid size if the
      * hosting peer is not available.
      *
      * @return the size of this file in bytes
@@ -66,7 +67,7 @@ class DFile(file: File) : Distributed(false, true) {
             val names = dir.list()
             return Arrays.stream(names).map { name -> DFile(File(dir, name)) }
         } else {
-            return platform.query(ListDirRequest(this), origin)
+            return platform!!.query(ListDirRequest(path), origin)
         }
     }
 
@@ -85,7 +86,7 @@ class DFile(file: File) : Distributed(false, true) {
         if(originatesHere()) {
             return FileInputStream(File(path))
         } else {
-            return platform.openStream(origin, getPath())
+            return platform!!.openStream(origin, getPath())
         }
     }
 
@@ -122,6 +123,6 @@ class DFile(file: File) : Distributed(false, true) {
         result = 31 * result + path.hashCode()
         return result
     }
-
-
 }
+
+internal class ListDirRequest(val path: String) : Serializable
