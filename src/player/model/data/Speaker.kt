@@ -1,16 +1,17 @@
 package player.model.data
 
-import distributed.Distributed
-import distributed.Peer
+import cloud.Data
+import cloud.Peer
 import java.util.*
 
-class Speaker(val peer: Peer,
+
+data class Speaker(val peer: Peer,
               val speakerId: String,
               val name: String,
               val minGain: Double,
               val maxGain: Double,
-              val isPeerDefault: Boolean) : Distributed(false, true) {
-
+              val isPeerDefault: Boolean) : Data()
+{
     override fun toString(): String {
         return name
     }
