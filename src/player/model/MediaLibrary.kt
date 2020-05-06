@@ -11,25 +11,25 @@ import java.util.stream.Collectors
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
-import distributed.DFile
+import cloud.CloudFile
 
 class MediaLibrary {
-    val roots: ObservableList<DFile> = FXCollections.observableArrayList()
-    val recentlyUsed: ObservableList<DFile> = FXCollections.observableArrayList()
+    val roots: ObservableList<CloudFile> = FXCollections.observableArrayList()
+    val recentlyUsed: ObservableList<CloudFile> = FXCollections.observableArrayList()
     var recentlyUsedSize: Int = 10
 
     /**
      * Index of all isLocal files and directories that are part of the library.
      * Only media files are added, other files are ignored.
      */
-    private val localIndex: ObservableList<DFile> = FXCollections.observableArrayList()
+    private val localIndex: ObservableList<CloudFile> = FXCollections.observableArrayList()
     private val indexingService: ExecutorService
 
 
     init {
         indexingService = Executors.newSingleThreadExecutor { r -> Thread(r, "Index Service") }
-        roots.addListener{ e: ListChangeListener.Change<out DFile> -> updateIndex() }
-        recentlyUsed.addListener {e: ListChangeListener.Change<out DFile> -> removeDuplicates(recentlyUsed, recentlyUsedSize); }
+        roots.addListener{ e: ListChangeListener.Change<out CloudFile> -> updateIndex() }
+        recentlyUsed.addListener {e: ListChangeListener.Change<out CloudFile> -> removeDuplicates(recentlyUsed, recentlyUsedSize); }
     }
 
     @Throws(IOException::class)
@@ -40,12 +40,12 @@ class MediaLibrary {
     fun addDefaultRoots() {
         val music = File(System.getProperty("user.home"), "Music")
         if (music.exists() && music.isDirectory) {
-            roots.add(DFile(music))
+            roots.add(CloudFile(music))
         }
     }
 
-    fun startSearch(pattern: String): ObservableList<DFile> {
-        val set = FXCollections.observableArrayList<DFile>()
+    fun startSearch(pattern: String): ObservableList<CloudFile> {
+        val set = FXCollections.observableArrayList<CloudFile>()
         val lowerPattern = pattern.toLowerCase()
         Thread {
             val searchList = localIndex.stream().filter { file -> file.getPath().toLowerCase().contains(lowerPattern) }.collect(Collectors.toList())
@@ -54,13 +54,13 @@ class MediaLibrary {
         return set
     }
 
-    fun isIndexed(file: DFile): Boolean {
+    fun isIndexed(file: CloudFile): Boolean {
         return localIndex.contains(file)
     }
 
 
     private fun updateIndex() {
-        val newIndex = ArrayList<DFile>()
+        val newIndex = ArrayList<CloudFile>()
         indexingService.submit {
             for(root in roots) {
                 if(root.originatesHere()) {
@@ -71,7 +71,7 @@ class MediaLibrary {
         }
     }
 
-    private fun recursiveAdd(file: DFile, list: MutableCollection<DFile>) {
+    private fun recursiveAdd(file: CloudFile, list: MutableCollection<CloudFile>) {
         if (file in list) return
         if(file.isDirectory() or AudioFiles.isAudioFile(file.getName()))
             list.add(file)

@@ -1,6 +1,7 @@
 package cloud
 
-import javafx.beans.binding.Bindings
+import javafx.application.Platform
+import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -9,8 +10,10 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.Serializable
-import java.util.concurrent.Callable
+import java.lang.UnsupportedOperationException
 import java.util.function.BiConsumer
+import java.util.function.Predicate
+import java.util.function.Supplier
 import java.util.stream.Stream
 
 /**
@@ -28,8 +31,10 @@ class Cloud {
     val peers: ObservableList<Peer> = FXCollections.observableArrayList()
         get() = FXCollections.unmodifiableObservableList(field)
 
-    private val data = FXCollections.observableArrayList<Data>()
-    private val sData = FXCollections.observableArrayList<SynchronizedData>()
+    private val pushedData = FXCollections.observableArrayList<Data>()
+    private val sData = HashMap<Class<out SynchronizedData>, SimpleObjectProperty<out SynchronizedData>>()
+//    private val sData = FXCollections.observableArrayList<SynchronizedData>()
+    private val ownerMap = HashMap<Data, Any>()
 
 //    private val eventHandler = Executors.newSingleThreadExecutor()
 
@@ -85,56 +90,94 @@ class Cloud {
     }
 
 
-    fun<T : Data> getData(cls: Class<T>): ObservableList<T> {
+
+
+    fun<T : SynchronizedData> getSynchronized(cls: Class<T>, default: Supplier<T>): ObservableValue<T> {
         @Suppress("UNCHECKED_CAST")
-        return FXCollections.unmodifiableObservableList(FilteredList<Data>(data) {d -> d.javaClass == cls} as ObservableList<T>)
+        if(cls in sData) return sData[cls] as ObservableValue<T>
+        else {
+            val defaultValue = default.get()
+            val property = SimpleObjectProperty(defaultValue)
+            sData[cls] = property
+            return property
+        }
     }
-
-    fun<T : SynchronizedData> getSynchronizedData(cls: Class<T>): ObservableValue<T?> {
-        @Suppress("UNCHECKED_CAST") val generator: Callable<T?> = Callable { data.firstOrNull { d -> d.javaClass == cls} as T? }
-        return Bindings.createObjectBinding(generator, data)
-    }
-
 
     /**
-     * If data is not shared, adds it to the owner-bound accessible resources.
-     *
-     * If data is shared, tries to replace an existing shared copy with this one.
+     * Updates a synchronized data object.
+     * This may create a conflict.
      */
-    fun putData(d: Data) {
-        if (d.platform != null)
-            throw IllegalArgumentException("data is already bound")
-        d.platform = this
+    fun pushSynchronized(d: SynchronizedData) {
+        Platform.runLater(Runnable { (getSynchronized(d.javaClass, Supplier { d }) as SimpleObjectProperty).value = d })
+    }
+
+
+
+
+
+    fun<T : Data> getAll(cls: Class<T>): ObservableList<T> {
+        // TODO this is throwing events even when no instance of cls changes
+        @Suppress("UNCHECKED_CAST")
+        return FilteredList<Data>(pushedData, Predicate { d -> cls.isAssignableFrom(d.javaClass) }) as ObservableList<T>
+    }
+
+    /**
+     * Uploads a number of data objects to the cloud.
+     * Objects equalling previously pushed objects of the same owner replace the old versions.
+     * If [yankOthers] is true, previously pushed objects of the same class that are not part of [dataObjects] are yanked.
+     */
+    fun<T : Data> push(cls: Class<T>, dataObjects: Iterable<T>, owner:Any, yankOthers: Boolean) {
+        Platform.runLater(Runnable {
+            val offlineList: MutableList<Data>
+            offlineList = if(yankOthers) {
+                ArrayList(pushedData.filter { d -> ownerMap[d] != owner || !cls.isAssignableFrom(d.javaClass) })
+            } else {
+                ArrayList(pushedData)
+            }
+            for(d in dataObjects) {
+                ownerMap[d] = owner
+                if(d in offlineList) {
+                    val index = offlineList.indexOf(d)
+                    offlineList[index] = d
+                } else {
+                    offlineList.add(d)
+                }
+            }
+            println(offlineList)
+            pushedData.setAll(offlineList)
+        })
+    }
+
+    private fun yank(d: Data) {
+        if (d.cloud !== this)
+            throw IllegalArgumentException()
+        d.cloud = null
 
         if(d is SynchronizedData) {
-            if(sData.any { d -> d.javaClass == d.javaClass }) {
-                val index = sData.indexOfFirst { d -> d.javaClass == d.javaClass }
-                sData[index] = d
-            } else {
-                sData.add(d)
+            throw UnsupportedOperationException("SynchronizedData instances cannot be yanked.")
+        } else {
+            pushedData.remove(d)
+        }
+
+        ownerMap.remove(d)
+    }
+
+    fun yankAll(cls: Class<out Data>?, owner: Any?) {
+        for (d in ArrayList(pushedData)) {  // copy the list to avoid threading issues
+            val matchesClass = cls == null || cls.isAssignableFrom(d.javaClass)
+            val matchesOwner = owner == null || ownerMap[d] == owner
+            if (matchesClass && matchesOwner) {
+                yank(d)
             }
         }
-        else {
-            data.add(d)
-        }
     }
 
-//    fun removeData(data: Data) {
-//        if (data.platform !== this)
-//            throw IllegalArgumentException()
-//        data.platform = null
-//
-//        val time = System.currentTimeMillis()
-//        val e = DataEvent(data, Peer.getLocal(), Peer.getLocal(), time, time)
-//        dataListeners.forEach { l -> l.onDataRemoved(e) }
-//    }
 
-
-    fun saveSynchronizedData(saveFile: File) {
+    fun write(data: List<Data>, file: File) {
 
     }
 
-    fun loadSynchronizedData(saveFile: File) {
+    fun read(file: File) {
 
     }
 

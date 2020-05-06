@@ -56,6 +56,9 @@ public class AudioFiles {
 
 
 	public static String inferTitle(String path) {
+		if(path == null) {
+			return null;
+		}
 		String title = new File(path).getName();
 		if(title.contains(".")) title = title.substring(0, title.lastIndexOf('.'));
 		return title;

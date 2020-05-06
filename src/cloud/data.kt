@@ -37,14 +37,20 @@ abstract class Data : Serializable
 {
     var origin = getLocal()
 
-    /**
-     * Associated DistributedPlatform, set when deserialized on other machine.
+    /*
+     * The cloud through which this data was obtained.
+     * This property is set on deserialization.
      */
-    @Transient var platform: Cloud? = null
+    @Transient internal var cloud: Cloud? = null
 
 
-    open fun exists(): Boolean {
-        return platform?.peers?.contains(origin) ?: true
+    /**
+     * Tests if this data object is still valid.
+     * Owner-bound data becomes invalid when the peer that pushed it disconnects from the cloud.
+     * [SynchronizedData] instances never become invalid.
+     */
+    open fun isValid(): Boolean {
+        return cloud?.peers?.contains(origin) ?: true
     }
 
 }
@@ -56,7 +62,10 @@ abstract class Data : Serializable
  */
 abstract class SynchronizedData : Data()
 {
-    override fun exists(): Boolean {
+    /**
+     * [SynchronizedData] always are valid.
+     */
+    override fun isValid(): Boolean {
         return true
     }
 }

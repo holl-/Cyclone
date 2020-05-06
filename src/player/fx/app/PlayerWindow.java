@@ -1,12 +1,9 @@
 package player.fx.app;
 
-import audio.*;
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
+import javafx.beans.binding.Bindings;
 import javafx.collections.ListChangeListener;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -19,7 +16,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
@@ -38,11 +34,11 @@ import player.model.CycloneConfig;
 import player.fx.FileDropOverlay;
 import player.fx.PlayerControl;
 import player.fx.icons.FXIcons;
-import player.model.CyclonePlayer;
+import player.model.PlaylistPlayer;
 import player.model.MediaLibrary;
-import player.model.PlaybackEngine;
+import player.model.playback.PlaybackEngine;
 import player.model.data.Speaker;
-import distributed.DFile;
+import cloud.CloudFile;
 
 import java.awt.*;
 import java.io.File;
@@ -68,13 +64,13 @@ public class PlayerWindow implements Initializable {
 	// Search
 	private Node searchRoot, searchFocus;
 
-	private CyclonePlayer player;
+	private PlaylistPlayer player;
 	private MediaLibrary library;
 	private PlaybackEngine engine; // can be null
 	private AppSettings settings;
 
 
-	PlayerWindow(Stage stage, CyclonePlayer player, PlaybackEngine engine, CycloneConfig config) throws IOException {
+	PlayerWindow(Stage stage, PlaylistPlayer player, PlaybackEngine engine, CycloneConfig config) throws IOException {
 		this.stage = stage;
 		this.player = player;
 		this.engine = engine;
@@ -85,17 +81,7 @@ public class PlayerWindow implements Initializable {
 		playlistRoot = loadPlaylist();
 		searchRoot = loadSearch();
 
-		this.player.currentMediaProperty().addListener((p, o, n) -> updateAddToLibraryMenu());
-//		index.addMediaIndexListener(new MediaIndexListener() {
-//			@Override
-//			public void onRemoved(MediaIndexEvent e) {
-//				updateAddToLibraryMenu();
-//			}
-//			@Override
-//			public void onAdded(MediaIndexEvent e) {
-//				updateAddToLibraryMenu();
-//			}
-//		});
+		player.getCurrentFileProperty().addListener((p, o, n) -> updateAddToLibraryMenu());
 
 		FileDropOverlay overlay = new FileDropOverlay(root);
 		overlay.setActionGenerator(files -> generateDropButtons(files));
@@ -119,13 +105,13 @@ public class PlayerWindow implements Initializable {
 		BorderPane playerRoot = loader.load();
 
 		PlayerControl control = new PlayerControl();
-		control.durationProperty().bind(player.durationProperty());
-		control.positionProperty().bindBidirectional(player.positionProperty());
-		control.playingProperty().bindBidirectional(player.playingProperty());
-		control.mediaSelectedProperty().bind(player.mediaSelectedProperty());
-		control.playlistAvailableProperty().bind(player.playlistAvailableProperty());
-		control.shuffledProperty().bindBidirectional(player.shuffledProperty());
-		control.loopProperty().bindBidirectional(player.loopProperty());
+		control.durationProperty().bind(player.getDurationProperty());
+		control.positionProperty().bindBidirectional(player.getPositionProperty());
+		control.playingProperty().bindBidirectional(player.getPlayingProperty());
+		control.mediaSelectedProperty().bind(player.isFileSelectedProperty());
+//		control.playlistAvailableProperty().bind(player.playlistAvailableProperty());
+		control.shuffledProperty().bindBidirectional(player.getShuffledProperty());
+		control.loopProperty().bindBidirectional(player.getLoopingProperty());
 		control.setOnNext(e -> player.next());
 		control.setOnPrevious(e -> player.previous());
 		control.setOnStop(e -> player.stop());
@@ -142,18 +128,18 @@ public class PlayerWindow implements Initializable {
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("playlist.fxml"));
 		loader.setController(new Initializable() {
 			@FXML private Button removeOthersButton;
-			@FXML private ListView<DFile> playlist;
+			@FXML private ListView<CloudFile> playlist;
 
 			@Override
 			public void initialize(URL location, ResourceBundle resources) {
 				playlist.setItems(player.getPlaylist());
 				playlist.addEventFilter(KeyEvent.KEY_PRESSED, new TabAndEnterHandler(playlist));
-				removeOthersButton.disableProperty().bind(player.playlistAvailableProperty().not());
+				removeOthersButton.disableProperty().bind(Bindings.createBooleanBinding(() -> player.getPlaylist().size() == 0 || (player.getPlaylist().size() == 1 && player.getCurrentFileProperty().get() == player.getPlaylist().get(0))));
 				playlist.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
-					if(n != null) player.setCurrentMedia(Optional.of(n));
+					if(n != null) player.getCurrentFileProperty().set(n);
 				});
-				player.currentMediaProperty().addListener((p, o, n) -> {
-					playlist.getSelectionModel().select(player.getCurrentMedia().orElse(null));
+				player.getCurrentFileProperty().addListener((p, o, n) -> {
+					playlist.getSelectionModel().select(player.getCurrentFileProperty().get());
 				});
 				playlist.setCellFactory(list -> new MediaCell());
 				playlistListView = playlist;
@@ -166,16 +152,18 @@ public class PlayerWindow implements Initializable {
 
 			@FXML
 			public void clearPlaylist() {
-				player.setCurrentMedia(Optional.empty());
+				player.getCurrentFileProperty().set(null);
 				player.getPlaylist().clear();
 				closePlaylist();
 			}
 
 			@FXML
 			public void clearOthers() {
-				List<DFile> newList = new ArrayList<>();
-				player.getCurrentMedia().ifPresent(m -> newList.add(m));
-				player.setPlaylist(newList, 0, false);
+				List<CloudFile> newList = new ArrayList<>();
+				if(player.getCurrentFileProperty().get() != null) {
+					newList.add(player.getCurrentFileProperty().get());
+				}
+				player.setPlaylist(newList);
 			}
 		});
 		BorderPane playlistRoot = loader.load();
@@ -186,7 +174,7 @@ public class PlayerWindow implements Initializable {
 	private BorderPane loadSearch() throws IOException {
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("search.fxml"));
 		loader.setController(new Initializable() {
-			@FXML private ListView<DFile> searchResult;
+			@FXML private ListView<CloudFile> searchResult;
 			@FXML private TextField searchField;
 
 			@Override
@@ -198,7 +186,7 @@ public class PlayerWindow implements Initializable {
 						searchResult.setItems(library.startSearch(n));
 					}
 					if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
-					searchResult.getItems().addListener((ListChangeListener<DFile>) change -> {
+					searchResult.getItems().addListener((ListChangeListener<CloudFile>) change -> {
 						if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
 					});
 				});
@@ -229,7 +217,7 @@ public class PlayerWindow implements Initializable {
 			}
 
 			private void playSelected(boolean append) {
-				DFile m = searchResult.getSelectionModel().getSelectedItem();
+				CloudFile m = searchResult.getSelectionModel().getSelectedItem();
 				if(m != null) {
 					playFromLibrary(m, append);
 				}
@@ -247,20 +235,20 @@ public class PlayerWindow implements Initializable {
 		settingsMenu.setText(null);
 		settingsMenu.setGraphic(FXIcons.get("Settings.png", 24));
 		currentSongMenu.setGraphic(FXIcons.get("Media.png", 24));
-		currentSongMenu.textProperty().bind(player.titleProperty());
-		currentSongMenu.disableProperty().bind(player.mediaSelectedProperty().not());
-		volume.valueProperty().bindBidirectional(player.gainProperty());
+		currentSongMenu.textProperty().bind(player.getTitleProperty());
+		currentSongMenu.disableProperty().bind(player.isFileSelectedProperty().not());
+		volume.valueProperty().bindBidirectional(player.getGainProperty());
 		speakerSelection.setItems(player.getSpeakers());
-		player.getSpeaker().ifPresent(speaker -> speakerSelection.getSelectionModel().select(speaker));
+		speakerSelection.getSelectionModel().select(player.getSpeakerProperty().get());
 		speakerSelection.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
-			if(n != null) player.setSpeaker(Optional.of(n));
+			if(n != null) player.getSpeakerProperty().set(n);
 		});
-		player.speakerProperty().addListener((p, o, n) -> {
-			speakerSelection.getSelectionModel().select(n.orElse(null));
+		player.getSpeakerProperty().addListener((p, o, n) -> {
+			speakerSelection.getSelectionModel().select(n);
 		});
 	}
 
-	public CyclonePlayer getStatusWrapper() {
+	public PlaylistPlayer getStatusWrapper() {
 		return player;
 	}
 
@@ -281,10 +269,10 @@ public class PlayerWindow implements Initializable {
 		if(!cold && !audioFiles.isEmpty()) {
 			ToggleButton append = new ToggleButton("Add to playlist", FXIcons.get("Append.png", 32));
 			append.setOnAction(e -> {
-				List<DFile> remoteFiles = audioFiles.stream().map(DFile::new).collect(Collectors.toList());
-				DFile mediaID = player.addToPlaylist(remoteFiles, 0);
-				if(!player.getCurrentMedia().isPresent()) {
-					player.setCurrentMedia(Optional.of(mediaID));
+				List<CloudFile> dfiles = audioFiles.stream().map(CloudFile::new).collect(Collectors.toList());
+				player.addToPlaylist(dfiles);
+				if(player.getCurrentFileProperty().get() == null) {
+					player.getCurrentFileProperty().set(dfiles.get(0));
 				}
 			});
 			result.add(append);
@@ -305,15 +293,15 @@ public class PlayerWindow implements Initializable {
 	}
 
 	public void play(List<File> localFiles, File startFile) {
-		int startIndex = localFiles.indexOf(startFile);
-		List<DFile> remoteFiles = localFiles.stream().map(DFile::new).collect(Collectors.toList());
+		List<CloudFile> remoteFiles = localFiles.stream().map(CloudFile::new).collect(Collectors.toList());
 //		for(DFile file : remoteFiles) {
 //			if(!player.getLibrary().isIndexed(file)) {
 //				player.getLibrary().getOrAdd(file);
 //			}
 //		}
-		DFile mediaID = player.setPlaylist(remoteFiles, startIndex, false);
-		player.setCurrentMedia(Optional.of(mediaID));
+		player.setPlaylist(remoteFiles);
+		player.getCurrentFileProperty().set(new CloudFile(startFile));
+		player.getPlayingProperty().set(true);
 	}
 
 	private void fadeIn(Node node, Node focus) {
@@ -370,10 +358,11 @@ public class PlayerWindow implements Initializable {
 		addToLibraryMenu.getItems().clear();
 		addToLibraryMenu.setDisable(true);
 
-		player.getCurrentMedia().ifPresent(file -> {
+		if(player.getCurrentFileProperty().get() != null) {
+			CloudFile file = player.getCurrentFileProperty().get();
 			if(file.originatesHere()) {
 				File localFile = new File(file.getPath()).getAbsoluteFile();
-				while(localFile != null && library.isIndexed(new DFile(localFile))) {
+				while(localFile != null && library.isIndexed(new CloudFile(localFile))) {
 					localFile = localFile.getParentFile();
 				}
 				if(localFile != null) {
@@ -381,14 +370,14 @@ public class PlayerWindow implements Initializable {
 						File finalFile = localFile;
 						MenuItem item = new MenuItem(localFile.getName().isEmpty() ? localFile.getAbsolutePath() : localFile.getName());
 						item.setGraphic(FXIcons.get(localFile.isDirectory() ? "PlayFolder.png" : "Media.png", 28) );
-						item.setOnAction(e -> library.getRoots().add(new DFile(finalFile)));
+						item.setOnAction(e -> library.getRoots().add(new CloudFile(finalFile)));
 						addToLibraryMenu.getItems().add(item);
 						localFile = localFile.getParentFile();
 					} while(localFile != null);
 					addToLibraryMenu.setDisable(false);
 				}
 			}
-		});
+		}
 
 		if(addToLibraryMenu.getItems().isEmpty()) {
 			addToLibraryMenu.getItems().setAll(Arrays.asList(cannotAddToLibraryItem));
@@ -396,32 +385,32 @@ public class PlayerWindow implements Initializable {
 	}
 
 
-	private void playFromLibrary(DFile file, boolean append) {
-		List<DFile> files;
+	private void playFromLibrary(CloudFile file, boolean append) {
+		List<CloudFile> files;
 		if(file.isDirectory()) {
 			List<File> allFiles = AudioFiles.unfold(Arrays.asList(new File(file.getPath())));
-			files = allFiles.stream().filter(AudioFiles::isAudioFile).map(DFile::new).collect(Collectors.toList());
+			files = allFiles.stream().filter(AudioFiles::isAudioFile).map(CloudFile::new).collect(Collectors.toList());
 		}
 		else files = Arrays.asList(file);
 		if(!append) {
-			DFile mediaID = player.setPlaylist(files, 0, false);
-			player.setCurrentMedia(Optional.ofNullable(mediaID));
+			player.setPlaylist(files);
+			player.getCurrentFileProperty().set(files.get(0));
 		} else {
-			DFile mediaID = player.addToPlaylist(files, 0);
-			if(!player.getCurrentMedia().isPresent()) {
-				player.setCurrentMedia(Optional.ofNullable(mediaID));
+			player.addToPlaylist(files);
+			if(player.getCurrentFileProperty().get() == null) {
+				player.getCurrentFileProperty().set(files.get(0));
 			}
 		}
 	}
 
 
-	static class MediaCell extends ListCell<DFile>
+	static class MediaCell extends ListCell<CloudFile>
 	{
 		ImageView fileIcon = FXIcons.get("Play.png", 32);
 		ImageView dirIcon = FXIcons.get("PlayFolder.png", 32);
 
 		@Override
-		protected void updateItem(DFile item, boolean empty) {
+		protected void updateItem(CloudFile item, boolean empty) {
 			super.updateItem(item, empty);
 			if(item != null) {
 				setText(AudioFiles.inferTitle(item.getPath()));
@@ -457,31 +446,23 @@ public class PlayerWindow implements Initializable {
 
     @FXML
     public void openFileLocation() {
-    	player.getCurrentMedia().ifPresent(file -> {
-    		if(file.originatesHere()) {
-    			try {
-					Desktop.getDesktop().browse(new File(file.getPath()).getParentFile().toURI());
-				} catch (NoSuchElementException | IOException e) {
-					e.printStackTrace();
-					new Alert(AlertType.ERROR, "Could not open location: "+file.getPath(), ButtonType.OK).show();
-				}
-    		} else {
-    			new Alert(AlertType.INFORMATION, "The file is not located on this systemcontrol.", ButtonType.OK).show();
-    		}
-    	});
+		if(player.getCurrentFileProperty().get() == null) return;
+		CloudFile file = player.getCurrentFileProperty().get();
+		if(file.originatesHere()) {
+			try {
+				Desktop.getDesktop().browse(new File(file.getPath()).getParentFile().toURI());
+			} catch (NoSuchElementException | IOException e) {
+				e.printStackTrace();
+				new Alert(AlertType.ERROR, "Could not open location: "+file.getPath(), ButtonType.OK).show();
+			}
+		} else {
+			new Alert(AlertType.INFORMATION, "The file is not located on this systemcontrol.", ButtonType.OK).show();
+		}
     }
 
     @FXML
     public void removeCurrentFromPlaylist() {
-    	Optional<DFile> current = player.getCurrentMedia();
-    	if(!current.isPresent()) return;
-
-    	boolean hasNext = player.getNext() != current;
-    	if(hasNext) {
-    		player.next();
-    	}
-    	player.getPlaylist().remove(current.get());
-    	if(!hasNext) player.next();
+		player.removeCurrentFileFromPlaylist();
     }
 
 
@@ -505,94 +486,93 @@ public class PlayerWindow implements Initializable {
 
 	@FXML
 	public void showFileInfo() throws IOException {
-		if(!player.getCurrentMedia().isPresent()) {
-			return;
-		}
-
-		FXMLLoader loader = new FXMLLoader(getClass().getResource("fileinfo.fxml"));
-		loader.setController(new Initializable() {
-		    @FXML
-            private Tab encodingTab, playbackTab;
-			@FXML
-			private Label titleLabel, durationLabel, encodingLabel;
-			@FXML
-			private Hyperlink pathLink;
-			@FXML
-			private TableView<Map.Entry<String, Object>> propertiesTable;
-            @FXML
-            private TableColumn<Map.Entry<String, Object>, String> propertyColumn;
-			@FXML
-            private TableColumn<Map.Entry<String, Object>, Object> valueColumn;
-			@FXML
-            private Label eEncoding, eChannels, eSampleRate, eSampleSize, eFrameSize, eFrameRate, eEndianness, eProperties;
-            @FXML
-            private Label dEncoding, dChannels, dSampleRate, dSampleSize, dFrameSize, dFrameRate, dEndianness, dProperties, playbackEngine;
-
-			@Override
-			public void initialize(URL location, ResourceBundle resources) {
-				if(engine.currentPlayer() != null) {
-					Player player = engine.currentPlayer();
-					try {
-						player.loadMediaFormat();
-					} catch (IOException | UnsupportedMediaFormatException e) {
-						e.printStackTrace();
-						Alert alert = new Alert(AlertType.ERROR);
-						alert.setTitle("File error");
-						alert.setHeaderText("Failed to retrieve media information.");
-						alert.setContentText(e.getMessage());
-						alert.showAndWait();
-						return;
-					}
-					MediaFile file = player.getMediaFile();
-					MediaFormat format = player.getMediaFormat();
-					audio.MediaInfo info = player.getMediaInfo();
-
-					titleLabel.setText(info.getTitle() != null ? info.getTitle() : file.getFileName());
-					pathLink.setText(file.getFile().getAbsolutePath());
-					durationLabel.setText("Duration: " + info.getDuration() + " seconds / " + format.getFrameLength() + " frames");
-					encodingLabel.setText("File type: " + format.getType().getName() + ", size: " + file.getFileSize() / 1024 / 1024 + " MB (" + file.getFileSize() + " bytes)");
-					propertiesTable.getItems().addAll(FXCollections.observableArrayList(format.getProperties().entrySet()));
-
-                    AudioDataFormat ef = player.getEncodedFormat();
-                    eEncoding.setText("Encoding: " + ef.getEncodingName());
-                    eChannels.setText("Channels: " + (ef.getChannels() == 2 ? "Stereo" : (ef.getChannels() == 1 ? "Mono" : ef.getChannels())));
-                    eSampleRate.setText("Sample rate: " + ef.getSampleRate() + " Hz");
-                    eSampleSize.setText("Sample size: " + (ef.getSampleSizeInBits() > 0 ? ef.getSampleSizeInBits() + " bits" : "variable"));
-                    eFrameSize.setText("Frame size: " + (ef.getFrameSize() > 0 ? ef.getFrameSize() + " bytes" : "variable"));
-                    eFrameRate.setText("Frame rate: " + ef.getFrameRate() + " Hz");
-                    eEndianness.setText("Endianness: " + (ef.isBigEndian() ? "big endian" : "little endian"));
-                    eProperties.setText((ef.getProperties().isEmpty() ? "" : ef.getProperties().toString()));
-
-                    playbackEngine.setText("Playback engine: " + format.getAudioEngineName());
-                    AudioDataFormat df = player.getDecodedFormat();
-                    dEncoding.setText("Encoding: " + df.getEncodingName());
-                    dChannels.setText("Channels: " + (df.getChannels() == 2 ? "Stereo" : (df.getChannels() == 1 ? "Mono" : df.getChannels())));
-                    dSampleRate.setText("Sample rate: " + df.getSampleRate() + " Hz");
-                    dSampleSize.setText("Sample size: " + (df.getSampleSizeInBits() > 0 ? df.getSampleSizeInBits() + " bits" : "variable"));
-                    dFrameSize.setText("Frame size: " + (df.getFrameSize() > 0 ? df.getFrameSize() + " bytes" : "variable"));
-                    dFrameRate.setText("Frame rate: " + df.getFrameRate() + " Hz");
-                    dEndianness.setText("Endianness: " + (df.isBigEndian() ? "big endian" : "little endian"));
-                    dProperties.setText((df.getProperties().isEmpty() ? "" : df.getProperties().toString()));
-				} else {
-					player.getCurrentMedia().ifPresent(media -> {
-						titleLabel.setText(media.getName());
-						pathLink.setText(media.getPath());
-						durationLabel.setText("Media details are unavailable because file is not stored locally.");
-					});
-					encodingTab.setDisable(true);
-					playbackTab.setDisable(true);
-				}
-				propertyColumn.setCellValueFactory(entry -> new SimpleStringProperty(entry.getValue().getKey()));
-				valueColumn.setCellValueFactory(entry -> new SimpleObjectProperty<>(entry.getValue().getValue()));
-			}
-		});
-
-        BorderPane playerRoot = loader.load();
-        Stage stage = new Stage();
-        stage.setTitle("Media Info");
-        stage.setScene(new Scene(playerRoot));
-        settings.getStylableStages().add(stage);
-        stage.show();
+//		if(player.getCurrentFileProperty().get() == null)
+//			return;
+//
+//		FXMLLoader loader = new FXMLLoader(getClass().getResource("fileinfo.fxml"));
+//		loader.setController(new Initializable() {
+//		    @FXML
+//            private Tab encodingTab, playbackTab;
+//			@FXML
+//			private Label titleLabel, durationLabel, encodingLabel;
+//			@FXML
+//			private Hyperlink pathLink;
+//			@FXML
+//			private TableView<Map.Entry<String, Object>> propertiesTable;
+//            @FXML
+//            private TableColumn<Map.Entry<String, Object>, String> propertyColumn;
+//			@FXML
+//            private TableColumn<Map.Entry<String, Object>, Object> valueColumn;
+//			@FXML
+//            private Label eEncoding, eChannels, eSampleRate, eSampleSize, eFrameSize, eFrameRate, eEndianness, eProperties;
+//            @FXML
+//            private Label dEncoding, dChannels, dSampleRate, dSampleSize, dFrameSize, dFrameRate, dEndianness, dProperties, playbackEngine;
+//
+//			@Override
+//			public void initialize(URL location, ResourceBundle resources) {
+//				if(engine.currentPlayer() != null) {
+//					Player player = engine.currentPlayer();
+//					try {
+//						player.loadMediaFormat();
+//					} catch (IOException | UnsupportedMediaFormatException e) {
+//						e.printStackTrace();
+//						Alert alert = new Alert(AlertType.ERROR);
+//						alert.setTitle("File error");
+//						alert.setHeaderText("Failed to retrieve media information.");
+//						alert.setContentText(e.getMessage());
+//						alert.showAndWait();
+//						return;
+//					}
+//					MediaFile file = player.getMediaFile();
+//					MediaFormat format = player.getMediaFormat();
+//					audio.MediaInfo info = player.getMediaInfo();
+//
+//					titleLabel.setText(info.getTitle() != null ? info.getTitle() : file.getFileName());
+//					pathLink.setText(file.getFile().getAbsolutePath());
+//					durationLabel.setText("Duration: " + info.getDuration() + " seconds / " + format.getFrameLength() + " frames");
+//					encodingLabel.setText("File type: " + format.getType().getName() + ", size: " + file.getFileSize() / 1024 / 1024 + " MB (" + file.getFileSize() + " bytes)");
+//					propertiesTable.getItems().addAll(FXCollections.observableArrayList(format.getProperties().entrySet()));
+//
+//                    AudioDataFormat ef = player.getEncodedFormat();
+//                    eEncoding.setText("Encoding: " + ef.getEncodingName());
+//                    eChannels.setText("Channels: " + (ef.getChannels() == 2 ? "Stereo" : (ef.getChannels() == 1 ? "Mono" : ef.getChannels())));
+//                    eSampleRate.setText("Sample rate: " + ef.getSampleRate() + " Hz");
+//                    eSampleSize.setText("Sample size: " + (ef.getSampleSizeInBits() > 0 ? ef.getSampleSizeInBits() + " bits" : "variable"));
+//                    eFrameSize.setText("Frame size: " + (ef.getFrameSize() > 0 ? ef.getFrameSize() + " bytes" : "variable"));
+//                    eFrameRate.setText("Frame rate: " + ef.getFrameRate() + " Hz");
+//                    eEndianness.setText("Endianness: " + (ef.isBigEndian() ? "big endian" : "little endian"));
+//                    eProperties.setText((ef.getProperties().isEmpty() ? "" : ef.getProperties().toString()));
+//
+//                    playbackEngine.setText("Playback engine: " + format.getAudioEngineName());
+//                    AudioDataFormat df = player.getDecodedFormat();
+//                    dEncoding.setText("Encoding: " + df.getEncodingName());
+//                    dChannels.setText("Channels: " + (df.getChannels() == 2 ? "Stereo" : (df.getChannels() == 1 ? "Mono" : df.getChannels())));
+//                    dSampleRate.setText("Sample rate: " + df.getSampleRate() + " Hz");
+//                    dSampleSize.setText("Sample size: " + (df.getSampleSizeInBits() > 0 ? df.getSampleSizeInBits() + " bits" : "variable"));
+//                    dFrameSize.setText("Frame size: " + (df.getFrameSize() > 0 ? df.getFrameSize() + " bytes" : "variable"));
+//                    dFrameRate.setText("Frame rate: " + df.getFrameRate() + " Hz");
+//                    dEndianness.setText("Endianness: " + (df.isBigEndian() ? "big endian" : "little endian"));
+//                    dProperties.setText((df.getProperties().isEmpty() ? "" : df.getProperties().toString()));
+//				} else {
+//					player.getCurrentFileProperty().ifPresent(media -> {
+//						titleLabel.setText(media.getName());
+//						pathLink.setText(media.getPath());
+//						durationLabel.setText("Media details are unavailable because file is not stored locally.");
+//					});
+//					encodingTab.setDisable(true);
+//					playbackTab.setDisable(true);
+//				}
+//				propertyColumn.setCellValueFactory(entry -> new SimpleStringProperty(entry.getValue().getKey()));
+//				valueColumn.setCellValueFactory(entry -> new SimpleObjectProperty<>(entry.getValue().getValue()));
+//			}
+//		});
+//
+//        BorderPane playerRoot = loader.load();
+//        Stage stage = new Stage();
+//        stage.setTitle("Media Info");
+//        stage.setScene(new Scene(playerRoot));
+//        settings.getStylableStages().add(stage);
+//        stage.show();
 	}
 
 	@FXML

@@ -3,9 +3,9 @@
  * These data are can be sent over network to synchronize different instances of the application.
  *
  * Shared data objects:
- * - PlaylistPlayerData: holds playlist and related properties (not vital, could be replaced by other algorithm)
- * - Program: holds instructions for PlaybackEngine
- * - PlaybackStatus[]  PlaybackEngine feeds current information here
+ * - PlayerData.X: holds playlist and related properties (specific to PlaylistPlayer)
+ * - Task[]: holds instructions for PlaybackEngine
+ * - TaskStatus[]  PlaybackEngine feeds current information here
  * - Speaker[]
  */
 package player.model.data;

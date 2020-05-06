@@ -1,6 +1,7 @@
 package player.model
 
 import java.io.File
+import java.io.IOException
 import java.util.*
 
 
@@ -14,6 +15,10 @@ class CycloneConfig(val file: File) {
 
     fun getString(key: String, defaultValue: String): String {
         return properties.getOrDefault(key, defaultValue) as String
+    }
+
+    operator fun get(key: String): String? {
+        return properties[key] as String?
     }
 
     fun update(values: Map<String, Any>) {
@@ -39,7 +44,10 @@ class CycloneConfig(val file: File) {
 
         fun getGlobal(): CycloneConfig {
             if(!INITIALIZED) {
-                GLOBAL_CONFIG.read()
+                try {
+                    GLOBAL_CONFIG.read()
+                } catch (exc: IOException) {}
+                INITIALIZED = true
             }
             return GLOBAL_CONFIG
         }

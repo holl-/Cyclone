@@ -3,17 +3,16 @@ package player.fx.app;
 import appinstance.ApplicationParameters;
 import appinstance.InstanceManager;
 import audio.AudioEngineException;
-import distributed.DistributedPlatform;
+import cloud.Cloud;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.stage.Stage;
 import mediacommand.CombinationManager;
 import mediacommand.MediaCommand;
 import mediacommand.MediaCommandManager;
 import player.model.CycloneConfig;
-import player.model.CyclonePlayer;
-import player.model.MediaLibrary;
-import player.model.PlaybackEngine;
-import player.model.data.SpeakerList;
+import player.model.PlaylistPlayer;
+import player.model.playback.PlaybackEngine;
 import systemcontrol.LocalMachine;
 
 import java.io.File;
@@ -48,23 +47,33 @@ public class Launcher extends Application {
 	}
 
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
-		CyclonePlayer player = new CyclonePlayer(config);
-		PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(player.getPlayerTarget(), player.getPlaybackStatus(), null);
-//		player.getDevicesData().setSpeakers(engine.getSpeakers());
+		try {
+			Cloud cloud = new Cloud();
+			PlaylistPlayer player = new PlaylistPlayer(cloud, config);
+			PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(cloud, null);
 
-		window = new PlayerWindow(primaryStage, player, engine, config);
-		window.show();
-		addControl(window.getStatusWrapper());
+			window = new PlayerWindow(primaryStage, player, engine, config);
+			window.show();
+			addControl(window.getStatusWrapper());
 
-		DistributedPlatform platform = new DistributedPlatform();
-		platform.putData(player.getDistributedObjects());
-		platform.getData(SpeakerList.class).setSpeakers(engine.getSpeakers());
+			PlaylistPlayer player2 = new PlaylistPlayer(cloud, config);
+			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
+			window2.show();
+		} catch(Throwable t) {
+			t.printStackTrace();
+		}
 	}
 
 	private void play(ApplicationParameters parameters) {
 		List<File> files = parameters.getUnnamed().stream().map(path -> new File(path)).filter(file -> file.exists()).collect(Collectors.toList());
 		if(!files.isEmpty()) {
-			window.play(files, files.get(0));
+			Platform.runLater(() -> {
+				try {
+					window.play(files, files.get(0));
+				} catch(Throwable t) {
+					t.printStackTrace();
+				}
+			});
 		}
 	}
 
@@ -73,14 +82,14 @@ public class Launcher extends Application {
 	}
 
 
-	public static void addControl(CyclonePlayer player) {
+	public static void addControl(PlaylistPlayer player) {
 		if(MediaCommandManager.isSupported()) {
         	MediaCommandManager manager = MediaCommandManager.getInstance();
         	CombinationManager cm = new CombinationManager();
         	cm.register(manager);
 
         	cm.addCombination(new MediaCommand[]{ MediaCommand.PLAY_PAUSE }, c -> {
-        		player.setPlaying(!player.isPlaying());
+        		player.getPlayingProperty().set(!player.getPlayingProperty().get());
         	});
         	cm.addCombination(new MediaCommand[]{ MediaCommand.STOP }, c -> player.stop() );
         	cm.addCombination(new MediaCommand[]{ MediaCommand.NEXT }, c -> player.next() );
@@ -93,7 +102,7 @@ public class Launcher extends Application {
         	MediaCommand[] deleteCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.MUTE, MediaCommand.MUTE, MediaCommand.VOLUME_UP };
 
         	cm.addCombination(playCombination, c -> {
-        		player.setPlaying(!player.isPlaying());
+				player.getPlayingProperty().set(!player.getPlayingProperty().get());
         	});
         	cm.addCombination(monitorOffCombination, c -> {
         		LocalMachine machine = LocalMachine.getLocalMachine();

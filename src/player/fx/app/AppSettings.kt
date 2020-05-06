@@ -1,7 +1,7 @@
 package player.fx.app
 
 import com.aquafx_project.AquaFx
-import distributed.DFile
+import cloud.CloudFile
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.collections.ListChangeListener
@@ -15,18 +15,18 @@ import javafx.scene.control.ListView
 import javafx.stage.DirectoryChooser
 import javafx.stage.Stage
 import player.model.CycloneConfig
-import player.model.CyclonePlayer
+import player.model.PlaylistPlayer
 import java.io.File
 import java.net.URL
 import java.util.*
 import java.util.stream.Collectors
 
-class AppSettings(val config: CycloneConfig, var player: CyclonePlayer) : Initializable {
+class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initializable {
     // General
     @FXML var skin: ComboBox<String>? = null
     @FXML var singleInstance: CheckBox? = null
     // Library
-    @FXML var libraryDirectories: ListView<DFile>? = null
+    @FXML var libraryDirectories: ListView<CloudFile>? = null
 
     var stage: Stage = Stage()
     var stylableStages: List<Stage> = mutableListOf(stage)
@@ -39,21 +39,19 @@ class AppSettings(val config: CycloneConfig, var player: CyclonePlayer) : Initia
 
 
     override fun initialize(location: URL?, resources: ResourceBundle?) {
+        // --- Skin ---
         skin!!.items.addAll("Modena", "Caspian", "AquaFX", "Dark")
         skin!!.selectionModel.select(config.getString("skin", "Modena"))
         skin!!.selectionModel.selectedItemProperty().addListener { _, _, newStyle -> setStyle(newStyle)}
         Platform.runLater {setStyle(skin!!.selectionModel.selectedItem)}
-
+        // --- Single instance ---
         singleInstance!!.selectedProperty().set(config.getString("singleInstance", "true").toBoolean())
         singleInstance!!.selectedProperty().addListener { _ -> save()}
-
-        player.isLoop = config.getString("looping", "true").toBoolean()
-        player.loopProperty().addListener{_ -> save()}
-        player.isShuffled = config.getString("shuffled", "false").toBoolean()
-        player.shuffledProperty().addListener{_ -> save()}
-        player.gain = config.getString("gain", "0.0").toDouble()
-        player.gainProperty().addListener{_ -> save()}
-
+        // --- control listeners --- ToDo this will be saved in serialized form in the future using Cloud.write
+        player.loopingProperty.addListener{_ -> save()}
+        player.shuffledProperty.addListener{_ -> save()}
+        player.gainProperty.addListener{_ -> save()}
+        // --- Library ---
         libraryDirectories!!.items = player.library.roots
         if(!player.library.roots.isEmpty()) {
             libraryDirectories!!.selectionModel.select(0)
@@ -87,9 +85,9 @@ class AppSettings(val config: CycloneConfig, var player: CyclonePlayer) : Initia
         config.update(mapOf<String, Any>(
                 "skin" to skin!!.selectionModel.selectedItem,
                 "singleInstance" to singleInstance!!.isSelected,
-                "looping" to player.isLoop,
-                "shuffled" to player.isShuffled,
-                "gain" to player.gain,
+                "looping" to player.loopingProperty.get(),
+                "shuffled" to player.shuffledProperty.get(),
+                "gain" to player.gainProperty.get(),
                 "library" to player.library.roots.stream().map { f -> f.getPath() }.collect(Collectors.joining("; "))
         ))
         config.write()
@@ -107,7 +105,7 @@ class AppSettings(val config: CycloneConfig, var player: CyclonePlayer) : Initia
         val chooser = DirectoryChooser()
         val dir: File? = chooser.showDialog(stage)
         if(dir != null) {
-            player.library.roots.add(DFile(dir))
+            player.library.roots.add(CloudFile(dir))
             save()
         }
     }

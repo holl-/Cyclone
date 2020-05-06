@@ -14,7 +14,7 @@
  * peer through one of {@link cloud.Cloud}'s mount methods are seen as
  * root files. Directories implicitly mount all contained files and folders.
  * Other peers can then access these files as
- * {@link cloud.DFile}s through the corresponding instance of
+ * {@link cloud.CloudFile}s through the corresponding instance of
  * {@link cloud.Peer}.
  * </p>
  * <p>

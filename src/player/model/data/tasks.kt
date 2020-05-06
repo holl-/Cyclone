@@ -1,21 +1,65 @@
 package player.model.data
 
-import cloud.DFile
+import cloud.CloudFile
 import cloud.Data
-import cloud.SynchronizedData
-import java.io.Serializable
 import java.util.*
 
 
 /**
- * Holds Tasks to be executed immediately or have been executed.
+ * @param creator algorithm name that created the task
  */
-data class Program(
-        val tasks: List<Task>,
-        val creator: String,
-        val paused: Boolean
-) : SynchronizedData()
+open class Task(val creator: String, val paused: Boolean, val onFinished: List<Task>, baseTask: Task?) : Data() {
+    val id: String = baseTask?.id ?: UUID.randomUUID().toString()
 
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Task) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+}
+
+
+/**
+ *
+ * @param position position within file in seconds
+ * @param duration duration to play in seconds
+ *
+ * @param onFinished tasks that are executed once this task is finished.
+ * These tasks must have the same target as this task.
+ */
+class PlayTask(
+        val target: Speaker,
+        val file: CloudFile,
+        val gain: Double,
+        val mute: Boolean,
+        val balance: Double,
+        val position: Double,
+        val duration: Double?,
+        creator: String,
+        paused: Boolean,
+        onFinished: List<Task>,
+        baseTask: Task?
+) : Task(creator, paused, onFinished, baseTask)
+{
+    override fun toString(): String {
+        return "Play ${file.getName()} on $target, paused=$paused, gain=$gain, position=$position, duration=$duration, creator=$creator"
+    }
+}
+
+
+
+//class WaitTask(val time: Long, onFinished: List<Task>) : Task(onFinished)
+
+
+//data class PlayEvent(val relativeTime: Double, val absoluteOffset: Long) : Serializable
 
 
 /**
@@ -28,42 +72,39 @@ data class Program(
  *
  * @param time time (in milliseconds) when the status was obtained
  *
+ * @param active if True and task not paused -> playing. False if loading or error
+ *
  * @author Philipp Holl
  */
-class PlaybackStatus(
-        val currentTasks: List<Task>,
-        val playing: Boolean,
+class PlayTaskStatus(
+        val task: PlayTask,
+        val active: Boolean,
         val busyMessage: String?,
         val errorMessage: String?,
         val time: Long
 ) : Data()
+{
+    fun message(): String? {
+        if(errorMessage != null) return errorMessage
+        if(busyMessage != null) return busyMessage
+        return null
+    }
 
+    fun extrapolatePosition(): Double {
+        return if (!active || task.paused) task.position else task.position + (System.currentTimeMillis() - time) / 1e3
+    }
 
-fun extrapolationPosition(task: PlayTask, time: Long, paused: Boolean): Double {
-    return if (paused) task.startPosition else task.startPosition + (System.currentTimeMillis() - time) / 1e3
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is PlayTaskStatus) return false
+
+        if (task != other.task) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return task.hashCode()
+    }
 }
-
-
-
-open class Task(val onFinished: List<Task>) : Serializable {
-    val id = UUID.randomUUID().toString()
-}
-
-
-
-class PlayTask(
-        val target: Speaker,
-        val file: DFile,
-        val gain: Double,
-        val mute: Boolean,
-        val balance: Double,
-        val startPosition: Double,
-        val duration: Double?,
-//        val events: Map<PlayEvent, Task>,
-        onFinished: List<Task>
-) : Task(onFinished)
-
-
-//data class PlayEvent(val relativeTime: Double, val absoluteOffset: Long) : Serializable
-
 

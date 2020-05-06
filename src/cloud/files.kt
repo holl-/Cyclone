@@ -9,7 +9,11 @@ import java.util.*
 import java.util.stream.Stream
 
 
-class DFile(file: File) : Data() {
+/**
+ * Cloud files can lie on any machine that is connected to the cloud.
+ * While the origin machine is connected, [CloudFile.list] and [CloudFile.openStream] can be used to query file information from the host.
+ */
+class CloudFile(file: File) : Data() {
     private val path: String = file.path
     private var size: Long? = null  // read upon serialization
     private var isDir: Boolean? = null // read upon serialization
@@ -39,7 +43,7 @@ class DFile(file: File) : Data() {
      *
      * @return the size of this file in bytes
      * @throws UnsupportedOperationException
-     * if this [DFile] represents a directory
+     * if this [CloudFile] represents a directory
      */
     @Throws(UnsupportedOperationException::class)
     fun length(): Long {
@@ -60,14 +64,14 @@ class DFile(file: File) : Data() {
      * if the remote peer is not available
      */
     @Throws(UnsupportedOperationException::class, IOException::class)
-    fun list(): Stream<DFile> {
+    fun list(): Stream<CloudFile> {
         if(!isDirectory()) throw java.lang.UnsupportedOperationException("list() unavailable for files. " + getPath())
         if(originatesHere()) {
             val dir = File(path)
             val names = dir.list()
-            return Arrays.stream(names).map { name -> DFile(File(dir, name)) }
+            return Arrays.stream(names).map { name -> CloudFile(File(dir, name)) }
         } else {
-            return platform!!.query(ListDirRequest(path), origin)
+            return cloud!!.query(ListDirRequest(path), origin)
         }
     }
 
@@ -86,7 +90,7 @@ class DFile(file: File) : Data() {
         if(originatesHere()) {
             return FileInputStream(File(path))
         } else {
-            return platform!!.openStream(origin, getPath())
+            return cloud!!.openStream(origin, getPath())
         }
     }
 
@@ -110,7 +114,7 @@ class DFile(file: File) : Data() {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as DFile
+        other as CloudFile
 
         if (origin != other.origin) return false
         if (path != other.path) return false

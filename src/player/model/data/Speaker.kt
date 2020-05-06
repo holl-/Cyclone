@@ -4,13 +4,15 @@ import cloud.Data
 import cloud.Peer
 import java.util.*
 
-
+/**
+ * @param isDefault whether this is the default speaker of [peer]
+ */
 data class Speaker(val peer: Peer,
               val speakerId: String,
               val name: String,
               val minGain: Double,
               val maxGain: Double,
-              val isPeerDefault: Boolean) : Data()
+              val isDefault: Boolean) : Data()
 {
     override fun toString(): String {
         return name

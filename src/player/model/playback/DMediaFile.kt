@@ -1,12 +1,12 @@
-package player.model
+package player.model.playback
 
 import audio.MediaFile
-import distributed.DFile
+import cloud.CloudFile
 import java.io.File
 import java.io.InputStream
 import java.net.URI
 
-class DMediaFile(val file: DFile) : MediaFile {
+class DMediaFile(val file: CloudFile) : MediaFile {
 
     override fun getFile(): File? {
         return if(file.originatesHere()) File(file.getPath()) else null
