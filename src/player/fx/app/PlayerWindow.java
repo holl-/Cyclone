@@ -29,6 +29,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import player.fx.debug.TaskViewer;
 import player.model.AudioFiles;
 import player.model.CycloneConfig;
 import player.fx.FileDropOverlay;
@@ -54,7 +55,7 @@ public class PlayerWindow implements Initializable {
 	private Node currentOverlay;
 
 	// Default
-	@FXML private Menu currentSongMenu, settingsMenu, addToLibraryMenu;
+	@FXML private Menu currentSongMenu, settingsMenu, addToLibraryMenu, debugMenu;
 	@FXML private MenuItem cannotAddToLibraryItem;
 	@FXML private MenuBar menuBar;
 	@FXML private Slider volume;
@@ -98,6 +99,28 @@ public class PlayerWindow implements Initializable {
 			quit();
 		});
 	}
+
+	@Override
+	public void initialize(URL location, ResourceBundle resources) {
+		settingsMenu.setText(null);
+		settingsMenu.setGraphic(FXIcons.get("Settings.png", 24));
+		currentSongMenu.setGraphic(FXIcons.get("Media.png", 24));
+		currentSongMenu.textProperty().bind(player.getTitleProperty());
+		currentSongMenu.disableProperty().bind(player.isFileSelectedProperty().not());
+		volume.valueProperty().bindBidirectional(player.getGainProperty());
+		speakerSelection.setItems(player.getSpeakers());
+		speakerSelection.getSelectionModel().select(player.getSpeakerProperty().get());
+		speakerSelection.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
+			if(n != null) player.getSpeakerProperty().set(n);
+		});
+		player.getSpeakerProperty().addListener((p, o, n) -> {
+			speakerSelection.getSelectionModel().select(n);
+		});
+		if(!settings.getConfig().getString("debug", "false").equals("true")) {
+			debugMenu.getParentMenu().getItems().remove(debugMenu);
+		}
+	}
+
 
 	private BorderPane loadPlayer() throws IOException {
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("mp3player.fxml"));
@@ -227,25 +250,6 @@ public class PlayerWindow implements Initializable {
 		BorderPane searchRoot = loader.load();
 		searchRoot.setBackground(new Background(new BackgroundFill(new Color(0,0,0,0.5), CornerRadii.EMPTY, Insets.EMPTY)));
 		return searchRoot;
-	}
-
-
-	@Override
-	public void initialize(URL location, ResourceBundle resources) {
-		settingsMenu.setText(null);
-		settingsMenu.setGraphic(FXIcons.get("Settings.png", 24));
-		currentSongMenu.setGraphic(FXIcons.get("Media.png", 24));
-		currentSongMenu.textProperty().bind(player.getTitleProperty());
-		currentSongMenu.disableProperty().bind(player.isFileSelectedProperty().not());
-		volume.valueProperty().bindBidirectional(player.getGainProperty());
-		speakerSelection.setItems(player.getSpeakers());
-		speakerSelection.getSelectionModel().select(player.getSpeakerProperty().get());
-		speakerSelection.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
-			if(n != null) player.getSpeakerProperty().set(n);
-		});
-		player.getSpeakerProperty().addListener((p, o, n) -> {
-			speakerSelection.getSelectionModel().select(n);
-		});
 	}
 
 	public PlaylistPlayer getStatusWrapper() {
@@ -578,4 +582,10 @@ public class PlayerWindow implements Initializable {
 	@FXML void showSettings() {
         settings.getStage().show();
     }
+
+    @FXML void openTaskViewer() {
+		Stage stage = new Stage();
+		TaskViewer viewer = new TaskViewer(player.getCloud(), stage);
+		viewer.getStage().show();
+	}
 }

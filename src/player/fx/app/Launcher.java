@@ -50,15 +50,15 @@ public class Launcher extends Application {
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
 		try {
 			Cloud cloud = new Cloud();
-//			PlaylistPlayer player = new PlaylistPlayer(cloud, config);
+			PlaylistPlayer player = new PlaylistPlayer(cloud, config);
 			PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(cloud, null);
 
-//			window = new PlayerWindow(primaryStage, player, engine, config);
-//			window.show();
-//			addControl(window.getStatusWrapper());
+			window = new PlayerWindow(primaryStage, player, engine, config);
+			window.show();
+			addControl(window.getStatusWrapper());
 
-			TaskViewer viewer = new TaskViewer(cloud, primaryStage);
-			viewer.getStage().show();
+//			TaskViewer viewer = new TaskViewer(cloud, primaryStage);
+//			viewer.getStage().show();
 
 //			PlaylistPlayer player2 = new PlaylistPlayer(cloud, config);
 //			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);

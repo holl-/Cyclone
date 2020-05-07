@@ -72,6 +72,11 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
         creator.stage.show()
     }
 
+    @FXML fun clearSnapshots() {
+        if(snapshots.size > 1)
+            snapshots.removeAll(snapshots.subList(0, snapshots.size - 1))
+    }
+
     private fun takeSnapshot() {
         val snapshot = Snapshot(snapshots.size, ArrayList(tasks), ArrayList(statuses))
         snapshots.add(snapshot)
