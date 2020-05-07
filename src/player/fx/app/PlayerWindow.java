@@ -76,6 +76,8 @@ public class PlayerWindow implements Initializable {
 		this.engine = engine;
 		library = player.getLibrary();
 
+		settings = new AppSettings(config, this.player);
+
 		root = new StackPane();
 		root.getChildren().add(loadPlayer());
 		playlistRoot = loadPlaylist();
@@ -88,8 +90,6 @@ public class PlayerWindow implements Initializable {
 
 		Scene scene;
 		stage.setScene(scene = new Scene(root));
-        settings = new AppSettings(config, this.player);
-        settings.getStylableStages().add(stage);
 
 		stage.setTitle("Cyclone");
 		stage.getIcons().add(FXIcons.get("Play2.png", 32).getImage());
@@ -575,8 +575,7 @@ public class PlayerWindow implements Initializable {
 //        stage.show();
 	}
 
-	@FXML
-    private void showSettings() {
+	@FXML void showSettings() {
         settings.getStage().show();
     }
 }

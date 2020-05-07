@@ -5,6 +5,7 @@ import cloud.CloudFile
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.collections.ListChangeListener
+import javafx.collections.transformation.FilteredList
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
@@ -14,11 +15,13 @@ import javafx.scene.control.ComboBox
 import javafx.scene.control.ListView
 import javafx.stage.DirectoryChooser
 import javafx.stage.Stage
+import javafx.stage.Window
 import player.model.CycloneConfig
 import player.model.PlaylistPlayer
 import java.io.File
 import java.net.URL
 import java.util.*
+import java.util.function.Predicate
 import java.util.stream.Collectors
 
 class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initializable {
@@ -29,12 +32,14 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     @FXML var libraryDirectories: ListView<CloudFile>? = null
 
     var stage: Stage = Stage()
-    var stylableStages: List<Stage> = mutableListOf(stage)
+    private val windows = FilteredList<Window>(Window.getWindows(), Predicate { w -> w is Stage })
 
     init {
         var loader = FXMLLoader(javaClass.getResource("settings.fxml"))
         loader.setController(this);
         stage.scene = Scene(loader.load())
+
+        windows.addListener( ListChangeListener { change -> while(change.next()) applyStyle(skin!!.selectionModel.selectedItem, change.addedSubList) })
     }
 
 
@@ -42,8 +47,8 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         // --- Skin ---
         skin!!.items.addAll("Modena", "Caspian", "AquaFX", "Dark")
         skin!!.selectionModel.select(config.getString("skin", "Modena"))
-        skin!!.selectionModel.selectedItemProperty().addListener { _, _, newStyle -> setStyle(newStyle)}
-        Platform.runLater {setStyle(skin!!.selectionModel.selectedItem)}
+        skin!!.selectionModel.selectedItemProperty().addListener { _, _, newStyle -> applyStyle(newStyle, windows)}
+        Platform.runLater {applyStyle(skin!!.selectionModel.selectedItem, windows)}
         // --- Single instance ---
         singleInstance!!.selectedProperty().set(config.getString("singleInstance", "true").toBoolean())
         singleInstance!!.selectedProperty().addListener { _ -> save()}
@@ -60,18 +65,18 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     }
 
 
-    fun setStyle(style: String) {
+    fun applyStyle(style: String, windows: List<Window>) {
         when (style) {
             "AquaFX" -> AquaFx.style()
             "Dark" -> {
                 Application.setUserAgentStylesheet("MODENA")
-                for(stage in stylableStages) {
+                for(stage in windows) {
                     stage.scene.getStylesheets().clear()
                     stage.scene.getStylesheets().add(javaClass.getResource("dark.css").toExternalForm())
                 }
             }
             else -> {
-                for(stage in stylableStages) {
+                for(stage in windows) {
                     stage.scene.getStylesheets().clear()
                 }
                 Application.setUserAgentStylesheet(style.toUpperCase())
