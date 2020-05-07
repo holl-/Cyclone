@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="270.0" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
+   <center>
+      <VBox prefHeight="200.0" prefWidth="100.0" spacing="6.0" BorderPane.alignment="CENTER">
+         <children>
+            <TextField fx:id="file" promptText="File" />
+            <ComboBox fx:id="target" prefHeight="25.0" prefWidth="283.0" promptText="Target" />
+            <Separator prefWidth="200.0" />
+            <GridPane>
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="137.0" minWidth="10.0" prefWidth="137.0" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="174.0" minWidth="10.0" prefWidth="117.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <children>
+                  <Label text="Scheduled after" />
+                  <Label text="Start position" GridPane.rowIndex="1" />
+                  <Label text="Duration" GridPane.rowIndex="2" />
+                  <TextField fx:id="trigger" promptText="Task ID" GridPane.columnIndex="1" />
+                  <TextField fx:id="startPosition" promptText="seconds" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                  <TextField fx:id="duration" promptText="seconds" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+               </children>
+            </GridPane>
+            <Button mnemonicParsing="false" onAction="#createTaskAfter" text="+ Task after" />
+            <Separator prefWidth="200.0" />
+            <GridPane>
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="198.0" minWidth="10.0" prefWidth="161.0" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="137.0" minWidth="10.0" prefWidth="93.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <children>
+                  <CheckBox fx:id="paused" mnemonicParsing="false" prefHeight="17.0" prefWidth="80.0" text="Paused" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" />
+                  <CheckBox fx:id="mute" mnemonicParsing="false" prefHeight="17.0" prefWidth="79.0" text="Mute" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                  <HBox alignment="CENTER_LEFT" spacing="4.0">
+                     <children>
+                        <Label prefHeight="17.0" prefWidth="40.0" text="Gain" />
+                        <Slider fx:id="gain" max="0.0" min="-40.0" prefHeight="26.0" prefWidth="100.0" value="-15.0" />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" spacing="4.0" GridPane.rowIndex="1">
+                     <children>
+                        <Label prefHeight="17.0" prefWidth="42.0" text="Balance" />
+                        <Slider fx:id="balance" max="1.0" min="-1.0" prefHeight="26.0" prefWidth="100.0" />
+                     </children>
+                  </HBox>
+               </children>
+            </GridPane>
+            <Separator prefWidth="200.0" />
+            <GridPane>
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="137.0" minWidth="10.0" prefWidth="112.0" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="185.0" minWidth="10.0" prefWidth="172.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <children>
+                  <Label text="Task ID" />
+                  <Label text="Creator" GridPane.rowIndex="1" />
+                  <TextField fx:id="id" GridPane.columnIndex="1" />
+                  <TextField fx:id="creator" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+               </children>
+            </GridPane>
+         </children>
+      </VBox>
+   </center>
+   <padding>
+      <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+   </padding>
+   <bottom>
+      <FlowPane alignment="CENTER" columnHalignment="CENTER" hgap="8.0" vgap="4.0" BorderPane.alignment="CENTER">
+         <children>
+            <Button mnemonicParsing="false" onAction="#submit" text="Submit" />
+            <Button mnemonicParsing="false" onAction="#yank" text="Yank" />
+         </children>
+      </FlowPane>
+   </bottom>
+</BorderPane>

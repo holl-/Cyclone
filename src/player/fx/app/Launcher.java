@@ -10,6 +10,7 @@ import javafx.stage.Stage;
 import mediacommand.CombinationManager;
 import mediacommand.MediaCommand;
 import mediacommand.MediaCommandManager;
+import player.fx.debug.TaskViewer;
 import player.model.CycloneConfig;
 import player.model.PlaylistPlayer;
 import player.model.playback.PlaybackEngine;
@@ -49,32 +50,35 @@ public class Launcher extends Application {
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
 		try {
 			Cloud cloud = new Cloud();
-			PlaylistPlayer player = new PlaylistPlayer(cloud, config);
+//			PlaylistPlayer player = new PlaylistPlayer(cloud, config);
 			PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(cloud, null);
 
-			window = new PlayerWindow(primaryStage, player, engine, config);
-			window.show();
-			addControl(window.getStatusWrapper());
+//			window = new PlayerWindow(primaryStage, player, engine, config);
+//			window.show();
+//			addControl(window.getStatusWrapper());
 
-			PlaylistPlayer player2 = new PlaylistPlayer(cloud, config);
-			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
-			window2.show();
+			TaskViewer viewer = new TaskViewer(cloud, primaryStage);
+			viewer.getStage().show();
+
+//			PlaylistPlayer player2 = new PlaylistPlayer(cloud, config);
+//			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
+//			window2.show();
 		} catch(Throwable t) {
 			t.printStackTrace();
 		}
 	}
 
 	private void play(ApplicationParameters parameters) {
-		List<File> files = parameters.getUnnamed().stream().map(path -> new File(path)).filter(file -> file.exists()).collect(Collectors.toList());
-		if(!files.isEmpty()) {
-			Platform.runLater(() -> {
-				try {
-					window.play(files, files.get(0));
-				} catch(Throwable t) {
-					t.printStackTrace();
-				}
-			});
-		}
+//		List<File> files = parameters.getUnnamed().stream().map(path -> new File(path)).filter(file -> file.exists()).collect(Collectors.toList());
+//		if(!files.isEmpty()) {
+//			Platform.runLater(() -> {
+//				try {
+//					window.play(files, files.get(0));
+//				} catch(Throwable t) {
+//					t.printStackTrace();
+//				}
+//			});
+//		}
 	}
 
 	public static void main(String[] args) {

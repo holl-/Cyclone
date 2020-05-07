@@ -2,29 +2,8 @@ package player.model.data
 
 import cloud.CloudFile
 import cloud.Data
+import java.io.Serializable
 import java.util.*
-
-
-/**
- * @param creator algorithm name that created the task
- */
-open class Task(val creator: String, val paused: Boolean, val onFinished: List<Task>, baseTask: Task?) : Data() {
-    val id: String = baseTask?.id ?: UUID.randomUUID().toString()
-
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is Task) return false
-
-        if (id != other.id) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        return id.hashCode()
-    }
-}
 
 
 /**
@@ -43,16 +22,34 @@ class PlayTask(
         val balance: Double,
         val position: Double,
         val duration: Double?,
-        creator: String,
-        paused: Boolean,
-        onFinished: List<Task>,
-        baseTask: Task?
-) : Task(creator, paused, onFinished, baseTask)
+        val creator: String,
+        val paused: Boolean,
+        val trigger: TaskTrigger?,
+        baseTask: PlayTask?
+) : Data()
 {
+    val id: String = baseTask?.id ?: UUID.randomUUID().toString()
+
     override fun toString(): String {
-        return "Play ${file.getName()} on $target, paused=$paused, gain=$gain, position=$position, duration=$duration, creator=$creator"
+        return "Play '${file.getName()}' on $target, paused=$paused, gain=$gain, position=$position, duration=$duration, creator=$creator"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is PlayTask) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
     }
 }
+
+
+class TaskTrigger(val taskId: String) : Serializable
 
 
 
@@ -79,6 +76,7 @@ class PlayTask(
 class PlayTaskStatus(
         val task: PlayTask,
         val active: Boolean,
+        val finished: Boolean,
         val busyMessage: String?,
         val errorMessage: String?,
         val time: Long
@@ -105,6 +103,11 @@ class PlayTaskStatus(
 
     override fun hashCode(): Int {
         return task.hashCode()
+    }
+
+    override fun toString(): String {
+        val status = if(finished) "Finished" else if(active) "Active" else "Inactive"
+        return if(message() != null) status + message() else status
     }
 }
 

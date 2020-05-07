@@ -12,7 +12,6 @@ import javafx.collections.ObservableList
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
-import player.model.data.Task
 import java.io.File
 import java.util.*
 import java.util.concurrent.Callable
@@ -193,7 +192,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
 
     private fun updateTasks() {
         if(speakerProperty.value?.peer?.isLocal != true) {
-            cloud.yankAll(Task::class.java, this)
+            cloud.yankAll(PlayTask::class.java, this)
             return
         }
         val tasks = ArrayList<PlayTask>()
@@ -205,14 +204,14 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
                 return
             }
             val file = jumpRequest.value.file!!
-            val task = PlayTask(speakerData.value.value!!, file, gainData.value.value, false, 0.0, 0.0, null, CREATOR, pausedData.value?.value == true, emptyList(), null)
+            val task = PlayTask(speakerData.value.value!!, file, gainData.value.value, false, 0.0, 0.0, null, CREATOR, pausedData.value?.value == true, null, null)
             tasks.add(task)
         }
         if(currentFileProperty.value != null) {
             val file = currentFileProperty.get()!!
             // TODO modify task
             val existingTask = cloud.getAll(PlayTask::class.java).first { task -> task.file == file }
-            val task = PlayTask(speakerData.value.value!!, file, gainData.value.value, false, 0.0, 0.0, null, CREATOR, pausedData.value?.value == true, emptyList(), existingTask)
+            val task = PlayTask(speakerData.value.value!!, file, gainData.value.value, false, 0.0, 0.0, null, CREATOR, pausedData.value?.value == true, null, existingTask)
             tasks.add(task)
         }
         println("Sending tasks ${cloud.getAll(PlayTask::class.java)}")

@@ -24,7 +24,7 @@ class CloudFile(file: File) : Data() {
     }
 
     fun getName() : String {
-        val parts = path.split("/|\\\\")
+        val parts = path.replace('\\', '/').split("/")
         return parts[parts.size - 1]
     }
 

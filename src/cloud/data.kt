@@ -60,12 +60,6 @@ abstract class Data : Serializable
  * Only one instance per class implementing SynchronizedData is allowed.
  * Sharing other objects of the same class will replace the old one.
  */
-abstract class SynchronizedData : Data()
+abstract class SynchronizedData : Serializable
 {
-    /**
-     * [SynchronizedData] always are valid.
-     */
-    override fun isValid(): Boolean {
-        return true
-    }
 }

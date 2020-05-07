@@ -4,6 +4,7 @@ import javafx.application.Platform
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
+import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.collections.transformation.FilteredList
 import java.io.File
@@ -11,7 +12,9 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.Serializable
 import java.lang.UnsupportedOperationException
+import java.util.concurrent.Callable
 import java.util.function.BiConsumer
+import java.util.function.Consumer
 import java.util.function.Predicate
 import java.util.function.Supplier
 import java.util.stream.Stream
@@ -31,7 +34,10 @@ class Cloud {
     val peers: ObservableList<Peer> = FXCollections.observableArrayList()
         get() = FXCollections.unmodifiableObservableList(field)
 
-    private val pushedData = FXCollections.observableArrayList<Data>()
+    private var pushedData = ArrayList<Data>()
+    private val dataListeners = HashMap<Class<out Data>, Consumer<List<Data>>>()
+    private val viewedLists = HashMap<Class<out Data>, ObservableList<out Data>>()
+
     private val sData = HashMap<Class<out SynchronizedData>, SimpleObjectProperty<out SynchronizedData>>()
 //    private val sData = FXCollections.observableArrayList<SynchronizedData>()
     private val ownerMap = HashMap<Data, Any>()
@@ -112,13 +118,31 @@ class Cloud {
     }
 
 
-
-
-
+    /**
+     * Get all data objects (local and remote) that extend the class or interface.
+     * As objects are added to or removed from the cloud, the returned list is updated.
+     * All updates to the list are made from within the JavaFX thread.
+     *
+     * @return read-only list
+     */
     fun<T : Data> getAll(cls: Class<T>): ObservableList<T> {
-        // TODO this is throwing events even when no instance of cls changes
         @Suppress("UNCHECKED_CAST")
-        return FilteredList<Data>(pushedData, Predicate { d -> cls.isAssignableFrom(d.javaClass) }) as ObservableList<T>
+        if (cls in viewedLists)
+            return viewedLists[cls] as ObservableList<T>
+
+        val result = FXCollections.observableArrayList<T>()
+
+        val listBuilder = Consumer<List<Data>> { offlineList ->
+            @Suppress("UNCHECKED_CAST")
+            val filteredList: List<T> = offlineList.filter { d -> cls.isAssignableFrom(d.javaClass) } as List<T>
+            println("Cloud: Updating list for ${cls.simpleName}: $filteredList")
+            result.setAll(filteredList)
+        }
+
+        listBuilder.accept(pushedData)
+        dataListeners[cls] = listBuilder
+        viewedLists[cls] = result
+        return result
     }
 
     /**
@@ -127,47 +151,55 @@ class Cloud {
      * If [yankOthers] is true, previously pushed objects of the same class that are not part of [dataObjects] are yanked.
      */
     fun<T : Data> push(cls: Class<T>, dataObjects: Iterable<T>, owner:Any, yankOthers: Boolean) {
-        Platform.runLater(Runnable {
-            val offlineList: MutableList<Data>
-            offlineList = if(yankOthers) {
-                ArrayList(pushedData.filter { d -> ownerMap[d] != owner || !cls.isAssignableFrom(d.javaClass) })
+        val offlineList: MutableList<Data>
+        offlineList = if(yankOthers) {
+            ArrayList(pushedData.filter { d -> ownerMap[d] != owner || !cls.isAssignableFrom(d.javaClass) })
+        } else {
+            ArrayList(pushedData)
+        }
+        for(d in dataObjects) {
+            ownerMap[d] = owner
+            if(d in offlineList) {
+                val index = offlineList.indexOf(d)
+                offlineList[index] = d
             } else {
-                ArrayList(pushedData)
+                offlineList.add(d)
             }
-            for(d in dataObjects) {
-                ownerMap[d] = owner
-                if(d in offlineList) {
-                    val index = offlineList.indexOf(d)
-                    offlineList[index] = d
-                } else {
-                    offlineList.add(d)
-                }
-            }
-            println(offlineList)
-            pushedData.setAll(offlineList)
-        })
+        }
+        pushedData = offlineList
+        notifyDataListener(listOf(cls))
     }
 
     private fun yank(d: Data) {
-        if (d.cloud !== this)
-            throw IllegalArgumentException()
-        d.cloud = null
-
-        if(d is SynchronizedData) {
-            throw UnsupportedOperationException("SynchronizedData instances cannot be yanked.")
-        } else {
-            pushedData.remove(d)
-        }
-
+        pushedData.remove(d)
         ownerMap.remove(d)
+        notifyDataListener(listOf(d.javaClass))
     }
 
-    fun yankAll(cls: Class<out Data>?, owner: Any?) {
-        for (d in ArrayList(pushedData)) {  // copy the list to avoid threading issues
-            val matchesClass = cls == null || cls.isAssignableFrom(d.javaClass)
-            val matchesOwner = owner == null || ownerMap[d] == owner
-            if (matchesClass && matchesOwner) {
-                yank(d)
+    fun yankAll(cls: Class<out Data>?, owner: Any) {
+        val dataToRemove = pushedData.filter { d -> matches(d, cls, owner) }
+        pushedData.removeAll(dataToRemove)
+        if(cls != null) {
+            notifyDataListener(listOf(cls))
+        } else {
+            val affectedClasses = dataToRemove.map { d -> d.javaClass }.toSet()
+            notifyDataListener(affectedClasses)
+        }
+    }
+
+    private fun matches(d: Data, cls: Class<out Data>?, owner: Any?): Boolean {
+        val matchesClass = cls == null || cls.isAssignableFrom(d.javaClass)
+        val matchesOwner = owner == null || ownerMap[d] == owner
+        return matchesClass && matchesOwner
+    }
+
+    private fun notifyDataListener(classes: Iterable<Class<out Data>>) {
+        val offlineList = ArrayList(pushedData)
+        Platform.runLater {
+            for ((listenerCls, listener) in dataListeners) {
+                if(classes.any { cls ->  listenerCls.isAssignableFrom(cls)}) {
+                    listener.accept(offlineList)
+                }
             }
         }
     }
