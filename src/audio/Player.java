@@ -297,7 +297,7 @@ public interface Player {
 	 * @throws IOException
 	 */
 	void setPositionBlocking(double position, double timeout) throws InterruptedException, IOException;
-	void setPositionAsync(double position);
+	void setPositionAsync(double position, Runnable onFinished);
 	/**
 	 * Returns the media duration in seconds.
 	 * <p>If the duration is not known, this method returns <code>-1</code>.

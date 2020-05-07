@@ -1,16 +1,21 @@
 package player.model.playback
 
-import audio.*
-import audio.javafx.JavaFXAudioEngine
-import audio.javasound.JavaSoundEngine
+import audio.AudioDevice
+import audio.AudioEngine
 import cloud.Cloud
 import cloud.Peer.Companion.getLocal
+import javafx.beans.InvalidationListener
+import javafx.beans.binding.Bindings
+import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
+import player.model.CycloneConfig
+import player.model.data.MasterGain
 import player.model.data.PlayTask
-import player.model.data.Speaker
 import player.model.data.PlayTaskStatus
-import java.util.function.Consumer
+import player.model.data.Speaker
+import java.util.concurrent.Callable
+import java.util.function.Supplier
 import java.util.stream.Collectors
 
 /**
@@ -21,10 +26,15 @@ import java.util.stream.Collectors
  *
  * When a playback event occurs like an error or end-of-file, the PlaybackEngine updates the status.
  */
-class PlaybackEngine private constructor(val cloud: Cloud, val audioEngine: AudioEngine)
+class PlaybackEngine (val cloud: Cloud, val audioEngine: AudioEngine, config: CycloneConfig)
 {
     private val tasks = cloud.getAll(PlayTask::class.java)
-    private val jobs = FXCollections.observableArrayList<Job>()
+    private val masterGainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(config["gain"]?.toDouble() ?: 0.0) })
+
+    // Public properties
+    val jobs = FXCollections.observableArrayList<Job>()
+    val masterGain = Bindings.createDoubleBinding(Callable { masterGainData.value.value }, masterGainData)
+    val statusInvalid = SimpleBooleanProperty()
 
     val speakerMap: Map<Speaker, AudioDevice> = audioEngine.devices.stream().collect(Collectors.toMap({ dev -> Speaker(getLocal(), dev.id, dev.name, dev.minGain, dev.maxGain, dev.isDefault) }, { dev -> dev}))
 
@@ -33,54 +43,52 @@ class PlaybackEngine private constructor(val cloud: Cloud, val audioEngine: Audi
         cloud.push(Speaker::class.java, speakerMap.keys, this, true)
         tasksUpdated()
         tasks.addListener(ListChangeListener<PlayTask> { tasksUpdated() })
-    }
-
-
-    companion object {
-        @JvmStatic
-        @Throws(AudioEngineException::class)
-        fun initializeAudioEngine(cloud: Cloud, engineName: String?): PlaybackEngine {
-            val engine: AudioEngine = if (engineName == null) JavaSoundEngine() else if (engineName == "java") JavaSoundEngine() else if (engineName == "javafx") JavaFXAudioEngine() else throw AudioEngineException("No audio engine registered for name $engineName")
-            return PlaybackEngine(cloud, engine)
-        }
+        statusInvalid.addListener(InvalidationListener { if(statusInvalid.value == true) publishInfo() })
     }
 
 
     private fun tasksUpdated() {
         // --- Handle existing tasks ---
         for (task in tasks) {
-            var job = this[task]
+            var job = getJob(task.id)
             if (job == null) {
                 if (task.target in speakerMap.keys) {
-                    job = Job(this)
-                    job.eventListeners.add(Consumer { publishInfo() })
-                    jobs.add(job)
+                    job = getOrCreateJob(task.id)
                 }
             }
-            job?.taskUpdated(task)
+            job?.task?.value = task
         }
         // --- Handle deleted tasks ---
         for (job in jobs) {
-            if (job.task !in tasks) {
-                job.taskDeleted()
+            if (job.task.value !in tasks) {
+                job.task.value = null
             }
         }
         // --- Delete jobs ---
         for (job in ArrayList(jobs)) {
             if (!job.isAlive()) {
-                jobs.remove(job)
+                if (jobs.none { j -> job in j.references() }) {
+                    println("Deleting job $job")
+                    jobs.remove(job)
+                }
             }
         }
-        publishInfo()
     }
 
 
-    operator fun get(task: PlayTask): Job? {
-        return jobs.firstOrNull { j -> j.task == task }
+    fun getJob(taskId: String): Job? {
+        return jobs.firstOrNull { j -> j.taskId == taskId }
     }
 
-    operator fun get(taskId: String): Job? {
-        return jobs.firstOrNull { j -> j.task?.id == taskId}
+
+    fun getOrCreateJob(taskId: String): Job {
+        val existing = jobs.firstOrNull { j -> j.taskId == taskId}
+        if (existing != null) return existing
+        val newJob = Job(taskId, this)
+        jobs.add(newJob)
+        newJob.status.addListener(InvalidationListener { statusInvalid.value = true })
+        println(jobs)
+        return newJob
     }
 
 
@@ -89,10 +97,12 @@ class PlaybackEngine private constructor(val cloud: Cloud, val audioEngine: Audi
      * This may result in the information being sent to connected machines.
      */
     private fun publishInfo() {
+        statusInvalid.value = false
+
         val statuses = ArrayList<PlayTaskStatus>()
         for(job in jobs) {
             if (job.isAlive()) {
-                statuses.add(job.status())
+                statuses.add(job.status.value)
             }
         }
         cloud.push(PlayTaskStatus::class.java, statuses, this, true)
@@ -103,6 +113,5 @@ class PlaybackEngine private constructor(val cloud: Cloud, val audioEngine: Audi
         jobs.forEach { job -> job.dispose() }
         cloud.yankAll(null, this)
     }
-
 
 }

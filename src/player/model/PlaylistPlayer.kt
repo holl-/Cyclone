@@ -13,6 +13,7 @@ import player.CastToBooleanProperty
 import player.CastToDoubleProperty
 import player.CastToStringProperty
 import player.CustomObjectProperty
+import player.model.data.MasterGain
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
@@ -42,8 +43,6 @@ private class PlayerData
 
     data class Target(val value: Speaker?) : SynchronizedData()
 
-    data class Gain(val value: Double) : SynchronizedData()
-
     data class Paused(val value: Boolean) : SynchronizedData()
 
     data class JumpRequest(val file: CloudFile?, val position: Double?, val id: String = UUID.randomUUID().toString()) : SynchronizedData() {
@@ -66,7 +65,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     // Synchronized PlaylistPlayer data objects
     private val loopingData = cloud.getSynchronized(PlayerData.Looping::class.java, default = Supplier { PlayerData.Looping(config["looping"]?.toBoolean() ?: true) })
     private val shuffledData = cloud.getSynchronized(PlayerData.Shuffled::class.java, default = Supplier { PlayerData.Shuffled(config["shuffled"]?.toBoolean() ?: false) })
-    private val gainData = cloud.getSynchronized(PlayerData.Gain::class.java, default = Supplier { PlayerData.Gain(config["gain"]?.toDouble() ?: 0.0) })
+    private val gainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(config["gain"]?.toDouble() ?: 0.0) })
     private val playlistData = cloud.getSynchronized(PlayerData.Playlist::class.java, default = Supplier { PlayerData.Playlist(emptyList()) })
     private val speakerData = cloud.getSynchronized(PlayerData.Target::class.java, default = Supplier { PlayerData.Target(null) })
     private val pausedData = cloud.getSynchronized(PlayerData.Paused::class.java, default = Supplier { PlayerData.Paused(false) })
@@ -85,7 +84,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
             setter = Consumer { value -> cloud.pushSynchronized(PlayerData.Shuffled(value!!)) }))
     val gainProperty: DoubleProperty = CastToDoubleProperty(CustomObjectProperty<Number?>(listOf(gainData),
             getter = Supplier<Number?> { gainData.value?.value ?: 0 },
-            setter = Consumer { value -> cloud.pushSynchronized(PlayerData.Gain(value!!.toDouble())) }))
+            setter = Consumer { value -> cloud.pushSynchronized(MasterGain(value!!.toDouble())) }))
     val playlist: ObservableList<CloudFile> = FXCollections.observableArrayList()
     val speakerProperty: ObjectProperty<Speaker?> = CustomObjectProperty<Speaker?>(listOf(speakerData),
             getter = Supplier { speakerData.value?.value },
@@ -124,7 +123,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
 
         playlistData.addListener(ChangeListener{ _, _, _ -> playlist.setAll(playlistData.value?.files ?: emptyList())}) // synchronized playlist
 
-        for(obs in listOf(loopingData, shuffledData, gainData, playlistData, pausedData, jumpRequest, speakerData)) {
+        for(obs in listOf(loopingData, shuffledData, playlistData, pausedData, jumpRequest, speakerData)) {
             obs.addListener { _ -> updateTasks() }
         }
 
@@ -210,17 +209,17 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
                 return
             }
             val file = jumpRequest.value.file!!
-            val task = PlayTask(speakerData.value.value!!, file, gainData.value.value, false, 0.0, 0.0, null, CREATOR, pausedData.value?.value == true, null, null)
+            val task = PlayTask(speakerData.value.value!!, file, gainData.value.value, false, 0.0, 0.0, 0, null, CREATOR, pausedData.value?.value == true, null, UUID.randomUUID().toString())
             tasks.add(task)
         }
         if(currentFileProperty.value != null) {
             val file = currentFileProperty.get()!!
             // TODO modify task
             val existingTask = cloud.getAll(PlayTask::class.java).first { task -> task.file == file }
-            val task = PlayTask(speakerData.value.value!!, file, gainData.value.value, false, 0.0, 0.0, null, CREATOR, pausedData.value?.value == true, null, existingTask)
+            val task = PlayTask(speakerData.value.value!!, file, gainData.value.value, false, 0.0, 0.0, existingTask.restartCount, null, CREATOR, pausedData.value?.value == true, null, existingTask.id)
             tasks.add(task)
         }
-        println("Sending tasks ${cloud.getAll(PlayTask::class.java)}")
+        println("Sending tasks $tasks")
         cloud.push(PlayTask::class.java, tasks, this, true)
     }
 

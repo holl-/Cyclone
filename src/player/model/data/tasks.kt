@@ -2,17 +2,30 @@ package player.model.data
 
 import cloud.CloudFile
 import cloud.Data
+import cloud.SynchronizedData
 import java.io.Serializable
-import java.util.*
 
 
 /**
+ * The master gain affects all tasks.
+ * It is added to the individual gain levels of the tasks.
+ */
+data class MasterGain(val value: Double) : SynchronizedData()
+
+
+/**
+ * When updating an existing task, the follogin properties cannot be changed: [file], [id]
+ *
+ *
+ * Updating old task vs creating new
+ * - Change speaker on same PC -> Player.setDevice()
  *
  * @param position position within file in seconds
  * @param duration duration to play in seconds
- *
- * @param onFinished tasks that are executed once this task is finished.
- * These tasks must have the same target as this task.
+ * @param restartCount resets to []position] if this value increases.
+ * This cannot be used to revive tasks that are already finished.
+ * @param trigger References another task that must finish before this one is started.
+ * Both tasks must have the same target as this task.
  */
 class PlayTask(
         val target: Speaker,
@@ -21,15 +34,14 @@ class PlayTask(
         val mute: Boolean,
         val balance: Double,
         val position: Double,
+        val restartCount: Int,  //
         val duration: Double?,
         val creator: String,
         val paused: Boolean,
         val trigger: TaskTrigger?,
-        baseTask: PlayTask?
+        val id: String
 ) : Data()
 {
-    val id: String = baseTask?.id ?: UUID.randomUUID().toString()
-
     override fun toString(): String {
         return "Play '${file.getName()}' on $target, paused=$paused, gain=$gain, position=$position, duration=$duration, creator=$creator"
     }
@@ -64,7 +76,7 @@ class TaskTrigger(val taskId: String) : Serializable
  * manipulated by the playback engine and contains properties that may be
  * displayed by the application.
  *
- * @param currentTasks startPosition in PlayTasks points to last known position, matching time
+ * @param task startPosition in task points to last known position, matching time
  * duration in PlayTasks points to total duration of task, non-null
  *
  * @param time time (in milliseconds) when the status was obtained

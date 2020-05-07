@@ -29,6 +29,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import player.fx.debug.PlaybackViewer;
 import player.fx.debug.TaskViewer;
 import player.model.AudioFiles;
 import player.model.CycloneConfig;
@@ -586,6 +587,11 @@ public class PlayerWindow implements Initializable {
     @FXML void openTaskViewer() {
 		Stage stage = new Stage();
 		TaskViewer viewer = new TaskViewer(player.getCloud(), stage);
+		viewer.getStage().show();
+	}
+
+	@FXML void openPlaybackWindow() {
+		PlaybackViewer viewer = new PlaybackViewer(engine);
 		viewer.getStage().show();
 	}
 }

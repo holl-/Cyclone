@@ -135,7 +135,6 @@ class Cloud {
         val listBuilder = Consumer<List<Data>> { offlineList ->
             @Suppress("UNCHECKED_CAST")
             val filteredList: List<T> = offlineList.filter { d -> cls.isAssignableFrom(d.javaClass) } as List<T>
-            println("Cloud: Updating list for ${cls.simpleName}: $filteredList")
             result.setAll(filteredList)
         }
 

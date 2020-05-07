@@ -59,6 +59,7 @@
                         <Menu fx:id="debugMenu" mnemonicParsing="false" text="Debug">
                           <items>
                             <MenuItem mnemonicParsing="false" onAction="#openTaskViewer" text="Task Viewer" />
+                              <MenuItem mnemonicParsing="false" onAction="#openPlaybackWindow" text="Local Playback" />
                           </items>
                         </Menu>
                         <SeparatorMenuItem mnemonicParsing="false" />

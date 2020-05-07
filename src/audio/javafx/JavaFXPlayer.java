@@ -253,11 +253,12 @@ public class JavaFXPlayer extends AbstractPlayer {
 
 
 	@Override
-	public void setPositionAsync(double position) {
+	public void setPositionAsync(double position, Runnable onFinished) {
 		double oldPosition = getPosition();
 		fxPlayer.seek(Duration.seconds(position));
 		informMarkerListenersOnJump(oldPosition, position);
 		firePositionChanged(oldPosition, PlayerEvent.USER_COMMAND);
+		if (onFinished != null) throw new UnsupportedOperationException();
 	}
 
 	@Override

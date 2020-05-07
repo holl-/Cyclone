@@ -3,6 +3,7 @@ package player.fx.app;
 import appinstance.ApplicationParameters;
 import appinstance.InstanceManager;
 import audio.AudioEngineException;
+import audio.javasound.JavaSoundEngine;
 import cloud.Cloud;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -10,6 +11,7 @@ import javafx.stage.Stage;
 import mediacommand.CombinationManager;
 import mediacommand.MediaCommand;
 import mediacommand.MediaCommandManager;
+import player.fx.debug.PlaybackViewer;
 import player.fx.debug.TaskViewer;
 import player.model.CycloneConfig;
 import player.model.PlaylistPlayer;
@@ -50,15 +52,17 @@ public class Launcher extends Application {
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
 		try {
 			Cloud cloud = new Cloud();
-//			PlaylistPlayer player = new PlaylistPlayer(cloud, config);
-			PlaybackEngine engine = PlaybackEngine.initializeAudioEngine(cloud, null);
+			PlaybackEngine engine = new PlaybackEngine(cloud, new JavaSoundEngine(), config);
 
-//			window = new PlayerWindow(primaryStage, player, engine, config);
-//			window.show();
-//			addControl(window.getStatusWrapper());
+			PlaylistPlayer player = new PlaylistPlayer(cloud, config);
+			window = new PlayerWindow(primaryStage, player, engine, config);
+			window.show();
+			addControl(window.getStatusWrapper());
 
-			TaskViewer viewer = new TaskViewer(cloud, primaryStage);
+			TaskViewer viewer = new TaskViewer(cloud, new Stage());
 			viewer.getStage().show();
+			PlaybackViewer pbv = new PlaybackViewer(engine);
+			pbv.getStage().show();
 
 //			PlaylistPlayer player2 = new PlaylistPlayer(cloud, config);
 //			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);

@@ -200,13 +200,11 @@ public class JSPlayer extends AbstractPlayer
 
 
 	@Override
-	public void setPositionAsync(double position) {
-		new Thread() {
-			@Override
-			public void run() {
-				setPositionBlocking(position, -1);
-			}
-		}.start();
+	public void setPositionAsync(double position, Runnable onFinished) {
+		new Thread(() -> {
+			setPositionBlocking(position, -1);
+			if(onFinished != null) onFinished.run();
+		}).start();
 	}
 
 	@Override

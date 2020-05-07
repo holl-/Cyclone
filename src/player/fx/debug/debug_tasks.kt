@@ -2,6 +2,7 @@ package player.fx.debug
 
 import cloud.Cloud
 import cloud.CloudFile
+import cloud.Peer
 import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.collections.FXCollections
@@ -46,6 +47,7 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
     @FXML private var snapshotView: ListView<Snapshot>? = null
 
     private val snapshots = FXCollections.observableArrayList<Snapshot>()
+    private var snapshotsCreated = 0
 
     init {
         val loader = FXMLLoader(javaClass.getResource("task-viewer.fxml"))
@@ -56,6 +58,9 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
         stage.x = 0.0
 
         takeSnapshot()
+
+        val fakeSpeaker = Speaker(Peer.getLocal(), "debug", "Fake Speaker", -10.0, 20.0, false)
+        cloud.push(Speaker::class.java, listOf(fakeSpeaker), this, false)
     }
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
@@ -78,7 +83,8 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
     }
 
     private fun takeSnapshot() {
-        val snapshot = Snapshot(snapshots.size, ArrayList(tasks), ArrayList(statuses))
+        val snapshot = Snapshot(snapshotsCreated, ArrayList(tasks), ArrayList(statuses))
+        snapshotsCreated++
         snapshots.add(snapshot)
         if(live?.isSelected == true) {
             snapshotView?.selectionModel?.select(snapshot)
@@ -114,7 +120,7 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
         label.graphic = if(task.paused) FXIcons.get("Pause.png", 20.0) else FXIcons.get("Play.png", 20.0)
         node.children.add(label)
         for (status in statuses) {
-            node.children.add(Label(status.toString()))
+            node.children.add(Label("${status.toString()}, duration=${status.task.duration}"))
         }
         return node
     }
@@ -130,6 +136,7 @@ class TaskCreator(val cloud: Cloud) : Initializable
     @FXML private var trigger: TextField? = null
     @FXML private var startPosition: TextField? = null
     @FXML private var duration: TextField? = null
+    @FXML private var resetCount: TextField? = null
 
     @FXML private var gain: Slider? = null
     @FXML private var balance: Slider? = null
@@ -141,6 +148,10 @@ class TaskCreator(val cloud: Cloud) : Initializable
 
     private var task : PlayTask? = null
 
+    companion object {
+        private var creatorCount = 0
+    }
+
     init {
         val loader = FXMLLoader(javaClass.getResource("task-creator.fxml"))
         loader.setController(this)
@@ -148,17 +159,21 @@ class TaskCreator(val cloud: Cloud) : Initializable
 
         stage.scene = Scene(root)
         stage.title = "Create Task"
+        stage.setOnCloseRequest { yank() }
+
+        creatorCount++
     }
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
-        file?.text = "C:\\Users\\Philipp\\Music\\Spiele\\The Unfinished Swan\\Unfinished Swan.mp3"
+        file?.text = "C:\\stereo.mp3"
         target?.items = cloud.getAll(Speaker::class.java)
         target?.items?.addListener { change: ListChangeListener.Change<out Speaker>? -> println("targets changed") }
         target?.selectionModel?.select(target?.items?.firstOrNull { speaker -> speaker.isDefault })
         duration?.text = "5"
         startPosition?.text = "10"
-        id?.text = UUID.randomUUID().toString()
+        id?.text = creatorCount.toString()
         creator?.text = "user"
+        resetCount?.text = "0"
     }
 
 
@@ -179,11 +194,12 @@ class TaskCreator(val cloud: Cloud) : Initializable
                 mute = mute!!.isSelected,
                 balance = balance!!.value,
                 position = if(startPosition!!.text.isEmpty()) 0.0 else startPosition!!.text.toDouble(),
+                restartCount = resetCount!!.text.toInt(),
                 duration = if(duration!!.text.isEmpty()) null else duration!!.text.toDouble(),
                 creator = creator!!.text,
                 paused = paused!!.isSelected,
                 trigger = if(trigger!!.text.isEmpty()) null else TaskTrigger(trigger!!.text),
-                baseTask = task
+                id = id!!.text
         )
         cloud.push(PlayTask::class.java, listOf(task!!), this, true)
     }
