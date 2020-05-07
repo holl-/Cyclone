@@ -5,10 +5,12 @@ import audio.javafx.JavaFXAudioEngine
 import audio.javasound.JavaSoundEngine
 import cloud.Cloud
 import cloud.Peer.Companion.getLocal
+import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import player.model.data.PlayTask
 import player.model.data.Speaker
 import player.model.data.PlayTaskStatus
+import java.util.function.Consumer
 import java.util.stream.Collectors
 
 /**
@@ -19,21 +21,16 @@ import java.util.stream.Collectors
  *
  * When a playback event occurs like an error or end-of-file, the PlaybackEngine updates the status.
  */
-class PlaybackEngine private constructor(val cloud: Cloud, private val audioEngine: AudioEngine)
+class PlaybackEngine private constructor(val cloud: Cloud, val audioEngine: AudioEngine)
 {
     private val tasks = cloud.getAll(PlayTask::class.java)
+    private val jobs = FXCollections.observableArrayList<Job>()
 
-    /**
-     * Stores created players for existing and future tasks.
-     * Finished tasks map to null and are removed once the program does not reference them anymore.
-     */
-    private val players = HashMap<PlayTask, Player?>()
-
-    private val speakers: Map<Speaker, AudioDevice> = audioEngine.devices.stream().collect(Collectors.toMap({ dev -> Speaker(getLocal(), dev.id, dev.name, dev.minGain, dev.maxGain, dev.isDefault) }, { dev -> dev}))
+    val speakerMap: Map<Speaker, AudioDevice> = audioEngine.devices.stream().collect(Collectors.toMap({ dev -> Speaker(getLocal(), dev.id, dev.name, dev.minGain, dev.maxGain, dev.isDefault) }, { dev -> dev}))
 
     init {
 //        supportedTypes = ArrayList(audio.supportedMediaTypes.stream().map { t: MediaType -> t.fileExtension }.collect(Collectors.toList()))
-        cloud.push(Speaker::class.java, speakers.keys, this, true)
+        cloud.push(Speaker::class.java, speakerMap.keys, this, true)
         tasksUpdated()
         tasks.addListener(ListChangeListener<PlayTask> { tasksUpdated() })
     }
@@ -50,24 +47,40 @@ class PlaybackEngine private constructor(val cloud: Cloud, private val audioEngi
 
 
     private fun tasksUpdated() {
+        // --- Handle existing tasks ---
         for (task in tasks) {
-            if (task is PlayTask && task.target in speakers.keys) { // Check if we are responsible for this task queue
-                val player = if (task in players.keys) players[task] else createPlayer(task)
-                player?.gain = task.gain
-                player?.isMute = task.mute
-                player?.balance = task.balance
-                if (!task.paused)
-                    player?.start()
-                else player?.pause()
+            var job = this[task]
+            if (job == null) {
+                if (task.target in speakerMap.keys) {
+                    job = Job(this)
+                    job.eventListeners.add(Consumer { publishInfo() })
+                    jobs.add(job)
+                }
+            }
+            job?.taskUpdated(task)
+        }
+        // --- Handle deleted tasks ---
+        for (job in jobs) {
+            if (job.task !in tasks) {
+                job.taskDeleted()
             }
         }
-        for (oldTask in HashSet(players.keys)) {
-            if(oldTask !in tasks) {
-                players[oldTask]?.dispose()
-                players.remove(oldTask)
+        // --- Delete jobs ---
+        for (job in ArrayList(jobs)) {
+            if (!job.isAlive()) {
+                jobs.remove(job)
             }
         }
         publishInfo()
+    }
+
+
+    operator fun get(task: PlayTask): Job? {
+        return jobs.firstOrNull { j -> j.task == task }
+    }
+
+    operator fun get(taskId: String): Job? {
+        return jobs.firstOrNull { j -> j.task?.id == taskId}
     }
 
 
@@ -77,48 +90,18 @@ class PlaybackEngine private constructor(val cloud: Cloud, private val audioEngi
      */
     private fun publishInfo() {
         val statuses = ArrayList<PlayTaskStatus>()
-        for(entry in players) {
-            val player = entry.value
-            if(player != null) {
-                val task = entry.key
-                val expandedTask = PlayTask(task.target, task.file, player.gain, player.isMute, player.balance, player.position, player.duration, task.creator, task.paused, null, task)
-                statuses.add(PlayTaskStatus(expandedTask, true, false, null, null, System.currentTimeMillis()))
+        for(job in jobs) {
+            if (job.isAlive()) {
+                statuses.add(job.status())
             }
         }
         cloud.push(PlayTaskStatus::class.java, statuses, this, true)
     }
 
 
-    private fun createPlayer(task: PlayTask): Player? {  // TODo error handling
-        val file: MediaFile = DMediaFile(task.file)
-        try {
-            val player = audioEngine.newPlayer(file)
-            players[task] = player
-            player.prepare()
-            player.activate(speakers[task.target])
-            player.addEndOfMediaListener {  }  // TODO start follow-up tasks
-            if (player.getDuration() < 0) {
-                Thread {
-                    try {
-                        player.waitForDurationProperty()
-                        publishInfo()
-                    } catch (e1: IllegalStateException) {
-                        e1.printStackTrace()
-                    } catch (e1: InterruptedException) {}
-                }.start()
-            }
-            return player
-        } catch (exc: Exception) {
-            exc.printStackTrace()
-            return null
-        }
-    }
-
     fun dispose() {
+        jobs.forEach { job -> job.dispose() }
         cloud.yankAll(null, this)
-        for(player in players.values) {
-            player?.dispose()
-        }
     }
 
 

@@ -1,11 +1,10 @@
-package cloud
+package player
 
 import javafx.beans.InvalidationListener
 import javafx.beans.Observable
 import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
-import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.BooleanSupplier
 import java.util.function.Consumer

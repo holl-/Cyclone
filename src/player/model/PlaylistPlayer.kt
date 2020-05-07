@@ -9,6 +9,10 @@ import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
+import player.CastToBooleanProperty
+import player.CastToDoubleProperty
+import player.CastToStringProperty
+import player.CustomObjectProperty
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
@@ -98,7 +102,9 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
             getter = Supplier<Number?> { status.value?.extrapolatePosition() ?: 0.0 },
             setter = Consumer { value -> cloud.pushSynchronized(PlayerData.JumpRequest(null, value!!.toDouble())) }))
     val titleProperty: ReadOnlyStringProperty = CastToStringProperty(CustomObjectProperty<String>(listOf(status),
-            getter = Supplier { status.value?.message()?.plus("") ?: AudioFiles.inferTitle(status.value?.task?.file?.getPath()) },
+            getter = Supplier {
+                status.value?.message()?.plus("") ?: AudioFiles.inferTitle(status.value?.task?.file?.getPath())
+            },
             setter = Consumer { throw UnsupportedOperationException() }))  // this is a read-only property
     val playingProperty: BooleanProperty = CastToBooleanProperty(CustomObjectProperty<Boolean?>(listOf(status),
             getter = Supplier<Boolean?> { pausedData.value?.value != true }, // status.value?.active == true && status.value?.task?.paused == false
