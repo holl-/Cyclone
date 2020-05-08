@@ -56,6 +56,7 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
         stage.title = "Cyclone Tasks"
         stage.scene = Scene(root)
         stage.x = 0.0
+        stage.y = 0.0
 
         takeSnapshot()
 
@@ -117,10 +118,13 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
     private fun createTaskNode(task: PlayTask, statuses: List<PlayTaskStatus>): Node {
         val node = VBox()
         val label = Label(task.toString())
+        label.isWrapText = true
         label.graphic = if(task.paused) FXIcons.get("Pause.png", 20.0) else FXIcons.get("Play.png", 20.0)
         node.children.add(label)
         for (status in statuses) {
-            node.children.add(Label("${status.toString()}, duration=${status.task.duration}"))
+            val statusLabel = Label("${status}, position=${status.task.position}, duration=${status.task.duration}")
+            statusLabel.isWrapText = true
+            node.children.add(statusLabel)
         }
         return node
     }

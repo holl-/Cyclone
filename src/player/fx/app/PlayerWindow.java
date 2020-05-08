@@ -3,6 +3,7 @@ package player.fx.app;
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.collections.ListChangeListener;
 import javafx.event.EventHandler;
@@ -29,6 +30,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import player.fx.debug.CloudViewer;
 import player.fx.debug.PlaybackViewer;
 import player.fx.debug.TaskViewer;
 import player.model.AudioFiles;
@@ -133,7 +135,7 @@ public class PlayerWindow implements Initializable {
 		control.positionProperty().bindBidirectional(player.getPositionProperty());
 		control.playingProperty().bindBidirectional(player.getPlayingProperty());
 		control.mediaSelectedProperty().bind(player.isFileSelectedProperty());
-//		control.playlistAvailableProperty().bind(player.playlistAvailableProperty());
+		control.playlistAvailableProperty().bind(player.getPlaylistAvailableProperty());
 		control.shuffledProperty().bindBidirectional(player.getShuffledProperty());
 		control.loopProperty().bindBidirectional(player.getLoopingProperty());
 		control.setOnNext(e -> player.next());
@@ -158,9 +160,14 @@ public class PlayerWindow implements Initializable {
 			public void initialize(URL location, ResourceBundle resources) {
 				playlist.setItems(player.getPlaylist());
 				playlist.addEventFilter(KeyEvent.KEY_PRESSED, new TabAndEnterHandler(playlist));
-				removeOthersButton.disableProperty().bind(Bindings.createBooleanBinding(() -> player.getPlaylist().size() == 0 || (player.getPlaylist().size() == 1 && player.getCurrentFileProperty().get() == player.getPlaylist().get(0))));
+				removeOthersButton.disableProperty().bind(Bindings.createBooleanBinding(
+						() -> player.getPlaylist().size() == 0 || (player.getPlaylist().size() == 1 && player.getCurrentFileProperty().get() == player.getPlaylist().get(0)),
+						player.getPlaylist(), player.getCurrentFileProperty()));
 				playlist.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
-					if(n != null) player.getCurrentFileProperty().set(n);
+					if(n != null) {
+						player.getCurrentFileProperty().set(n);
+						player.getPlayingProperty().set(true);
+					}
 				});
 				player.getCurrentFileProperty().addListener((p, o, n) -> {
 					playlist.getSelectionModel().select(player.getCurrentFileProperty().get());
@@ -592,6 +599,11 @@ public class PlayerWindow implements Initializable {
 
 	@FXML void openPlaybackWindow() {
 		PlaybackViewer viewer = new PlaybackViewer(engine);
+		viewer.getStage().show();
+	}
+
+	@FXML void openCloudViewer() {
+		CloudViewer viewer = new CloudViewer(player.getCloud());
 		viewer.getStage().show();
 	}
 }

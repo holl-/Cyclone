@@ -95,15 +95,16 @@ class PlaybackEngine (val cloud: Cloud, val audioEngine: AudioEngine, config: Cy
     /**
      * Updates the PlaybackStatus to reflect the current status of the audio engine.
      * This may result in the information being sent to connected machines.
+     *
+     * Called when [statusInvalid] is set.
      */
     private fun publishInfo() {
         statusInvalid.value = false
 
         val statuses = ArrayList<PlayTaskStatus>()
         for(job in jobs) {
-            if (job.isAlive()) {
-                statuses.add(job.status.value)
-            }
+            val status = job.status.value
+            if (status != null) statuses.add(status)
         }
         cloud.push(PlayTaskStatus::class.java, statuses, this, true)
     }

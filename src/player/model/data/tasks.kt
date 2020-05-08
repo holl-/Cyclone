@@ -43,7 +43,7 @@ class PlayTask(
 ) : Data()
 {
     override fun toString(): String {
-        return "Play '${file.getName()}' on $target, paused=$paused, gain=$gain, position=$position, duration=$duration, creator=$creator"
+        return "Play '${file.getName()}' on $target, paused=$paused, gain=$gain, position=$position, duration=$duration, creator=$creator, id=$id"
     }
 
     override fun equals(other: Any?): Boolean {
@@ -85,7 +85,7 @@ class TaskTrigger(val taskId: String) : Serializable
  *
  * @author Philipp Holl
  */
-class PlayTaskStatus(
+data class PlayTaskStatus(
         val task: PlayTask,
         val active: Boolean,
         val finished: Boolean,
@@ -117,7 +117,7 @@ class PlayTaskStatus(
         return task.hashCode()
     }
 
-    override fun toString(): String {
+    fun displayString(): String {
         val status = if(finished) "Finished" else if(active) "Active" else "Inactive"
         return if(message() != null) status + message() else status
     }

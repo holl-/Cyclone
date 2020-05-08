@@ -1,4 +1,6 @@
 package player.fx;
+import javafx.beans.binding.Bindings;
+import javafx.scene.Node;
 import player.fx.icons.FXIcons;
 
 import javafx.beans.property.DoubleProperty;
@@ -20,6 +22,8 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 import javafx.util.converter.DoubleStringConverter;
+
+import java.util.concurrent.Callable;
 
 // TODO implement indeterminate (ProgressBar)
 public class RoundPlayerSkin extends SkinBase<PlayerControl>
@@ -82,11 +86,9 @@ public class RoundPlayerSkin extends SkinBase<PlayerControl>
 
 		playIcon = FXIcons.get("Play.png", 32, heightScale);
 		pauseIcon = FXIcons.get("Pause.png", 32, heightScale);
-		buttonPane.setCenter(playButton = new ToggleButton(null, playIcon));
+		buttonPane.setCenter(playButton = new ToggleButton(null, null));
 		playButton.selectedProperty().bindBidirectional(getSkinnable().playingProperty());
-		getSkinnable().playingProperty().addListener((p,o,n) -> {
-			playButton.setGraphic(n ? pauseIcon : playIcon);
-		});
+		playButton.graphicProperty().bind(Bindings.createObjectBinding(((Callable<Node>)() -> getSkinnable().isPlaying() ? pauseIcon : playIcon), getSkinnable().playingProperty()));
 
 		BorderPane bottomButtonPane = new BorderPane();
 		bottomButtonPane.setPickOnBounds(false);

@@ -10,6 +10,7 @@ import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
+import player.model.data.Speaker
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -25,7 +26,7 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
     val busyMessage = SimpleStringProperty(null)
     val previous = SimpleObjectProperty<Job?>()
 
-    val status = SimpleObjectProperty<PlayTaskStatus>()
+    val status = SimpleObjectProperty<PlayTaskStatus?>()
 
 
     init {
@@ -34,6 +35,7 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
             value?.started?.addListener { _, _, _ -> taskOrDependenciesUpdated() }
             value?.finished?.addListener { _, _, _ -> taskOrDependenciesUpdated() }
         }
+        finished.addListener(InvalidationListener { Platform.runLater { status.value = status() } })
         engine.masterGain.addListener(InvalidationListener { player.value?.gain = task.value?.let { it1 -> mixGain(it1) } ?: 0.0 })
     }
 
@@ -84,11 +86,15 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
         return if (waitingOnJob.isAlive()) waitingOnJob.started.value else false
     }
 
+
+    private var target: Speaker? = null
     /**
      * While this job is alive, its status can be queued.
      */
-    private fun status(): PlayTaskStatus {
-        val task = this.task.value!!
+    private fun status(): PlayTaskStatus? {
+        val task = this.task.value ?: return null
+        if (task.target in engine.speakerMap)
+            target = task.target
         val player = this.player.value
         val gain = player?.gain ?: mixGain(task)
         val mute = player?.isMute ?: task.mute
@@ -96,7 +102,7 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
         val position = player?.position ?: task.position
         val duration = player?.duration ?: task.duration
         val paused = task.paused && player?.isPlaying == false
-        val expandedTask = PlayTask(task.target, task.file, gain, mute, balance, position, restartCount.value, duration, task.creator, paused, task.trigger, task.id)
+        val expandedTask = PlayTask(target!!, task.file, gain, mute, balance, position, restartCount.value, duration, task.creator, paused, task.trigger, task.id)
         return PlayTaskStatus(expandedTask, player != null, finished.value, busyMessage.value, errorMessage.value, System.currentTimeMillis())
     }
 
@@ -136,7 +142,7 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
                 else player.activate(targetDevice)
             }
             if(task.restartCount > restartCount.value) {
-                player.setPositionAsync(task.position) { updateEndListener() }
+                player.setPositionAsync(task.position) { status.value = status(); updateEndListener() }
                 restartCount.value = task.restartCount
             }
             if (targetDevice != null) {
@@ -154,7 +160,6 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
 
     /**
      * Dead jobs are removed from the job list.
-     * Their status is yanked from the cloud.
      * They will be disposed of as soon as no other job references them anymore.
      */
     fun isAlive(): Boolean {

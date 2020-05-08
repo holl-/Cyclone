@@ -4,18 +4,14 @@ import javafx.application.Platform
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
-import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
-import javafx.collections.transformation.FilteredList
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.Serializable
-import java.lang.UnsupportedOperationException
-import java.util.concurrent.Callable
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.BiConsumer
 import java.util.function.Consumer
-import java.util.function.Predicate
 import java.util.function.Supplier
 import java.util.stream.Stream
 
@@ -39,8 +35,9 @@ class Cloud {
     private val viewedLists = HashMap<Class<out Data>, ObservableList<out Data>>()
 
     private val sData = HashMap<Class<out SynchronizedData>, SimpleObjectProperty<out SynchronizedData>>()
-//    private val sData = FXCollections.observableArrayList<SynchronizedData>()
     private val ownerMap = HashMap<Data, Any>()
+
+    val onUpdate = CopyOnWriteArrayList<Runnable>()
 
 //    private val eventHandler = Executors.newSingleThreadExecutor()
 
@@ -105,6 +102,7 @@ class Cloud {
             val defaultValue = default.get()
             val property = SimpleObjectProperty(defaultValue)
             sData[cls] = property
+            pushSynchronized(defaultValue)
             return property
         }
     }
@@ -113,8 +111,22 @@ class Cloud {
      * Updates a synchronized data object.
      * This may create a conflict.
      */
-    fun pushSynchronized(d: SynchronizedData) {
-        Platform.runLater(Runnable { (getSynchronized(d.javaClass, Supplier { d }) as SimpleObjectProperty).value = d })
+    fun pushSynchronized(data: SynchronizedData) {
+        Platform.runLater(Runnable {
+            if (data.javaClass in sData) sData[data.javaClass]?.value = data
+            else {
+                sData[data.javaClass] = SimpleObjectProperty(data)
+            }
+            onUpdate.forEach { r -> r.run() }
+        })
+    }
+
+    fun getAllCurrentSynchronized(): List<SynchronizedData> {
+        val result = ArrayList<SynchronizedData>()
+        for ((cls, prop) in sData) {
+            result.add(prop.value)
+        }
+        return result
     }
 
 

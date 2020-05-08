@@ -38,6 +38,8 @@ class PlaybackViewer(val playback: PlaybackEngine) : Initializable
 
         stage.scene = Scene(root)
         stage.title = "Local Playback"
+        stage.x = 1200.0
+        stage.y = 600.0
 
         Platform.runLater { rebuild() }
     }
