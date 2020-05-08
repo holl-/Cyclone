@@ -1,10 +1,14 @@
 package player.fx.app;
 
+import audio.*;
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -17,6 +21,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
@@ -40,6 +45,7 @@ import player.fx.PlayerControl;
 import player.fx.icons.FXIcons;
 import player.model.PlaylistPlayer;
 import player.model.MediaLibrary;
+import player.model.playback.Job;
 import player.model.playback.PlaybackEngine;
 import player.model.data.Speaker;
 import cloud.CloudFile;
@@ -458,9 +464,11 @@ public class PlayerWindow implements Initializable {
 
     @FXML
     public void openFileLocation() {
-		if(player.getCurrentFileProperty().get() == null) return;
-		CloudFile file = player.getCurrentFileProperty().get();
-		if(file.originatesHere()) {
+		openFileLocation(player.getCurrentFileProperty().get());
+    }
+
+    private void openFileLocation(CloudFile file) {
+		if(file != null && file.originatesHere()) {
 			try {
 				Desktop.getDesktop().browse(new File(file.getPath()).getParentFile().toURI());
 			} catch (NoSuchElementException | IOException e) {
@@ -470,7 +478,7 @@ public class PlayerWindow implements Initializable {
 		} else {
 			new Alert(AlertType.INFORMATION, "The file is not located on this systemcontrol.", ButtonType.OK).show();
 		}
-    }
+	}
 
     @FXML
     public void removeCurrentFromPlaylist() {
@@ -498,93 +506,95 @@ public class PlayerWindow implements Initializable {
 
 	@FXML
 	public void showFileInfo() throws IOException {
-//		if(player.getCurrentFileProperty().get() == null)
-//			return;
-//
-//		FXMLLoader loader = new FXMLLoader(getClass().getResource("fileinfo.fxml"));
-//		loader.setController(new Initializable() {
-//		    @FXML
-//            private Tab encodingTab, playbackTab;
-//			@FXML
-//			private Label titleLabel, durationLabel, encodingLabel;
-//			@FXML
-//			private Hyperlink pathLink;
-//			@FXML
-//			private TableView<Map.Entry<String, Object>> propertiesTable;
-//            @FXML
-//            private TableColumn<Map.Entry<String, Object>, String> propertyColumn;
-//			@FXML
-//            private TableColumn<Map.Entry<String, Object>, Object> valueColumn;
-//			@FXML
-//            private Label eEncoding, eChannels, eSampleRate, eSampleSize, eFrameSize, eFrameRate, eEndianness, eProperties;
-//            @FXML
-//            private Label dEncoding, dChannels, dSampleRate, dSampleSize, dFrameSize, dFrameRate, dEndianness, dProperties, playbackEngine;
-//
-//			@Override
-//			public void initialize(URL location, ResourceBundle resources) {
-//				if(engine.currentPlayer() != null) {
-//					Player player = engine.currentPlayer();
-//					try {
-//						player.loadMediaFormat();
-//					} catch (IOException | UnsupportedMediaFormatException e) {
-//						e.printStackTrace();
-//						Alert alert = new Alert(AlertType.ERROR);
-//						alert.setTitle("File error");
-//						alert.setHeaderText("Failed to retrieve media information.");
-//						alert.setContentText(e.getMessage());
-//						alert.showAndWait();
-//						return;
-//					}
-//					MediaFile file = player.getMediaFile();
-//					MediaFormat format = player.getMediaFormat();
-//					audio.MediaInfo info = player.getMediaInfo();
-//
-//					titleLabel.setText(info.getTitle() != null ? info.getTitle() : file.getFileName());
-//					pathLink.setText(file.getFile().getAbsolutePath());
-//					durationLabel.setText("Duration: " + info.getDuration() + " seconds / " + format.getFrameLength() + " frames");
-//					encodingLabel.setText("File type: " + format.getType().getName() + ", size: " + file.getFileSize() / 1024 / 1024 + " MB (" + file.getFileSize() + " bytes)");
-//					propertiesTable.getItems().addAll(FXCollections.observableArrayList(format.getProperties().entrySet()));
-//
-//                    AudioDataFormat ef = player.getEncodedFormat();
-//                    eEncoding.setText("Encoding: " + ef.getEncodingName());
-//                    eChannels.setText("Channels: " + (ef.getChannels() == 2 ? "Stereo" : (ef.getChannels() == 1 ? "Mono" : ef.getChannels())));
-//                    eSampleRate.setText("Sample rate: " + ef.getSampleRate() + " Hz");
-//                    eSampleSize.setText("Sample size: " + (ef.getSampleSizeInBits() > 0 ? ef.getSampleSizeInBits() + " bits" : "variable"));
-//                    eFrameSize.setText("Frame size: " + (ef.getFrameSize() > 0 ? ef.getFrameSize() + " bytes" : "variable"));
-//                    eFrameRate.setText("Frame rate: " + ef.getFrameRate() + " Hz");
-//                    eEndianness.setText("Endianness: " + (ef.isBigEndian() ? "big endian" : "little endian"));
-//                    eProperties.setText((ef.getProperties().isEmpty() ? "" : ef.getProperties().toString()));
-//
-//                    playbackEngine.setText("Playback engine: " + format.getAudioEngineName());
-//                    AudioDataFormat df = player.getDecodedFormat();
-//                    dEncoding.setText("Encoding: " + df.getEncodingName());
-//                    dChannels.setText("Channels: " + (df.getChannels() == 2 ? "Stereo" : (df.getChannels() == 1 ? "Mono" : df.getChannels())));
-//                    dSampleRate.setText("Sample rate: " + df.getSampleRate() + " Hz");
-//                    dSampleSize.setText("Sample size: " + (df.getSampleSizeInBits() > 0 ? df.getSampleSizeInBits() + " bits" : "variable"));
-//                    dFrameSize.setText("Frame size: " + (df.getFrameSize() > 0 ? df.getFrameSize() + " bytes" : "variable"));
-//                    dFrameRate.setText("Frame rate: " + df.getFrameRate() + " Hz");
-//                    dEndianness.setText("Endianness: " + (df.isBigEndian() ? "big endian" : "little endian"));
-//                    dProperties.setText((df.getProperties().isEmpty() ? "" : df.getProperties().toString()));
-//				} else {
-//					player.getCurrentFileProperty().ifPresent(media -> {
-//						titleLabel.setText(media.getName());
-//						pathLink.setText(media.getPath());
-//						durationLabel.setText("Media details are unavailable because file is not stored locally.");
-//					});
-//					encodingTab.setDisable(true);
-//					playbackTab.setDisable(true);
-//				}
-//				propertyColumn.setCellValueFactory(entry -> new SimpleStringProperty(entry.getValue().getKey()));
-//				valueColumn.setCellValueFactory(entry -> new SimpleObjectProperty<>(entry.getValue().getValue()));
-//			}
-//		});
-//
-//        BorderPane playerRoot = loader.load();
-//        Stage stage = new Stage();
-//        stage.setTitle("Media Info");
-//        stage.setScene(new Scene(playerRoot));
-//        settings.getStylableStages().add(stage);
-//        stage.show();
+		CloudFile file = player.getCurrentFileProperty().get();
+		if(file == null) return;
+
+		FXMLLoader loader = new FXMLLoader(getClass().getResource("fileinfo.fxml"));
+		loader.setController(new Initializable() {
+		    @FXML
+            private Tab encodingTab, playbackTab;
+			@FXML
+			private Label titleLabel, durationLabel, encodingLabel;
+			@FXML
+			private Hyperlink pathLink;
+			@FXML
+			private TableView<Map.Entry<String, Object>> propertiesTable;
+            @FXML
+            private TableColumn<Map.Entry<String, Object>, String> propertyColumn;
+			@FXML
+            private TableColumn<Map.Entry<String, Object>, Object> valueColumn;
+			@FXML
+            private Label eEncoding, eChannels, eSampleRate, eSampleSize, eFrameSize, eFrameRate, eEndianness, eProperties;
+            @FXML
+            private Label dEncoding, dChannels, dSampleRate, dSampleSize, dFrameSize, dFrameRate, dEndianness, dProperties, playbackEngine;
+
+			@Override
+			public void initialize(URL location, ResourceBundle resources) {
+				Optional<Job> opJob = engine.getJobs().stream().filter(j -> j.getTask().get() != null && j.getTask().get().getFile() ==file && j.getPlayer().get() != null).findFirst();
+				if(opJob.isPresent()) {
+					Player player = opJob.get().getPlayer().get();
+					try {
+						player.loadMediaFormat();
+					} catch (IOException | UnsupportedMediaFormatException e) {
+						e.printStackTrace();
+						Alert alert = new Alert(AlertType.ERROR);
+						alert.setTitle("File error");
+						alert.setHeaderText("Failed to retrieve media information.");
+						alert.setContentText(e.getMessage());
+						alert.showAndWait();
+						return;
+					}
+					MediaFile file = player.getMediaFile();
+					MediaFormat format = player.getMediaFormat();
+					audio.MediaInfo info = player.getMediaInfo();
+
+					titleLabel.setText(info.getTitle() != null ? info.getTitle() : file.getFileName());
+					pathLink.setText(file.getFile().getAbsolutePath());
+					durationLabel.setText("Duration: " + info.getDuration() + " seconds / " + format.getFrameLength() + " frames");
+					encodingLabel.setText("File type: " + format.getType().getName() + ", size: " + file.getFileSize() / 1024 / 1024 + " MB (" + file.getFileSize() + " bytes)");
+					propertiesTable.getItems().addAll(FXCollections.observableArrayList(format.getProperties().entrySet()));
+
+                    AudioDataFormat ef = player.getEncodedFormat();
+                    eEncoding.setText("Encoding: " + ef.getEncodingName());
+                    eChannels.setText("Channels: " + (ef.getChannels() == 2 ? "Stereo" : (ef.getChannels() == 1 ? "Mono" : ef.getChannels())));
+                    eSampleRate.setText("Sample rate: " + ef.getSampleRate() + " Hz");
+                    eSampleSize.setText("Sample size: " + (ef.getSampleSizeInBits() > 0 ? ef.getSampleSizeInBits() + " bits" : "variable"));
+                    eFrameSize.setText("Frame size: " + (ef.getFrameSize() > 0 ? ef.getFrameSize() + " bytes" : "variable"));
+                    eFrameRate.setText("Frame rate: " + ef.getFrameRate() + " Hz");
+                    eEndianness.setText("Endianness: " + (ef.isBigEndian() ? "big endian" : "little endian"));
+                    eProperties.setText((ef.getProperties().isEmpty() ? "" : ef.getProperties().toString()));
+
+                    playbackEngine.setText("Playback engine: " + format.getAudioEngineName());
+                    AudioDataFormat df = player.getDecodedFormat();
+                    dEncoding.setText("Encoding: " + df.getEncodingName());
+                    dChannels.setText("Channels: " + (df.getChannels() == 2 ? "Stereo" : (df.getChannels() == 1 ? "Mono" : df.getChannels())));
+                    dSampleRate.setText("Sample rate: " + df.getSampleRate() + " Hz");
+                    dSampleSize.setText("Sample size: " + (df.getSampleSizeInBits() > 0 ? df.getSampleSizeInBits() + " bits" : "variable"));
+                    dFrameSize.setText("Frame size: " + (df.getFrameSize() > 0 ? df.getFrameSize() + " bytes" : "variable"));
+                    dFrameRate.setText("Frame rate: " + df.getFrameRate() + " Hz");
+                    dEndianness.setText("Endianness: " + (df.isBigEndian() ? "big endian" : "little endian"));
+                    dProperties.setText((df.getProperties().isEmpty() ? "" : df.getProperties().toString()));
+				} else {
+					titleLabel.setText(file.getName());
+					pathLink.setText(file.getPath());
+					durationLabel.setText("Media details are unavailable because file is not stored locally.");
+					encodingTab.setDisable(true);
+					playbackTab.setDisable(true);
+				}
+				propertyColumn.setCellValueFactory(entry -> new SimpleStringProperty(entry.getValue().getKey()));
+				valueColumn.setCellValueFactory(entry -> new SimpleObjectProperty<>(entry.getValue().getValue()));
+			}
+
+			@FXML protected void showFolder() {
+				openFileLocation(file);
+			}
+		});
+
+        BorderPane playerRoot = loader.load();
+        Stage stage = new Stage();
+        stage.setTitle("Media Info");
+        stage.setScene(new Scene(playerRoot));
+        stage.show();
 	}
 
 	@FXML void showSettings() {

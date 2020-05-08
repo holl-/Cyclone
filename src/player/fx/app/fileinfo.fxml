@@ -25,7 +25,7 @@
                               <Font size="20.0" />
                            </font>
                         </Label>
-                        <Hyperlink fx:id="pathLink" text="Path" />
+                        <Hyperlink fx:id="pathLink" onAction="#showFolder" text="Path" />
                         <Label fx:id="durationLabel" text="Duration" />
                         <Label fx:id="encodingLabel" text="File" />
                         <TableView fx:id="propertiesTable">
