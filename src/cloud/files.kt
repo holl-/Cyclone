@@ -106,7 +106,7 @@ class CloudFile(file: File) : Data() {
         return if(originatesHere()) {
             FileInputStream(File(path))
         } else {
-            cloud!!.openStream(origin, getPath())
+            cloud!!.openStream(origin, getPath(), size!!)
         }
     }
 

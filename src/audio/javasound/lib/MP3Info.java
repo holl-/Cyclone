@@ -82,7 +82,9 @@ public class MP3Info extends MediaInfo
 
 	@Override
 	public double getDuration() {
-		long propDuration = (Long) fileprop(DURATION);
+		Object durationObj = fileprop(DURATION);
+		if (durationObj == null) return -1;
+		long propDuration = (Long) durationObj;
 		if(propDuration > 0) return propDuration / 1000_000.0;
 		else return -1;
 	}

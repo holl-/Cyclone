@@ -1,6 +1,7 @@
 package cloud
 
 import javafx.application.Platform
+import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.value.ObservableValue
@@ -11,6 +12,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.lang.IllegalStateException
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.function.Predicate
 import java.util.function.Supplier
 import java.util.logging.*
 import java.util.stream.Stream
@@ -41,7 +43,7 @@ class Cloud {
     var logger = Logger.getLogger("cloud ${localPeer.id}")
 
 
-    val peers = FXCollections.observableArrayList(Peer.getLocal())
+    val peers = FXCollections.observableArrayList(Peer.getLocal())  // also contains disconnected peers
     val connectionStatus = SimpleStringProperty(null)
 
 
@@ -75,18 +77,17 @@ class Cloud {
      * @see .addConnectionListener
      */
     @Throws(IOException::class)
-    fun connect(multicastAddress: String = "225.4.5.6", multicastPort: Int = 5324, localTCPPort: Int = 5325) {
+    fun connect(multicastAddress: String = "225.139.25.1", multicastPort: Int = 5324, autoConnect: Boolean = true) {
         disconnect()
         logger.level = Level.FINEST
-//        val cons = ConsoleHandler()
-//        cons.level = Level.INFO
-//        logger.addHandler(cons)
-        tcp = CloudTCP(this, localTCPPort, logger)
-        tcp!!.startAccepting()
-        multicast = CloudMulticast(this, multicastAddress, multicastPort, localTCPPort, tcp!!, logger)
-        multicast!!.startPinging()
-        multicast!!.startReceiving()
-        Platform.runLater { connectionStatus.value = "UDP: $multicastAddress:$multicastPort, TCP: $localTCPPort" }
+        val tcp = CloudTCP(this, logger)
+        tcp.startAccepting()
+        val multicast = CloudMulticast(this, multicastAddress, multicastPort, tcp.serverSocket.localPort, tcp, logger, autoConnect)
+        multicast.startPinging()
+        multicast.startReceiving()
+        this.tcp = tcp
+        this.multicast = multicast
+        Platform.runLater { connectionStatus.value = "UDP: ${multicastAddress}:${multicastPort}, TCP: ${tcp.serverSocket.localPort}" }
     }
 
     @Throws(IOException::class)
@@ -120,8 +121,9 @@ class Cloud {
     }
 
     @Throws(IOException::class)
-    internal fun openStream(peer: Peer, path: String): InputStream {
-        TODO()
+    internal fun openStream(peer: Peer, path: String, fileSize: Long): InputStream {
+        val conn = tcp?.connections?.firstOrNull { c -> c.peer == peer } ?: throw IOException("Not connected")
+        return conn.openFileStream(path, fileSize)
     }
 
 
@@ -153,18 +155,20 @@ class Cloud {
                 sData[data.javaClass]?.value = data
             else
                 sData[data.javaClass] = SimpleObjectProperty(data)
-            onUpdate.forEach { r -> r.run() }
+            fireUpdate()
             if (localChange) tcp?.synchronizedUpdated(data)
         }
     }
 
-    fun remoteUpdateSynchronized(data: SynchronizedData, forceReplace: Boolean, isDataOlder: Boolean) {
+    fun remoteUpdateSynchronized(data: SynchronizedData, forceReplace: Boolean, isDataOlder: Boolean, logger: Logger?) {
         if (data.javaClass in sData && !forceReplace) {
             val localVersion = sData[data.javaClass]!!.value
             val resolved = if (isDataOlder) data.resolveConflict(localVersion) else localVersion.resolveConflict(data)
+            logger?.fine("conflict: local = $localVersion, remote = $data -> $resolved")
             if (resolved.javaClass != data.javaClass) throw IllegalStateException("resolveConflict must return object of the same class")
             Platform.runLater {
                 sData[data.javaClass]?.value = resolved
+                fireUpdate()
             }
         } else {
             pushSynchronizedImpl(data, false)
@@ -235,7 +239,7 @@ class Cloud {
         allData[localPeer] = offlineList
         notifyDataListeners(listOf(cls))
         tcp?.dataUpdated(offlineList, listOf(cls))
-        onUpdate.forEach { r -> r.run() }
+        fireUpdate()
     }
 
     fun yankAll(cls: Class<out Data>?, owner: Any) {
@@ -246,7 +250,7 @@ class Cloud {
         if(cls != null) listOf(cls) else dataToRemove.map { d -> d.javaClass }.toSet()
         notifyDataListeners(affectedClasses)
         tcp?.dataUpdated(allData[localPeer]!!, affectedClasses)
-        onUpdate.forEach { r -> r.run() }
+        fireUpdate()
     }
 
     internal fun remoteUpdate(peer: Peer, affectedClasses: Collection<*>, data: List<*>) {
@@ -257,7 +261,7 @@ class Cloud {
         allData[peer] = list
         @Suppress("UNCHECKED_CAST")
         notifyDataListeners(affectedClasses as Collection<Class<out Data>>)
-        onUpdate.forEach { r -> r.run() }
+        fireUpdate()
     }
 
 
@@ -286,10 +290,11 @@ class Cloud {
 
     fun peerDisconnected(peer: Peer) {
         allData.remove(peer)
-        Platform.runLater {
-            peers.remove(peer)
-            onUpdate.forEach { r -> r.run() }
-        }
+        Platform.runLater { fireUpdate() }
+    }
+
+    internal fun fireUpdate() {
+        onUpdate.forEach { r -> r.run() }
     }
 
 }

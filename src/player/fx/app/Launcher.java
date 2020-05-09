@@ -88,11 +88,11 @@ public class Launcher extends Application {
 			window2.show();
 
 
-			cloud1.connect("225.4.5.6", 5324, 5325);
+			cloud1.connect("225.4.5.6", 5324, true);
 			new Thread(() -> {
 				try {
 					Thread.sleep(1000);
-					cloud2.connect("225.4.5.6", 5324, 5335);
+					cloud2.connect("225.4.5.6", 5324, true);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

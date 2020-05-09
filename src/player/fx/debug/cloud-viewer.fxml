@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
@@ -13,8 +14,11 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
@@ -27,11 +31,42 @@
                      <children>
                         <FlowPane hgap="8.0" vgap="4.0">
                            <children>
-                              <Label text="Connection" />
+                              <Label text="Connection status" />
                               <Label fx:id="connectionStatus" text="Connection" />
                            </children>
                         </FlowPane>
-                        <Button mnemonicParsing="false" onAction="#disconnect" text="Disconnect" />
+                        <Separator layoutX="18.0" layoutY="150.0" prefWidth="200.0">
+                           <padding>
+                              <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                           </padding>
+                        </Separator>
+                        <HBox>
+                           <children>
+                              <GridPane>
+                                <columnConstraints>
+                                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="387.4285888671875" minWidth="10.0" prefWidth="158.28573608398438" />
+                                  <ColumnConstraints fillWidth="false" hgrow="SOMETIMES" maxWidth="637.7142639160156" minWidth="10.0" prefWidth="625.7142639160156" />
+                                </columnConstraints>
+                                <rowConstraints>
+                                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                </rowConstraints>
+                                 <children>
+                                    <Label text="Multicast address" />
+                                    <Label text="Multicast port" GridPane.rowIndex="1" />
+                                    <TextField fx:id="multicastAddress" GridPane.columnIndex="1" />
+                                    <TextField fx:id="multicastPort" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                                 </children>
+                              </GridPane>
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="4.0">
+                           <children>
+                              <Button mnemonicParsing="false" onAction="#connect" text="Connect" />
+                              <CheckBox fx:id="autoConnect" mnemonicParsing="false" selected="true" text="Automatically connect to peers" />
+                              <Button mnemonicParsing="false" onAction="#disconnect" text="Disconnect" />
+                           </children>
+                        </HBox>
                         <Separator prefWidth="200.0">
                            <padding>
                               <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />

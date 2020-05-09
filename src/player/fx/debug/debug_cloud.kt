@@ -54,9 +54,12 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
     @FXML var dataView: VBox? = null
     @FXML var dummyData: ToggleButton? = null
 
-    // Peers
+    // Connection
     @FXML private var connectionStatus: Label? = null
+    @FXML private var multicastAddress: TextField? = null
+    @FXML private var multicastPort: TextField? = null
     @FXML private var peers: ListView<Peer>? = null
+    @FXML private var autoConnect: CheckBox? = null
 
     // Log
     @FXML private var recordingLog: ToggleButton? = null
@@ -83,13 +86,16 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
     }
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
-        cloud.onUpdate.add(Runnable { takeSnapshot() })
+        cloud.onUpdate.add(Runnable {
+            takeSnapshot()
+            Platform.runLater { peers?.items?.setAll(cloud.peers) }
+        })
         snapshotView?.items = snapshots
         snapshotView1?.items = snapshots
         snapshotView?.selectionModel?.selectedItemProperty()?.addListener(InvalidationListener { rebuild() })
         snapshotView1?.selectionModel?.selectedItemProperty()?.addListener(ChangeListener { _, _, v -> snapshotView!!.selectionModel.select(v) })
         snapshotView?.selectionModel?.selectedItemProperty()?.addListener(ChangeListener { _, _, v -> snapshotView1!!.selectionModel.select(v) })
-        peers?.items = cloud.peers
+        peers?.items = FXCollections.observableArrayList(cloud.peers)
         peers?.setCellFactory { PeerCell(cloud) }
         level?.items = FXCollections.observableArrayList("Warning", "Info", "Detailed", "Debug")
         level!!.selectionModel.select(log.level.get())
@@ -103,6 +109,8 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
         sValue!!.text = "0"
         live1!!.selectedProperty().bindBidirectional(live!!.selectedProperty())
         dummyData!!.selectedProperty().addListener(ChangeListener { _, _, hasDummy -> setDummy(hasDummy) })
+        multicastAddress!!.text = "225.139.25.1"
+        multicastPort!!.text = "5324"
     }
 
     @FXML fun clearSnapshots() {
@@ -116,6 +124,10 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
 
     @FXML fun disconnect() {
         cloud.disconnect()
+    }
+
+    @FXML fun connect() {
+        cloud.connect(multicastAddress!!.text, multicastPort!!.text.toInt(), autoConnect!!.isSelected)
     }
 
     private fun takeSnapshot() {

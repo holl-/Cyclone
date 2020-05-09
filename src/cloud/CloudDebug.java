@@ -22,15 +22,15 @@ public class CloudDebug extends Application {
         viewer2.getStage().setX(800);
         viewer2.getStage().show();
 
-        cloud1.connect("225.4.5.6", 5324, 5325);
-        new Thread(() -> {
-            try {
-                Thread.sleep(1000);
-                cloud2.connect("225.4.5.6", 5324, 5335);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+        cloud1.connect("225.139.25.1", 5324, true);
+//        new Thread(() -> {
+//            try {
+//                Thread.sleep(1000);
+//                cloud2.connect("225.4.5.6", 5324, 5335, true);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }).start();
 
 
     }

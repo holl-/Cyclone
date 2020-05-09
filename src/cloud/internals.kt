@@ -2,17 +2,14 @@ package cloud
 
 import javafx.application.Platform
 import javafx.collections.FXCollections
-import java.io.EOFException
-import java.io.IOException
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
+import java.io.*
 import java.lang.Exception
 import java.net.*
 import java.util.concurrent.*
 import java.util.logging.Logger
 
 
-internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int, val tcpPort: Int, val tcp: CloudTCP, val logger: Logger?) {
+internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int, val tcpPort: Int, val tcp: CloudTCP, val logger: Logger?, val autoConnect: Boolean) {
     val socket = MulticastSocket(port)
     val address = InetSocketAddress(InetAddress.getByName(host), port)
     val peers = ArrayList<Peer>(listOf(cloud.localPeer))
@@ -44,12 +41,10 @@ internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int,
                     val peer = Peer(false, name, receivedPacket.address.hostAddress, id)
                     val otherTime = parts[4].toLong()
                     val isOlder = otherTime < connectionTime
-                    println(otherTime)
-                    println(connectionTime)
                     peers.add(peer)
                     Platform.runLater { cloud.peers.add(peer) }
                     logger?.info("<- Received ping from $name ($id). ${if (isOlder) "It is older." else "I am older"}")
-                    if (isOlder) {
+                    if (isOlder && autoConnect) {
                         tcp.connect(peer, InetSocketAddress(receivedPacket.address, tcpPort))
                     }
                 } else {
@@ -93,8 +88,8 @@ internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int,
 }
 
 
-internal class CloudTCP(val cloud: Cloud, localPort: Int, val logger: Logger?) {
-    val serverSocket = ServerSocket(localPort)
+internal class CloudTCP(val cloud: Cloud, val logger: Logger?) {
+    val serverSocket = ServerSocket(0)
     val connections = FXCollections.observableArrayList<CloudTCPConnection>()
 
     var acceptService: Future<*>? = null
@@ -146,9 +141,11 @@ internal class CloudTCP(val cloud: Cloud, localPort: Int, val logger: Logger?) {
         connections.add(connection)
         connection.sendEverything()
         connection.startHandlingInput()
+        cloud.fireUpdate()
     }
 
     fun disconnect() {
+        serverSocket.close()
         for (connection in connections) {
             connection.close()
         }
@@ -219,6 +216,22 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
         }
     }
 
+    fun openFileStream(path: String, fileSize: Long): InputStream {
+        val receiver = ServerSocket(0)
+        senderThread.submit(Runnable {
+            logger?.info("Sending file request to $peer: $path")
+            outputStream.writeUTF("f")
+            outputStream.writeUTF(path)
+            outputStream.writeInt(receiver.localPort)
+            outputStream.flush()
+        })
+        val remote = receiver.accept()
+        val stream = remote.getInputStream()
+        val buffer = ByteArrayOutputStream(fileSize.toInt())
+        stream.transferTo(buffer)
+        return ByteArrayInputStream(buffer.toByteArray())
+    }
+
     fun handleSingleInput() {
         val objType = inputStream.readUTF()
         if (objType == "all") {
@@ -227,7 +240,7 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
                 val data = inputStream.readObject() as List<*>
                 logger?.fine("Received data from $peer: ${sData.size} synchronized, ${data.size} owned.")
                 for (sObj in sData) {
-                    cloud.remoteUpdateSynchronized(sObj as SynchronizedData, false, isPeerOlder)
+                    cloud.remoteUpdateSynchronized(sObj as SynchronizedData, false, isPeerOlder, logger)
                 }
                 val classes = HashSet<Any>()
                 for (obj in data) {
@@ -237,15 +250,15 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
             } catch (exc: ClassNotFoundException) {
                 logger?.warning("Failed to receive synchronized data from $peer: $exc")
             }
-        } else if (objType == "s") {
+        } else if (objType == "s") {  // synchronized data update
             try {
                 val data = inputStream.readObject() as SynchronizedData
                 logger?.fine("Received synchronized data from $peer: $data")
-                cloud.remoteUpdateSynchronized(data, true, false)
+                cloud.remoteUpdateSynchronized(data, true, false, logger)
             } catch (exc: ClassNotFoundException) {
                 logger?.warning("Failed to receive synchronized data from $peer: $exc")
             }
-        } else if (objType == "d") {
+        } else if (objType == "d") {  // owned data update
             try {
                 val affectedClasses = inputStream.readObject() as List<*>
                 val data = inputStream.readObject() as List<*>
@@ -254,6 +267,20 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
             } catch (exc: ClassNotFoundException) {
                 logger?.warning("Failed to receive synchronized data from $peer: $exc")
             }
+        } else if (objType == "f") {  // file streaming request
+            val path = inputStream.readUTF()
+            val remotePort = inputStream.readInt()
+            logger?.info("Received streaming request by $peer for file $path")
+            // TODO check access rights
+            Thread(Runnable {
+                val fileStream = FileInputStream(path)
+                val fileSocket = Socket(socket.inetAddress, remotePort)
+                fileStream.use {
+                    fileStream.transferTo(fileSocket.getOutputStream())
+                }
+                fileSocket.getOutputStream().flush()
+                fileSocket.getOutputStream().close()
+            }).start()
         } else {
             logger?.warning("Received unknown input from $peer: $objType")
         }
