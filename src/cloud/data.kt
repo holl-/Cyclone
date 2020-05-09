@@ -40,4 +40,16 @@ abstract class Data : Serializable
  * Only one instance per class implementing SynchronizedData is allowed.
  * Sharing other objects of the same class will replace the old one.
  */
-abstract class SynchronizedData : Serializable
+abstract class SynchronizedData : Serializable {
+
+    /**
+     * This method is called on the object that has existed in the cloud the longest.
+     * This method must return equal objects no matter on what peer it is invoked.
+     *
+     * @param other out-of-sync version by another peer, instance of same class as this
+     * @return object to keep, must be instance of same class as this
+     */
+    fun resolveConflict(other: SynchronizedData): SynchronizedData {
+        return this
+    }
+}

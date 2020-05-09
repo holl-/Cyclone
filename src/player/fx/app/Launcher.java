@@ -13,8 +13,6 @@ import mediacommand.CombinationManager;
 import mediacommand.MediaCommand;
 import mediacommand.MediaCommandManager;
 import player.fx.debug.CloudViewer;
-import player.fx.debug.PlaybackViewer;
-import player.fx.debug.TaskViewer;
 import player.model.CycloneConfig;
 import player.model.PlaylistPlayer;
 import player.model.playback.PlaybackEngine;
@@ -53,10 +51,25 @@ public class Launcher extends Application {
 
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
 		try {
-			Cloud cloud = new Cloud();
-			PlaybackEngine engine = new PlaybackEngine(cloud, new JavaSoundEngine(), config);
+			Peer.getLocal().setId("1");
+			Peer.getLocal().setName("peer1");
+			Cloud cloud1 = new Cloud();
 
-			PlaylistPlayer player = new PlaylistPlayer(cloud, config);
+			Cloud cloud2 = new Cloud();
+			cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
+
+			CloudViewer viewer1 = new CloudViewer(cloud1, "1");
+			viewer1.getStage().show();
+
+			CloudViewer viewer2 = new CloudViewer(cloud2, "2");
+			viewer2.getStage().setX(800);
+			viewer2.getStage().show();
+
+
+
+			PlaybackEngine engine = new PlaybackEngine(cloud1, new JavaSoundEngine(), config);
+
+			PlaylistPlayer player = new PlaylistPlayer(cloud1, config);
 			window = new PlayerWindow(primaryStage, player, engine, config);
 			window.show();
 			addControl(window.getStatusWrapper());
@@ -68,13 +81,14 @@ public class Launcher extends Application {
 //			CloudViewer cv = new CloudViewer(cloud);
 //			cv.getStage().show();
 
-			Cloud cloud2 = new Cloud();
-			cloud2.setPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
+
+
 			PlaylistPlayer player2 = new PlaylistPlayer(cloud2, config);
 			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
 			window2.show();
 
-			cloud.connect("225.4.5.6", 5324, 5325);
+
+			cloud1.connect("225.4.5.6", 5324, 5325);
 			new Thread(() -> {
 				try {
 					Thread.sleep(1000);

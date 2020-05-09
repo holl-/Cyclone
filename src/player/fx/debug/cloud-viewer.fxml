@@ -59,7 +59,7 @@
                                     <Insets left="4.0" right="4.0" />
                                  </padding>
                               </Separator>
-                              <ComboBox fx:id="level" prefHeight="25.0" prefWidth="87.0" promptText="Level" />
+                              <ComboBox fx:id="level" prefHeight="25.0" prefWidth="109.0" promptText="Level" />
                            </children>
                            <BorderPane.margin>
                               <Insets bottom="12.0" />
@@ -129,6 +129,58 @@
                   </BorderPane>
                </content>
           </Tab>
+            <Tab text="Data">
+               <content>
+                  <BorderPane>
+                     <center>
+                        <ScrollPane fitToHeight="true" fitToWidth="true">
+                           <content>
+                              <BorderPane>
+                                 <center>
+                                    <SplitPane dividerPositions="0.2">
+                                       <items>
+                                          <VBox>
+                                             <children>
+                                                <Label text="Snapshots" />
+                                                <ListView fx:id="snapshotView1" />
+                                             </children>
+                                          </VBox>
+                                          <VBox fx:id="dataView" prefHeight="144.0" prefWidth="584.0" spacing="10.0" />
+                                       </items>
+                                    </SplitPane>
+                                 </center>
+                                 <padding>
+                                    <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+                                 </padding>
+                                 <top>
+                                    <BorderPane prefHeight="25.0" prefWidth="389.0" BorderPane.alignment="CENTER">
+                                       <BorderPane.margin>
+                                          <Insets bottom="12.0" />
+                                       </BorderPane.margin>
+                                       <left>
+                                          <FlowPane hgap="4.0" prefHeight="25.0" prefWidth="353.0" vgap="4.0" BorderPane.alignment="CENTER">
+                                             <children>
+                                                <ToggleButton fx:id="live1" mnemonicParsing="false" selected="true" text="Live" />
+                                                <Button mnemonicParsing="false" onAction="#clearSnapshots" text="Clear" />
+                                             </children>
+                                          </FlowPane>
+                                       </left>
+                                       <right>
+                                          <HBox spacing="4.0" BorderPane.alignment="CENTER">
+                                             <children>
+                                                <ToggleButton fx:id="dummyData" mnemonicParsing="false" text="Dummy" />
+                                             </children>
+                                          </HBox>
+                                       </right>
+                                    </BorderPane>
+                                 </top>
+                              </BorderPane>
+                           </content>
+                        </ScrollPane>
+                     </center>
+                  </BorderPane>
+               </content>
+            </Tab>
         </tabs>
       </TabPane>
    </center>

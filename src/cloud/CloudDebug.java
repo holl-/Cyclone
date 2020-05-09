@@ -13,7 +13,7 @@ public class CloudDebug extends Application {
         Cloud cloud1 = new Cloud();
 
         Cloud cloud2 = new Cloud();
-        cloud2.setPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
+        cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
 
         CloudViewer viewer1 = new CloudViewer(cloud1, "1");
         viewer1.getStage().show();

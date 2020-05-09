@@ -6,22 +6,16 @@ import java.io.EOFException
 import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-import java.lang.ClassCastException
 import java.lang.Exception
 import java.net.*
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.ThreadFactory
-import java.util.concurrent.TimeUnit
-import java.util.logging.Level
+import java.util.concurrent.*
 import java.util.logging.Logger
 
 
 internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int, val tcpPort: Int, val tcp: CloudTCP, val logger: Logger?) {
     val socket = MulticastSocket(port)
     val address = InetSocketAddress(InetAddress.getByName(host), port)
-    val peers = ArrayList<Peer>(listOf(cloud.peer))
+    val peers = ArrayList<Peer>(listOf(cloud.localPeer))
     private val maxPacketLength = 1024
     private val receivedPacket = DatagramPacket(ByteArray(maxPacketLength), maxPacketLength)
     private val connectionTime = System.nanoTime()
@@ -84,7 +78,7 @@ internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int,
     }
 
     fun startPinging(delayMillis: Long = 1000) {
-        val helloMessage = "Cyclone;$tcpPort;${cloud.peer.id};${cloud.peer.name};$connectionTime"
+        val helloMessage = "Cyclone;$tcpPort;${cloud.localPeer.id};${cloud.localPeer.name};$connectionTime"
         pingService = Executors.newScheduledThreadPool(1).scheduleAtFixedRate(Runnable { send(helloMessage) }, 0, delayMillis, TimeUnit.MILLISECONDS)
     }
 
@@ -94,7 +88,7 @@ internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int,
         receiveService?.cancel(true)
         socket.leaveGroup(address, null)
         socket.close()
-        cloud.peers.setAll(cloud.peer)
+        cloud.peers.setAll(cloud.localPeer)
     }
 }
 
@@ -105,15 +99,23 @@ internal class CloudTCP(val cloud: Cloud, localPort: Int, val logger: Logger?) {
 
     var acceptService: Future<*>? = null
 
+    private val connectionTime = System.nanoTime()
+
     fun synchronizedUpdated(data: SynchronizedData) {
         for (connection in connections) {
             connection.sendSyncUpdate(data)
         }
     }
 
+    fun dataUpdated(localData: ArrayList<Data>, affectedClasses: Collection<Class<out Data>>) {
+        for (connection in connections) {
+            connection.sendUpdate(localData, affectedClasses)
+        }
+    }
+
     fun acceptSingleSocket() {
         val socket = serverSocket.accept()
-        val connection = CloudTCPConnection(socket, cloud, logger)
+        val connection = CloudTCPConnection(socket, cloud, logger, connectionTime)
         if (connections.any { c -> c.peer == connection.peer }) {
             // already connected via TCP
             logger?.info("Refusing TCP connection from ${socket.inetAddress.hostAddress} because peer is already connected.")
@@ -136,7 +138,7 @@ internal class CloudTCP(val cloud: Cloud, localPort: Int, val logger: Logger?) {
         if (connections.any { c -> c.peer == peer }) return
         logger?.info("Opening TCP connection to ${peer.name} / ${socketAddress.address.hostAddress}")
         val socket = Socket(socketAddress.address, socketAddress.port)
-        val connection = CloudTCPConnection(socket, cloud, logger)
+        val connection = CloudTCPConnection(socket, cloud, logger, connectionTime)
         initConnection(connection)
     }
 
@@ -155,36 +157,45 @@ internal class CloudTCP(val cloud: Cloud, localPort: Int, val logger: Logger?) {
 }
 
 
-internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logger: Logger?) {
+internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logger: Logger?, localConnectionTime: Long) {
     val outputStream = ObjectOutputStream(socket.getOutputStream())
     val inputStream = ObjectInputStream(socket.getInputStream())
     val peer: Peer
-    val senderThread = Executors.newFixedThreadPool(1)
+    val peerConnectionTime: Long
+    val isPeerOlder: Boolean
+
     var inputService: Future<*>? = null
+    val senderThread = Executors.newFixedThreadPool(1)
 
     var sharedSData: List<SynchronizedData>? = null
 
     init {
-        outputStream.writeUTF(cloud.peer.id)
-        outputStream.writeUTF(cloud.peer.name)
+        outputStream.writeUTF(cloud.localPeer.id)
+        outputStream.writeUTF(cloud.localPeer.name)
+        outputStream.writeLong(localConnectionTime)
         outputStream.flush()
 
         val id = inputStream.readUTF()
         val name = inputStream.readUTF()
+        peerConnectionTime = inputStream.readLong()
         peer = Peer(false, name, socket.inetAddress.hostAddress, id)
         peer.socketAddress = InetSocketAddress(socket.inetAddress, socket.port)
+        isPeerOlder = peerConnectionTime < localConnectionTime
 
         logger?.info("Pleasantries exchanged with $peer")
     }
 
     fun sendEverything() {
-        senderThread.submit(Runnable {
-            logger?.fine("Sending all data to $peer")
-            outputStream.writeUTF("sData")
-            val data = cloud.sData.map { (_, prop) -> prop.value }
+        val sData = cloud.sData.map { (_, prop) -> prop.value }
+        val data = cloud.getLocalData()
+        if(senderThread.isShutdown) logger?.warning("Cannot send all data to $peer because thread is shut down")
+        senderThread.submit {
+            logger?.fine("Sending all data to $peer: ${sData.size} synchronized, ${data.size} owned.")
+            outputStream.writeUTF("all")
+            outputStream.writeObject(sData)
             outputStream.writeObject(data)
             outputStream.flush()
-        })
+        }
     }
 
     fun sendSyncUpdate(data: SynchronizedData) {
@@ -196,23 +207,50 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
         })
     }
 
+    fun sendUpdate(localData: List<Data>, affectedClasses: Collection<Class<out Data>>) {
+        val copiedData = ArrayList(localData)
+        val classNames = ArrayList(affectedClasses)
+        senderThread.submit {
+            logger?.fine("Sending data of class $affectedClasses to $peer: $copiedData")
+            outputStream.writeUTF("d")
+            outputStream.writeObject(classNames)
+            outputStream.writeObject(copiedData)
+            outputStream.flush()
+        }
+    }
+
     fun handleSingleInput() {
         val objType = inputStream.readUTF()
-        if (objType == "sData") {
+        if (objType == "all") {
             try {
+                val sData = inputStream.readObject() as List<*>
                 val data = inputStream.readObject() as List<*>
-                logger?.fine("Received synchronized data from $peer. Total objects: ${data.size}")
-                for (value in data) {
-                    cloud.pushSynchronizedImpl(value as SynchronizedData, false)
+                logger?.fine("Received data from $peer: ${sData.size} synchronized, ${data.size} owned.")
+                for (sObj in sData) {
+                    cloud.remoteUpdateSynchronized(sObj as SynchronizedData, false, isPeerOlder)
                 }
+                val classes = HashSet<Any>()
+                for (obj in data) {
+                    classes.add(obj!!.javaClass)
+                }
+                cloud.remoteUpdate(peer, classes, data)
             } catch (exc: ClassNotFoundException) {
                 logger?.warning("Failed to receive synchronized data from $peer: $exc")
             }
-        }else if (objType == "s") {
+        } else if (objType == "s") {
             try {
                 val data = inputStream.readObject() as SynchronizedData
                 logger?.fine("Received synchronized data from $peer: $data")
-                cloud.pushSynchronizedImpl(data, false)
+                cloud.remoteUpdateSynchronized(data, true, false)
+            } catch (exc: ClassNotFoundException) {
+                logger?.warning("Failed to receive synchronized data from $peer: $exc")
+            }
+        } else if (objType == "d") {
+            try {
+                val affectedClasses = inputStream.readObject() as List<*>
+                val data = inputStream.readObject() as List<*>
+                logger?.fine("Received $affectedClasses update from $peer: $data")
+                cloud.remoteUpdate(peer, affectedClasses, data)
             } catch (exc: ClassNotFoundException) {
                 logger?.warning("Failed to receive synchronized data from $peer: $exc")
             }
@@ -234,15 +272,21 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
                         socket.close()
                     } else {
                         logger?.warning("I/O error on connection with $peer: $exc")
+                        exc.printStackTrace()
                     }
+                } catch (exc: Exception) {
+                    exc.printStackTrace()
+                    logger?.warning("Error during input analysis from $peer: $exc. Connection may be corrupted.")
                 }
             }
+            cloud.peerDisconnected(peer)
+            cloud.tcp?.connections?.remove(this)
         })
     }
 
     fun close() {
         socket.close()
-        senderThread?.shutdown()
+        senderThread.shutdown()
         inputService?.cancel(true)
     }
 }

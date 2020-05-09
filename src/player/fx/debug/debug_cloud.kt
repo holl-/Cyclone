@@ -1,6 +1,7 @@
 package player.fx.debug
 
 import cloud.Cloud
+import cloud.Data
 import cloud.Peer
 import cloud.SynchronizedData
 import javafx.application.Platform
@@ -28,7 +29,7 @@ import java.util.logging.Level
 import java.util.logging.LogRecord
 
 
-class CloudSnapshot(val index: Int, val sync: List<SynchronizedData>) {
+class CloudSnapshot(val index: Int, val sync: List<SynchronizedData>, val data: Map<Peer, List<Data>>) {
     override fun toString(): String {
         return index.toString()
     }
@@ -45,6 +46,13 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
     @FXML private var snapshotView: ListView<CloudSnapshot>? = null
     @FXML private var sClass: ComboBox<String>? = null
     @FXML private var sValue: TextField? = null
+    @FXML var synchronizedView: VBox? = null
+
+    // data
+    @FXML private var live1: ToggleButton? = null
+    @FXML private var snapshotView1: ListView<CloudSnapshot>? = null
+    @FXML var dataView: VBox? = null
+    @FXML var dummyData: ToggleButton? = null
 
     // Peers
     @FXML private var connectionStatus: Label? = null
@@ -58,7 +66,6 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
     private val snapshots = FXCollections.observableArrayList<CloudSnapshot>()
     private var snapshotsCreated = 0
 
-    @FXML var synchronizedView: VBox? = null
 
     init {
         val loader = FXMLLoader(javaClass.getResource("cloud-viewer.fxml"))
@@ -78,7 +85,10 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
         cloud.onUpdate.add(Runnable { takeSnapshot() })
         snapshotView?.items = snapshots
+        snapshotView1?.items = snapshots
         snapshotView?.selectionModel?.selectedItemProperty()?.addListener(InvalidationListener { rebuild() })
+        snapshotView1?.selectionModel?.selectedItemProperty()?.addListener(ChangeListener { _, _, v -> snapshotView!!.selectionModel.select(v) })
+        snapshotView?.selectionModel?.selectedItemProperty()?.addListener(ChangeListener { _, _, v -> snapshotView1!!.selectionModel.select(v) })
         peers?.items = cloud.peers
         peers?.setCellFactory { PeerCell(cloud) }
         level?.items = FXCollections.observableArrayList("Warning", "Info", "Detailed", "Debug")
@@ -91,6 +101,8 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
         sClass!!.items = FXCollections.observableArrayList("Master Gain")
         sClass!!.selectionModel.select(0)
         sValue!!.text = "0"
+        live1!!.selectedProperty().bindBidirectional(live!!.selectedProperty())
+        dummyData!!.selectedProperty().addListener(ChangeListener { _, _, hasDummy -> setDummy(hasDummy) })
     }
 
     @FXML fun clearSnapshots() {
@@ -107,17 +119,20 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
     }
 
     private fun takeSnapshot() {
-        val snapshot = CloudSnapshot(snapshotsCreated, cloud.getAllCurrentSynchronized())
+        val snapshot = CloudSnapshot(snapshotsCreated, cloud.getAllCurrentSynchronized(), cloud.allData)
         snapshotsCreated++
-        snapshots.add(snapshot)
-        if(live?.isSelected == true) {
-            snapshotView?.selectionModel?.select(snapshot)
+        Platform.runLater {
+            snapshots.add(snapshot)
+            if(live?.isSelected == true) {
+                snapshotView?.selectionModel?.select(snapshot)
+            }
         }
     }
 
 
     private fun rebuild() {
         synchronizedView!!.children.clear()
+        dataView!!.children.clear()
 
         val snapshot = snapshotView!!.selectionModel.selectedItem
 
@@ -125,6 +140,17 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
             val node = Label(data.toString())
             node.isWrapText = true
             synchronizedView!!.children.add(node)
+        }
+
+        for ((peer, data) in snapshot.data) {
+            val children = VBox()
+            val node = TitledPane(peer.toString(), children)
+            for (obj in data) {
+                val label = Label(obj.toString())
+                label.isWrapText = true
+                children.children.add(label)
+            }
+            dataView!!.children.add(node)
         }
     }
 
@@ -139,6 +165,16 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
         }
         cloud.pushSynchronized(data)
     }
+
+    private fun setDummy(hasDummy: Boolean) {
+        if (hasDummy) {
+            cloud.push(Dummy::class.java, listOf(Dummy()), this, true)
+        } else {
+            cloud.yankAll(Dummy::class.java, this)
+        }
+    }
+
+    private data class Dummy(val random: Double = Math.random()) : Data()
 
     private class PeerCell(val cloud: Cloud) : ListCell<Peer>()
     {

@@ -60,7 +60,7 @@
                           <items>
                             <MenuItem mnemonicParsing="false" onAction="#openTaskViewer" text="Tasks" />
                               <MenuItem mnemonicParsing="false" onAction="#openPlaybackWindow" text="Local Playback" />
-                              <MenuItem mnemonicParsing="false" onAction="#openCloudViewer" text="Data" />
+                              <MenuItem mnemonicParsing="false" onAction="#openCloudViewer" text="Network &amp; Data" />
                           </items>
                         </Menu>
                         <SeparatorMenuItem mnemonicParsing="false" />
