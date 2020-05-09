@@ -1,10 +1,6 @@
 package cloud
 
-import java.io.File
-import java.io.FileInputStream
-import java.io.IOException
-import java.io.InputStream
-import java.io.Serializable
+import java.io.*
 import java.util.*
 import java.util.stream.Stream
 
@@ -14,9 +10,29 @@ import java.util.stream.Stream
  * While the origin machine is connected, [CloudFile.list] and [CloudFile.openStream] can be used to query file information from the host.
  */
 class CloudFile(file: File) : Data() {
-    private val path: String = file.path
+    private var path: String = file.path
     private var size: Long? = null  // read upon serialization
     private var isDir: Boolean? = null // read upon serialization
+
+    @Transient private var origin: Peer = Peer.getLocal()
+    @Transient private var cloud: Cloud? = null
+
+
+    private fun writeObject(stream: ObjectOutputStream) {
+        stream.writeUTF(path)
+        stream.writeLong(length())
+        stream.writeBoolean(isDirectory())
+        stream.writeObject(origin)
+    }
+
+    private fun readObject(stream: ObjectInputStream) {
+        path = stream.readUTF()
+        size = stream.readLong()
+        isDir = stream.readBoolean()
+        origin = stream.readObject() as Peer
+        val thread = Thread.currentThread() as DeserializerThread
+        cloud = thread.cloud
+    }
 
 
     fun getPath(): String {
@@ -66,12 +82,12 @@ class CloudFile(file: File) : Data() {
     @Throws(UnsupportedOperationException::class, IOException::class)
     fun list(): Stream<CloudFile> {
         if(!isDirectory()) throw java.lang.UnsupportedOperationException("list() unavailable for files. " + getPath())
-        if(originatesHere()) {
+        return if(originatesHere()) {
             val dir = File(path)
             val names = dir.list()
-            return Arrays.stream(names).map { name -> CloudFile(File(dir, name)) }
+            Arrays.stream(names).map { name -> CloudFile(File(dir, name)) }
         } else {
-            return cloud!!.query(ListDirRequest(path), origin)
+            cloud!!.listFiles(origin, path)
         }
     }
 
@@ -87,10 +103,10 @@ class CloudFile(file: File) : Data() {
      */
     @Throws(IOException::class, UnsupportedOperationException::class)
     fun openStream(): InputStream {
-        if(originatesHere()) {
-            return FileInputStream(File(path))
+        return if(originatesHere()) {
+            FileInputStream(File(path))
         } else {
-            return cloud!!.openStream(origin, getPath())
+            cloud!!.openStream(origin, getPath())
         }
     }
 
@@ -101,7 +117,7 @@ class CloudFile(file: File) : Data() {
      * @see Peer.isLocal
      */
     fun originatesHere(): Boolean {
-        return Peer.getLocal().id == origin.id
+        return origin.isLocal
     }
 
 
@@ -128,5 +144,3 @@ class CloudFile(file: File) : Data() {
         return result
     }
 }
-
-internal class ListDirRequest(val path: String) : Serializable

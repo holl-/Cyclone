@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.ScrollPane?>
@@ -9,15 +10,70 @@
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
    <center>
       <TabPane prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
         <tabs>
+            <Tab text="Network Log">
+               <content>
+                  <BorderPane fx:id="clearLog" prefHeight="200.0" prefWidth="200.0">
+                     <top>
+                        <FlowPane hgap="4.0" vgap="4.0" BorderPane.alignment="CENTER">
+                           <children>
+                              <ToggleButton fx:id="recordingLog" mnemonicParsing="false" selected="true" text="Record" />
+                              <Button mnemonicParsing="false" onAction="#clearLog" text="Clear" />
+                              <Separator orientation="VERTICAL">
+                                 <padding>
+                                    <Insets left="4.0" right="4.0" />
+                                 </padding>
+                              </Separator>
+                              <ComboBox fx:id="level" prefHeight="25.0" prefWidth="87.0" promptText="Level" />
+                           </children>
+                           <BorderPane.margin>
+                              <Insets bottom="12.0" />
+                           </BorderPane.margin>
+                        </FlowPane>
+                     </top>
+                     <center>
+                        <ListView fx:id="logView" BorderPane.alignment="CENTER" />
+                     </center>
+                     <padding>
+                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+                     </padding>
+                  </BorderPane>
+               </content>
+            </Tab>
+          <Tab text="Peers">
+            <content>
+                  <VBox prefHeight="200.0" prefWidth="100.0">
+                     <children>
+                        <FlowPane hgap="8.0" vgap="4.0">
+                           <children>
+                              <Label text="Connection" />
+                              <Label fx:id="connectionStatus" text="Connection" />
+                           </children>
+                        </FlowPane>
+                        <Separator prefWidth="200.0">
+                           <padding>
+                              <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                           </padding>
+                        </Separator>
+                        <Label text="Peers" />
+                        <ListView fx:id="peers" prefHeight="200.0" prefWidth="200.0" />
+                     </children>
+                     <padding>
+                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+                     </padding>
+                  </VBox>
+            </content>
+          </Tab>
           <Tab text="Synchronized">
                <content>
                   <BorderPane>
@@ -42,15 +98,28 @@
                                     <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
                                  </padding>
                                  <top>
-                                    <FlowPane hgap="4.0" vgap="4.0" BorderPane.alignment="CENTER">
+                                    <BorderPane prefHeight="25.0" prefWidth="389.0" BorderPane.alignment="CENTER">
                                        <BorderPane.margin>
                                           <Insets bottom="12.0" />
                                        </BorderPane.margin>
-                                       <children>
-                                          <ToggleButton fx:id="live" mnemonicParsing="false" selected="true" text="Live" />
-                                          <Button mnemonicParsing="false" onAction="#clearSnapshots" text="Clear" />
-                                       </children>
-                                    </FlowPane>
+                                       <left>
+                                          <FlowPane hgap="4.0" prefHeight="25.0" prefWidth="353.0" vgap="4.0" BorderPane.alignment="CENTER">
+                                             <children>
+                                                <ToggleButton fx:id="live" mnemonicParsing="false" selected="true" text="Live" />
+                                                <Button mnemonicParsing="false" onAction="#clearSnapshots" text="Clear" />
+                                             </children>
+                                          </FlowPane>
+                                       </left>
+                                       <right>
+                                          <HBox spacing="4.0" BorderPane.alignment="CENTER">
+                                             <children>
+                                                <ComboBox fx:id="sClass" prefWidth="150.0" promptText="Class" />
+                                                <TextField fx:id="sValue" promptText="Value" />
+                                                <Button mnemonicParsing="false" onAction="#sPush" text="Push" />
+                                             </children>
+                                          </HBox>
+                                       </right>
+                                    </BorderPane>
                                  </top>
                               </BorderPane>
                            </content>
@@ -59,38 +128,6 @@
                   </BorderPane>
                </content>
           </Tab>
-          <Tab text="Peers">
-            <content>
-                  <VBox prefHeight="200.0" prefWidth="100.0">
-                     <children>
-                        <Label text="Connection" />
-                        <Label text="Label" />
-                        <Separator prefWidth="200.0">
-                           <padding>
-                              <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
-                           </padding>
-                        </Separator>
-                        <Label text="Peers" />
-                        <ListView prefHeight="200.0" prefWidth="200.0" />
-                     </children>
-                     <padding>
-                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
-                     </padding>
-                  </VBox>
-            </content>
-          </Tab>
-            <Tab text="Data">
-               <content>
-                  <VBox prefHeight="200.0" prefWidth="100.0">
-                     <children>
-                        <Label text="[Class, value, owner]" />
-                     </children>
-                     <padding>
-                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
-                     </padding>
-                  </VBox>
-               </content>
-            </Tab>
         </tabs>
       </TabPane>
    </center>

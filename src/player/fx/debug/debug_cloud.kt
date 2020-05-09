@@ -1,22 +1,31 @@
 package player.fx.debug
 
 import cloud.Cloud
+import cloud.Peer
 import cloud.SynchronizedData
 import javafx.application.Platform
 import javafx.beans.InvalidationListener
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
+import javafx.collections.ObservableList
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
 import javafx.scene.Parent
 import javafx.scene.Scene
-import javafx.scene.control.Label
-import javafx.scene.control.ListView
-import javafx.scene.control.ToggleButton
+import javafx.scene.control.*
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
+import player.fx.icons.FXIcons
+import player.model.data.MasterGain
 import java.net.URL
 import java.util.*
+import java.util.logging.Handler
+import java.util.logging.Level
+import java.util.logging.LogRecord
 
 
 class CloudSnapshot(val index: Int, val sync: List<SynchronizedData>) {
@@ -26,12 +35,25 @@ class CloudSnapshot(val index: Int, val sync: List<SynchronizedData>) {
 }
 
 
-class CloudViewer(val cloud: Cloud) : Initializable
+class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
 {
     val stage: Stage = Stage()
+    val log = DisplayLog()
 
+    // Synchronized
     @FXML private var live: ToggleButton? = null
     @FXML private var snapshotView: ListView<CloudSnapshot>? = null
+    @FXML private var sClass: ComboBox<String>? = null
+    @FXML private var sValue: TextField? = null
+
+    // Peers
+    @FXML private var connectionStatus: Label? = null
+    @FXML private var peers: ListView<Peer>? = null
+
+    // Log
+    @FXML private var recordingLog: ToggleButton? = null
+    @FXML private var logView: ListView<LogRecord>? = null
+    @FXML private var level: ComboBox<String>? = null
 
     private val snapshots = FXCollections.observableArrayList<CloudSnapshot>()
     private var snapshotsCreated = 0
@@ -44,22 +66,40 @@ class CloudViewer(val cloud: Cloud) : Initializable
         val root = loader.load<Parent>()
 
         stage.scene = Scene(root)
-        stage.title = "Cyclone Data"
+        stage.title = title ?: "Cyclone Data"
         stage.x = 0.0
         stage.y = 500.0
 
         takeSnapshot()
+
+        cloud.logger.addHandler(log)
     }
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
         cloud.onUpdate.add(Runnable { takeSnapshot() })
         snapshotView?.items = snapshots
         snapshotView?.selectionModel?.selectedItemProperty()?.addListener(InvalidationListener { rebuild() })
+        peers?.items = cloud.peers
+        peers?.setCellFactory { PeerCell(cloud) }
+        level?.items = FXCollections.observableArrayList("Warning", "Info", "Detailed", "Debug")
+        level!!.selectionModel.select(log.level.get())
+        log.level.bind(level!!.selectionModel.selectedItemProperty())
+        logView?.items = log.filteredList
+        logView?.setCellFactory { LogCell() }
+        recordingLog!!.selectedProperty().bindBidirectional(log.recording)
+        connectionStatus!!.textProperty().bind(cloud.connectionStatus)
+        sClass!!.items = FXCollections.observableArrayList("Master Gain")
+        sClass!!.selectionModel.select(0)
+        sValue!!.text = "0"
     }
 
     @FXML fun clearSnapshots() {
         if(snapshots.size > 1)
             snapshots.removeAll(snapshots.subList(0, snapshots.size - 1))
+    }
+
+    @FXML fun clearLog() {
+        log.close()
     }
 
     private fun takeSnapshot() {
@@ -72,7 +112,7 @@ class CloudViewer(val cloud: Cloud) : Initializable
     }
 
 
-    @FXML private fun rebuild() {
+    private fun rebuild() {
         synchronizedView!!.children.clear()
 
         val snapshot = snapshotView!!.selectionModel.selectedItem
@@ -81,6 +121,93 @@ class CloudViewer(val cloud: Cloud) : Initializable
             val node = Label(data.toString())
             node.isWrapText = true
             synchronizedView!!.children.add(node)
+        }
+    }
+
+    @FXML fun sPush() {
+        val clsStr = sClass!!.selectionModel.selectedItem
+        val v = sValue!!.text
+        val data: SynchronizedData
+        if (clsStr == "Master Gain") {
+            data = MasterGain(v.toDouble())
+        } else {
+            return
+        }
+        cloud.pushSynchronized(data)
+    }
+
+    private class PeerCell(val cloud: Cloud) : ListCell<Peer>()
+    {
+        override fun updateItem(peer: Peer?, empty: Boolean) {
+            super.updateItem(peer, empty)
+            if (peer != null) {
+                graphic = if (peer.isLocal) FXIcons.get("Stop.png", 20.0)
+                else {
+                    if(cloud.isConnected(peer)) FXIcons.get("Loop.png", 20.0)
+                    else FXIcons.get("Settings.png", 20.0)
+                }
+                text = peer.toString()
+            } else {
+                text = null
+                graphic = null
+            }
+        }
+    }
+
+    private class LogCell : ListCell<LogRecord>()
+    {
+        override fun updateItem(rec: LogRecord?, empty: Boolean) {
+            super.updateItem(rec, empty)
+            if (rec != null) {
+                text = rec.message
+            } else {
+                text = null
+            }
+        }
+    }
+
+}
+
+
+class DisplayLog : Handler()
+{
+    val level: ObjectProperty<String> = SimpleObjectProperty<String>("Detailed")
+    val recording = SimpleBooleanProperty(true)
+
+    val all = ArrayList<LogRecord>()
+    val filteredList: ObservableList<LogRecord> = FXCollections.observableArrayList()
+
+    init {
+        level.addListener(ChangeListener { _, _, l ->
+            filteredList.setAll(all.filter { record -> shown(record, l) })
+            println(filteredList.size)
+        })
+    }
+
+    override fun publish(record: LogRecord) {
+        if (!recording.value) return
+        Platform.runLater {
+            all.add(record)
+            if (shown(record, level.get())) filteredList.add(record)
+        }
+    }
+
+    override fun flush() {}
+
+    override fun close() {
+        Platform.runLater {
+            all.clear()
+            filteredList.clear()
+        }
+    }
+
+    private fun shown(record: LogRecord, level: String): Boolean {
+        return when (level) {
+            "Debug" -> true
+            "Info" -> record.level.intValue() >= Level.INFO.intValue()
+            "Warning" -> record.level.intValue() >= Level.WARNING.intValue()
+            "Detailed" -> record.level.intValue() >= Level.FINE.intValue()
+            else -> false
         }
     }
 

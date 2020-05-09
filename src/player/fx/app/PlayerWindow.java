@@ -613,7 +613,7 @@ public class PlayerWindow implements Initializable {
 	}
 
 	@FXML void openCloudViewer() {
-		CloudViewer viewer = new CloudViewer(player.getCloud());
+		CloudViewer viewer = new CloudViewer(player.getCloud(), null);
 		viewer.getStage().show();
 	}
 }

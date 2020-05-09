@@ -2,17 +2,17 @@ package cloud
 
 import javafx.application.Platform
 import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
-import java.io.Serializable
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.function.BiConsumer
 import java.util.function.Consumer
 import java.util.function.Supplier
+import java.util.logging.*
 import java.util.stream.Stream
 
 /**
@@ -26,20 +26,28 @@ import java.util.stream.Stream
  * called.
  */
 class Cloud {
-
-    val peers: ObservableList<Peer> = FXCollections.observableArrayList()
-        get() = FXCollections.unmodifiableObservableList(field)
-
-    private var pushedData = ArrayList<Data>()
+    internal var pushedData = ArrayList<Data>()
     private val dataListeners = HashMap<Class<out Data>, Consumer<List<Data>>>()
     private val viewedLists = HashMap<Class<out Data>, ObservableList<out Data>>()
 
-    private val sData = HashMap<Class<out SynchronizedData>, SimpleObjectProperty<out SynchronizedData>>()
+    internal val sData = HashMap<Class<out SynchronizedData>, SimpleObjectProperty<out SynchronizedData>>()
     private val ownerMap = HashMap<Data, Any>()
 
     val onUpdate = CopyOnWriteArrayList<Runnable>()
 
-//    private val eventHandler = Executors.newSingleThreadExecutor()
+    private var multicast: CloudMulticast? = null
+    private var tcp: CloudTCP? = null
+    internal var peer = Peer.getLocal()
+        set(value) {
+            field = value
+            logger = Logger.getLogger("cloud ${value.id}")
+            peers.setAll(listOf(value))
+        }
+    var logger = Logger.getLogger("cloud ${peer.id}")
+
+
+    val peers = FXCollections.observableArrayList(Peer.getLocal())
+    val connectionStatus = SimpleStringProperty(null)
 
 
     /**
@@ -58,33 +66,35 @@ class Cloud {
      * @see .addConnectionListener
      */
     @Throws(IOException::class)
-    fun connectToMulticastAddress(multicastAddress: String) {
+    fun connect(multicastAddress: String = "225.4.5.6", multicastPort: Int = 5324, localTCPPort: Int = 5325) {
+        disconnect()
+        logger.level = Level.FINEST
+//        val cons = ConsoleHandler()
+//        cons.level = Level.INFO
+//        logger.addHandler(cons)
+        tcp = CloudTCP(this, localTCPPort, logger)
+        tcp!!.startAccepting()
+        multicast = CloudMulticast(this, multicastAddress, multicastPort, localTCPPort, tcp!!, logger)
+        multicast!!.startPinging()
+        multicast!!.startReceiving()
 
+        Platform.runLater { connectionStatus.value = "UDP: $multicastAddress:$multicastPort, TCP: $localTCPPort" }
     }
 
     @Throws(IOException::class)
-    fun connectToExternal(address: String) {
-
+    fun disconnect() {
+        multicast?.disconnect()
     }
 
-    @Throws(IOException::class)
-    fun disconnectFromMulticastAddress(multicastAddress: String) {
-
-    }
-
-    @Throws(IOException::class)
-    fun disconnectFromExternal(address: String) {
-
-    }
-
-    fun disconnectAll(errorHandler: BiConsumer<String, IOException>) {
-
+    fun isConnected(peer: Peer): Boolean {
+        val connection = tcp?.connections?.firstOrNull { conn -> conn.peer == peer } ?: return false
+        return connection.socket.isConnected
     }
 
 
     @Throws(IOException::class)
-    internal fun<T : Serializable> query(query: Serializable, target: Peer): Stream<T> {
-        TODO()
+    internal fun listFiles(peer: Peer, path: String): Stream<CloudFile> {
+        TODO("not required for first version")
     }
 
     @Throws(IOException::class)
@@ -112,12 +122,17 @@ class Cloud {
      * This may create a conflict.
      */
     fun pushSynchronized(data: SynchronizedData) {
+        pushSynchronizedImpl(data, true)
+    }
+
+    internal fun pushSynchronizedImpl(data: SynchronizedData, localChange: Boolean) {
         Platform.runLater(Runnable {
             if (data.javaClass in sData) sData[data.javaClass]?.value = data
             else {
                 sData[data.javaClass] = SimpleObjectProperty(data)
             }
             onUpdate.forEach { r -> r.run() }
+            if (localChange) tcp?.synchronizedUpdated(data)
         })
     }
 

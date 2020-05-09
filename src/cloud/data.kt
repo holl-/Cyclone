@@ -34,26 +34,6 @@ import java.io.Serializable
  * @author Philipp Holl
  */
 abstract class Data : Serializable
-{
-    var origin = getLocal()
-
-    /*
-     * The cloud through which this data was obtained.
-     * This property is set on deserialization.
-     */
-    @Transient internal var cloud: Cloud? = null
-
-
-    /**
-     * Tests if this data object is still valid.
-     * Owner-bound data becomes invalid when the peer that pushed it disconnects from the cloud.
-     * [SynchronizedData] instances never become invalid.
-     */
-    open fun isValid(): Boolean {
-        return cloud?.peers?.contains(origin) ?: true
-    }
-
-}
 
 
 /**
@@ -61,5 +41,3 @@ abstract class Data : Serializable
  * Sharing other objects of the same class will replace the old one.
  */
 abstract class SynchronizedData : Serializable
-{
-}
