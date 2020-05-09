@@ -1,7 +1,6 @@
 package cloud
 
 import javafx.application.Platform
-import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.value.ObservableValue
@@ -12,7 +11,6 @@ import java.io.IOException
 import java.io.InputStream
 import java.lang.IllegalStateException
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.function.Predicate
 import java.util.function.Supplier
 import java.util.logging.*
 import java.util.stream.Stream
@@ -68,21 +66,21 @@ class Cloud {
      * [.getRemotePeers] and the `onPeerConnected`-listener
      * is informed.
      *
-     * @param multicastAddress
-     * a multicast address (in the range 224.0.0.0 to 239.255.255.255
-     * for IPv4)
+     * @param multicastAddress a multicast address (in the range 224.0.0.0 to 239.255.255.255 for IPv4)
+     * @param broadcastInterval delay between broadcast messages sent to multicast in milliseconds
+     * @param autoConnect whether to immediately connect to other peers when discovered
      * @throws IOException
      * if the address cannot be connected to
      * @see .disconnectFromMulticastAddress
      * @see .addConnectionListener
      */
     @Throws(IOException::class)
-    fun connect(multicastAddress: String = "225.139.25.1", multicastPort: Int = 5324, autoConnect: Boolean = true) {
+    fun connect(multicastAddress: String = "225.139.25.1", multicastPort: Int = 5324, autoConnect: Boolean = true, broadcastInterval: Long = 1000) {
         disconnect()
         logger.level = Level.FINEST
         val tcp = CloudTCP(this, logger)
         tcp.startAccepting()
-        val multicast = CloudMulticast(this, multicastAddress, multicastPort, tcp.serverSocket.localPort, tcp, logger, autoConnect)
+        val multicast = CloudMulticast(this, multicastAddress, multicastPort, tcp.serverSocket.localPort, tcp, logger, autoConnect, broadcastInterval)
         multicast.startPinging()
         multicast.startReceiving()
         this.tcp = tcp

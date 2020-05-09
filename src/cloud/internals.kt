@@ -9,7 +9,7 @@ import java.util.concurrent.*
 import java.util.logging.Logger
 
 
-internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int, val tcpPort: Int, val tcp: CloudTCP, val logger: Logger?, val autoConnect: Boolean) {
+internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int, val tcpPort: Int, val tcp: CloudTCP, val logger: Logger?, val autoConnect: Boolean, val broadcastInterval: Long) {
     val socket = MulticastSocket(port)
     val address = InetSocketAddress(InetAddress.getByName(host), port)
     val peers = ArrayList<Peer>(listOf(cloud.localPeer))
@@ -72,9 +72,9 @@ internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int,
         socket.send(packet)
     }
 
-    fun startPinging(delayMillis: Long = 1000) {
+    fun startPinging() {
         val helloMessage = "Cyclone;$tcpPort;${cloud.localPeer.id};${cloud.localPeer.name};$connectionTime"
-        pingService = Executors.newScheduledThreadPool(1).scheduleAtFixedRate(Runnable { send(helloMessage) }, 0, delayMillis, TimeUnit.MILLISECONDS)
+        pingService = Executors.newScheduledThreadPool(1).scheduleAtFixedRate(Runnable { send(helloMessage) }, 0, broadcastInterval, TimeUnit.MILLISECONDS)
     }
 
 

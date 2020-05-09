@@ -201,6 +201,7 @@ public class JSPlayer extends AbstractPlayer
 
 	@Override
 	public void setPositionAsync(double position, Runnable onFinished) {
+		if (position < 0) throw new IllegalArgumentException("position = " + position);
 		new Thread(() -> {
 			setPositionBlocking(position, -1);
 			if(onFinished != null) onFinished.run();

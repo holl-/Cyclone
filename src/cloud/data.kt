@@ -49,7 +49,7 @@ abstract class SynchronizedData : Serializable {
      * @param other out-of-sync version by another peer, instance of same class as this
      * @return object to keep, must be instance of same class as this
      */
-    fun resolveConflict(other: SynchronizedData): SynchronizedData {
+    open fun resolveConflict(other: SynchronizedData): SynchronizedData {
         return this
     }
 }

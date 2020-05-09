@@ -45,34 +45,44 @@ public class Launcher extends Application {
 			}
 		}
 
-		setup(primaryStage);
-		play(appParams);
+		try {
+			setup(primaryStage);
+			play(appParams);
+		} catch(Throwable t) {
+			t.printStackTrace();
+		}
 	}
 
 	private void setup(Stage primaryStage) throws IOException, AudioEngineException {
-		try {
-			Peer.getLocal().setId("1");
-			Peer.getLocal().setName("peer1");
-			Cloud cloud1 = new Cloud();
+		String computerName = config.get("computerName");
+		if (computerName != null) Peer.getLocal().setName(computerName);
 
-			Cloud cloud2 = new Cloud();
-			cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
+//			Peer.getLocal().setId("1");
+//			Peer.getLocal().setName("peer1");
+		Cloud cloud1 = new Cloud();
 
-			CloudViewer viewer1 = new CloudViewer(cloud1, "1");
-			viewer1.getStage().show();
+//			Cloud cloud2 = new Cloud();
+//			cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
 
-			CloudViewer viewer2 = new CloudViewer(cloud2, "2");
-			viewer2.getStage().setX(800);
-			viewer2.getStage().show();
+//			CloudViewer viewer1 = new CloudViewer(cloud1, "1");
+//			viewer1.getStage().show();
+//			CloudViewer viewer2 = new CloudViewer(cloud2, "2");
+//			viewer2.getStage().setX(800);
+//			viewer2.getStage().show();
 
 
 
-			PlaybackEngine engine = new PlaybackEngine(cloud1, new JavaSoundEngine(), config);
+		PlaybackEngine engine = new PlaybackEngine(cloud1, new JavaSoundEngine(), config);
 
-			PlaylistPlayer player = new PlaylistPlayer(cloud1, config);
-			window = new PlayerWindow(primaryStage, player, engine, config);
-			window.show();
-			addControl(window.getStatusWrapper());
+		PlaylistPlayer player = new PlaylistPlayer(cloud1, config);
+		window = new PlayerWindow(primaryStage, player, engine, config);
+		window.show();
+		addControl(window.getStatusWrapper());
+
+
+		if (Boolean.parseBoolean(config.getString("connectOnStartup", "false"))) {
+			cloud1.connect(config.get("multicastAddress"), Integer.parseInt(config.get("multicastPort")), true, 1000);
+		}
 
 //			TaskViewer viewer = new TaskViewer(cloud, new Stage());
 //			viewer.getStage().show();
@@ -83,23 +93,21 @@ public class Launcher extends Application {
 
 
 
-			PlaylistPlayer player2 = new PlaylistPlayer(cloud2, config);
-			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
-			window2.show();
+//			PlaylistPlayer player2 = new PlaylistPlayer(cloud2, config);
+//			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
+//			window2.show();
 
 
-			cloud1.connect("225.4.5.6", 5324, true);
-			new Thread(() -> {
-				try {
-					Thread.sleep(1000);
-					cloud2.connect("225.4.5.6", 5324, true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}).start();
-		} catch(Throwable t) {
-			t.printStackTrace();
-		}
+//			cloud1.connect("225.4.5.6", 5324, true);
+//			new Thread(() -> {
+//				try {
+//					Thread.sleep(1000);
+//					cloud2.connect("225.4.5.6", 5324, true);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}).start();
+
 	}
 
 	private void play(ApplicationParameters parameters) {

@@ -142,7 +142,8 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
                 else player.activate(targetDevice)
             }
             if(task.restartCount > restartCount.value) {
-                player.setPositionAsync(task.position) { status.value = status(); updateEndListener() }
+                if (task.position >= 0)
+                    player.setPositionAsync(task.position) { status.value = status(); updateEndListener() }
                 restartCount.value = task.restartCount
             }
             if (targetDevice != null) {

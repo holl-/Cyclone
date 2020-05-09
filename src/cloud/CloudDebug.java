@@ -22,7 +22,7 @@ public class CloudDebug extends Application {
         viewer2.getStage().setX(800);
         viewer2.getStage().show();
 
-        cloud1.connect("225.139.25.1", 5324, true);
+        cloud1.connect("225.139.25.1", 5324, true, 1000);
 //        new Thread(() -> {
 //            try {
 //                Thread.sleep(1000);

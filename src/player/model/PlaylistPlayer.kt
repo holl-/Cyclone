@@ -26,6 +26,7 @@ import java.util.function.Consumer
 import java.util.function.Supplier
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
+import kotlin.math.max
 
 
 /**
@@ -36,12 +37,22 @@ private class PlayerData
 {
 
     data class Playlist(val files: List<CloudFile>) : SynchronizedData()
+    {
+        override fun resolveConflict(other: SynchronizedData): SynchronizedData {
+            return if (files.isEmpty()) other else this
+        }
+    }
 
     data class Looping(val value: Boolean) : SynchronizedData()
 
     data class Shuffled(val value: Boolean) : SynchronizedData()
 
     data class Target(val value: Speaker?) : SynchronizedData()
+    {
+        override fun resolveConflict(other: SynchronizedData): SynchronizedData {
+            return if (value == null) other else this
+        }
+    }
 
     data class Paused(val value: Boolean) : SynchronizedData()
 
@@ -58,7 +69,7 @@ private class PlayerData
         val id = UUID.randomUUID().toString()
 
         override fun toString(): String {
-            return "JumpRequest(file=$file, position=$position, id='$id')"
+            return "SelectedFile(file=$file, position=$position, id='$id')"
         }
     }
 
@@ -244,14 +255,16 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
         val shouldJump = jumpRequest.value.id !in handledJumpRequests
         if (shouldJump) handledJumpRequests.add(jumpRequest.value.id)
 
+        val position = max(0.0, jumpRequest.value.position)
+
         val task: PlayTask
         val createNewTask = activeTask == null || file != status.value?.task?.file || status.value?.finished == true
         if (createNewTask) {
-            task = PlayTask(speaker, file, 0.0, false, 0.0, jumpRequest.value.position, 0, null, CREATOR, pausedData.value.value, null, UUID.randomUUID().toString())
+            task = PlayTask(speaker, file, 0.0, false, 0.0, position, 0, null, CREATOR, pausedData.value.value, null, UUID.randomUUID().toString())
         }
         else {  // keep task ID
             val restartCount = if(shouldJump) activeTask!!.restartCount + 1 else activeTask!!.restartCount
-            task = PlayTask(speaker, file, 0.0, false, 0.0, jumpRequest.value.position, restartCount, null, CREATOR, pausedData.value.value, null, activeTask!!.id)
+            task = PlayTask(speaker, file, 0.0, false, 0.0, position, restartCount, null, CREATOR, pausedData.value.value, null, activeTask!!.id)
         }
 
         activeTask = task
