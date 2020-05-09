@@ -5,6 +5,7 @@ import appinstance.InstanceManager;
 import audio.AudioEngineException;
 import audio.javasound.JavaSoundEngine;
 import cloud.Cloud;
+import cloud.Peer;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
@@ -67,9 +68,21 @@ public class Launcher extends Application {
 //			CloudViewer cv = new CloudViewer(cloud);
 //			cv.getStage().show();
 
-//			PlaylistPlayer player2 = new PlaylistPlayer(cloud, config);
-//			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
-//			window2.show();
+			Cloud cloud2 = new Cloud();
+			cloud2.setPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
+			PlaylistPlayer player2 = new PlaylistPlayer(cloud2, config);
+			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
+			window2.show();
+
+			cloud.connect("225.4.5.6", 5324, 5325);
+			new Thread(() -> {
+				try {
+					Thread.sleep(1000);
+					cloud2.connect("225.4.5.6", 5324, 5335);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}).start();
 		} catch(Throwable t) {
 			t.printStackTrace();
 		}

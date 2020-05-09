@@ -102,6 +102,10 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
         log.close()
     }
 
+    @FXML fun disconnect() {
+        cloud.disconnect()
+    }
+
     private fun takeSnapshot() {
         val snapshot = CloudSnapshot(snapshotsCreated, cloud.getAllCurrentSynchronized())
         snapshotsCreated++

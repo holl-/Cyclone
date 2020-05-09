@@ -77,13 +77,16 @@ class Cloud {
         multicast = CloudMulticast(this, multicastAddress, multicastPort, localTCPPort, tcp!!, logger)
         multicast!!.startPinging()
         multicast!!.startReceiving()
-
         Platform.runLater { connectionStatus.value = "UDP: $multicastAddress:$multicastPort, TCP: $localTCPPort" }
     }
 
     @Throws(IOException::class)
     fun disconnect() {
         multicast?.disconnect()
+        tcp?.disconnect()
+        multicast = null
+        tcp = null
+        Platform.runLater { connectionStatus.value = null }
     }
 
     fun isConnected(peer: Peer): Boolean {

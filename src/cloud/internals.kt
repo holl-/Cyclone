@@ -2,14 +2,17 @@ package cloud
 
 import javafx.application.Platform
 import javafx.collections.FXCollections
+import java.io.EOFException
 import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
+import java.lang.ClassCastException
 import java.lang.Exception
 import java.net.*
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -91,6 +94,7 @@ internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int,
         receiveService?.cancel(true)
         socket.leaveGroup(address, null)
         socket.close()
+        cloud.peers.setAll(cloud.peer)
     }
 }
 
@@ -141,6 +145,13 @@ internal class CloudTCP(val cloud: Cloud, localPort: Int, val logger: Logger?) {
         connection.sendEverything()
         connection.startHandlingInput()
     }
+
+    fun disconnect() {
+        for (connection in connections) {
+            connection.close()
+        }
+        connections.clear()
+    }
 }
 
 
@@ -149,6 +160,7 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
     val inputStream = ObjectInputStream(socket.getInputStream())
     val peer: Peer
     val senderThread = Executors.newFixedThreadPool(1)
+    var inputService: Future<*>? = null
 
     var sharedSData: List<SynchronizedData>? = null
 
@@ -193,7 +205,7 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
                 for (value in data) {
                     cloud.pushSynchronizedImpl(value as SynchronizedData, false)
                 }
-            } catch (exc: Exception) {
+            } catch (exc: ClassNotFoundException) {
                 logger?.warning("Failed to receive synchronized data from $peer: $exc")
             }
         }else if (objType == "s") {
@@ -201,7 +213,7 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
                 val data = inputStream.readObject() as SynchronizedData
                 logger?.fine("Received synchronized data from $peer: $data")
                 cloud.pushSynchronizedImpl(data, false)
-            } catch (exc: Exception) {
+            } catch (exc: ClassNotFoundException) {
                 logger?.warning("Failed to receive synchronized data from $peer: $exc")
             }
         } else {
@@ -210,10 +222,28 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
     }
 
     fun startHandlingInput() {
-        Executors.newFixedThreadPool(1).submit(Runnable {
-            while (true) handleSingleInput()
-//            logger?.info("Input pipe from $peer going offline.")
+        inputService = Executors.newFixedThreadPool(1, ThreadFactory { r -> DeserializerThread(cloud, peer, r) }).submit(Runnable {
+            while (!socket.isClosed){
+                try{
+                    handleSingleInput()
+                } catch(exc: IOException) {
+                    if (socket.isClosed) {
+                        logger?.info("Connection to $peer terminated.")
+                    } else if (exc is EOFException){
+                        logger?.warning("Connection to $peer was closed remotely.")
+                        socket.close()
+                    } else {
+                        logger?.warning("I/O error on connection with $peer: $exc")
+                    }
+                }
+            }
         })
+    }
+
+    fun close() {
+        socket.close()
+        senderThread?.shutdown()
+        inputService?.cancel(true)
     }
 }
 

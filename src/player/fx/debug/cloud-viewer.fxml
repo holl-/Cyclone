@@ -21,6 +21,31 @@
    <center>
       <TabPane prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
         <tabs>
+          <Tab text="Connection">
+            <content>
+                  <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
+                     <children>
+                        <FlowPane hgap="8.0" vgap="4.0">
+                           <children>
+                              <Label text="Connection" />
+                              <Label fx:id="connectionStatus" text="Connection" />
+                           </children>
+                        </FlowPane>
+                        <Button mnemonicParsing="false" onAction="#disconnect" text="Disconnect" />
+                        <Separator prefWidth="200.0">
+                           <padding>
+                              <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                           </padding>
+                        </Separator>
+                        <Label text="Peers" />
+                        <ListView fx:id="peers" prefHeight="200.0" prefWidth="200.0" />
+                     </children>
+                     <padding>
+                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+                     </padding>
+                  </VBox>
+            </content>
+          </Tab>
             <Tab text="Network Log">
                <content>
                   <BorderPane fx:id="clearLog" prefHeight="200.0" prefWidth="200.0">
@@ -50,30 +75,6 @@
                   </BorderPane>
                </content>
             </Tab>
-          <Tab text="Peers">
-            <content>
-                  <VBox prefHeight="200.0" prefWidth="100.0">
-                     <children>
-                        <FlowPane hgap="8.0" vgap="4.0">
-                           <children>
-                              <Label text="Connection" />
-                              <Label fx:id="connectionStatus" text="Connection" />
-                           </children>
-                        </FlowPane>
-                        <Separator prefWidth="200.0">
-                           <padding>
-                              <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
-                           </padding>
-                        </Separator>
-                        <Label text="Peers" />
-                        <ListView fx:id="peers" prefHeight="200.0" prefWidth="200.0" />
-                     </children>
-                     <padding>
-                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
-                     </padding>
-                  </VBox>
-            </content>
-          </Tab>
           <Tab text="Synchronized">
                <content>
                   <BorderPane>
