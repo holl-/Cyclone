@@ -13,20 +13,16 @@ import player.CastToBooleanProperty
 import player.CastToDoubleProperty
 import player.CastToStringProperty
 import player.CustomObjectProperty
-import player.model.data.MasterGain
-import player.model.data.PlayTask
-import player.model.data.PlayTaskStatus
-import player.model.data.Speaker
+import player.model.data.*
 import java.io.File
-import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
+import java.util.function.Function
 import java.util.function.Supplier
 import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
-import kotlin.math.max
+import kotlin.math.abs
 
 
 /**
@@ -60,18 +56,10 @@ private class PlayerData
      * @param file start file of the last play request. Playback can move on to other files without this changing.
      * If null, nothing should be played.
      * @param position start position of the last play request
+     * @param jumpCount whenever this value is incremented, the player should jump to the specified location.
+     * As long as this value stays constant, any changes are interpreted as updates with no actions required.
      */
-    data class SelectedFile(val file: CloudFile?, val position: Double) : SynchronizedData() {
-        /**
-         * The ID changes when a new JumpRequest is made.
-         * This will cause playback to jump to the position.
-         */
-        val id = UUID.randomUUID().toString()
-
-        override fun toString(): String {
-            return "SelectedFile(file=$file, position=$position, id='$id')"
-        }
-    }
+    data class SelectedFile(val file: CloudFile?, val position: Double, val jumpCount: Long) : SynchronizedData()
 
 }
 
@@ -82,6 +70,8 @@ private class PlayerData
  */
 class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     val library: MediaLibrary = MediaLibrary()
+    private var jumpCount: Long = 0
+    private val builder = TaskChainBuilder(cloud, Function { file -> after(file) }, CREATOR)
 
     // Synchronized PlaylistPlayer data objects
     private val loopingData = cloud.getSynchronized(PlayerData.Looping::class.java, default = Supplier { PlayerData.Looping(config["looping"]?.toBoolean() ?: true) })
@@ -90,10 +80,10 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     private val playlistData = cloud.getSynchronized(PlayerData.Playlist::class.java, default = Supplier { PlayerData.Playlist(emptyList()) })
     private val speakerData = cloud.getSynchronized(PlayerData.Target::class.java, default = Supplier { PlayerData.Target(null) })
     private val pausedData = cloud.getSynchronized(PlayerData.Paused::class.java, default = Supplier { PlayerData.Paused(true) })
-    private val jumpRequest = cloud.getSynchronized(PlayerData.SelectedFile::class.java, default = Supplier { PlayerData.SelectedFile(null, 0.0) })
+    private val selectedFile = cloud.getSynchronized(PlayerData.SelectedFile::class.java, default = Supplier { PlayerData.SelectedFile(null, 0.0, 0) })
     private val statuses = cloud.getAll(PlayTaskStatus::class.java)
-    private val status = Bindings.createObjectBinding(Callable { statuses.firstOrNull {
-        status -> status.task.creator == CREATOR && status.task.target == speakerData.value?.value } }, statuses)
+    private val status = Bindings.createObjectBinding(Callable { getStatus() }, statuses)
+
 
     companion object {
         private const val CREATOR = "PP"
@@ -116,12 +106,12 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
             setter = Consumer { value -> cloud.pushSynchronized(PlayerData.Target(value)) })
     // Playback information - depend on status of (remote) PlaybackEngine(s)
     val speakers: ObservableList<Speaker> = cloud.getAll(Speaker::class.java)
-    val currentFileProperty: ObjectProperty<CloudFile?> = CustomObjectProperty<CloudFile?>(listOf(status, jumpRequest),
-            getter = Supplier<CloudFile?> { if(jumpRequest.value.file != null) status.value?.task?.file else null },
-            setter = Consumer { value -> cloud.pushSynchronized(PlayerData.SelectedFile(value, 0.0)) })
+    val currentFileProperty: ObjectProperty<CloudFile?> = CustomObjectProperty<CloudFile?>(listOf(status, selectedFile),
+            getter = Supplier<CloudFile?> { if(selectedFile.value.file != null) status.value?.task?.file else null },
+            setter = Consumer { value -> cloud.pushSynchronized(PlayerData.SelectedFile(value, 0.0, selectedFile.value.jumpCount + 1)) })
     val positionProperty: CastToDoubleProperty = CastToDoubleProperty(CustomObjectProperty<Number?>(listOf(status),
             getter = Supplier<Number?> { status.value?.extrapolatePosition() ?: 0.0 },
-            setter = Consumer { value -> cloud.pushSynchronized(PlayerData.SelectedFile(jumpRequest.value.file, value!!.toDouble())) }))
+            setter = Consumer { value -> cloud.pushSynchronized(PlayerData.SelectedFile(selectedFile.value.file, value!!.toDouble(), selectedFile.value.jumpCount + 1)) }))
     // the durationProperty invalidation must come after positionProperty!
     // otherwise, the Slider may enforce position < duration and falsely set position
     val durationProperty: ReadOnlyDoubleProperty = CastToDoubleProperty(CustomObjectProperty<Number?>(listOf(status),
@@ -135,7 +125,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     val playingProperty: BooleanProperty = CastToBooleanProperty(CustomObjectProperty<Boolean?>(listOf(pausedData),
             getter = Supplier<Boolean?> { pausedData.value?.value != true }, // status.value?.active == true && status.value?.task?.paused == false
             setter = Consumer { value -> cloud.pushSynchronized(PlayerData.Paused(!value!!)) }))
-    val isFileSelectedProperty = Bindings.createBooleanBinding(Callable{ jumpRequest.value.file != null }, currentFileProperty)
+    val isFileSelectedProperty = Bindings.createBooleanBinding(Callable{ selectedFile.value.file != null }, currentFileProperty)
     val playlistAvailableProperty = Bindings.createBooleanBinding(Callable{ playlist.size > 1 }, playlist)
 
 
@@ -151,7 +141,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
 
         playlistData.addListener(ChangeListener{ _, _, _ -> playlist.setAll(playlistData.value?.files ?: emptyList())}) // synchronized playlist
 
-        for(obs in listOf(loopingData, shuffledData, playlistData, pausedData, jumpRequest, speakerData)) {
+        for(obs in listOf(loopingData, shuffledData, playlistData, pausedData, selectedFile, speakerData)) {
             obs.addListener { _ -> updateTasks() }
         }
 
@@ -165,13 +155,13 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
             }
         }, 50, 50, TimeUnit.MILLISECONDS)
 
-        status.addListener( InvalidationListener { if (status.value?.finished == true && speakerData.value.value?.peer?.isLocal == true) next() })
+        status.addListener( InvalidationListener { updateSelectedFile() })
     }
 
 
     fun stop() {
         playingProperty.set(false)
-        cloud.pushSynchronized(PlayerData.SelectedFile(currentFileProperty.value, 0.0))
+        positionProperty.set(0.0)
     }
 
     fun addToPlaylist(files: List<CloudFile>) {
@@ -186,9 +176,13 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     }
 
     fun getNext(): CloudFile? {
+        return after(currentFileProperty.value)
+    }
+
+    fun after(file: CloudFile?): CloudFile? {
         if (playlist.isEmpty()) return null
-        if (currentFileProperty.value == null) return playlist[0]
-        val index = playlist.indexOf(currentFileProperty.value)
+        if (file == null) return playlist[0]
+        val index = playlist.indexOf(file)
         if (index < 0) return null
         return if (index < playlist.size - 1) playlist[index + 1]!! else if (loopingProperty.value) playlist[0] else null
     }
@@ -235,39 +229,39 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     }
 
 
-
-    private val handledJumpRequests = HashSet<String>()
-    private var activeTask: PlayTask? = null
-
     private fun updateTasks() {
         val speaker = speakerData.value.value
-        if (speaker == null || !speaker.peer.isLocal) {
-            cloud.yankAll(PlayTask::class.java, this)
-            return
+        val file = selectedFile.value.file  // not the actual file playing
+
+        if (speaker != null && speaker.peer.isLocal && file != null) {
+            builder.paused = pausedData.value.value
+            builder.activate(speaker)
+            if (selectedFile.value.jumpCount > jumpCount) {
+                jumpCount = selectedFile.value.jumpCount
+                builder.play(file, selectedFile.value.position)
+            }
         }
-
-        val file = jumpRequest.value.file  // not the actual file playing
-        if (file == null) {
-            cloud.yankAll(PlayTask::class.java, this)
-            return
+        else {
+            builder.deactivate()
         }
+    }
 
-        val shouldJump = jumpRequest.value.id !in handledJumpRequests
-        if (shouldJump) handledJumpRequests.add(jumpRequest.value.id)
 
-        val position = max(0.0, jumpRequest.value.position)
+    private fun getStatus(): PlayTaskStatus? {
+        val scheduled = statuses.filter { status -> status.task.creator == CREATOR && status.task.target == speakerData.value?.value }
+        scheduled.firstOrNull { status -> status.active }?.let { status -> return status }
+        return scheduled.firstOrNull()
+    }
 
-        val task: PlayTask
-        val createNewTask = activeTask == null || file != status.value?.task?.file || status.value?.finished == true
-        if (createNewTask) {
-            task = PlayTask(speaker, file, 0.0, false, 0.0, position, 0, null, CREATOR, pausedData.value.value, null, UUID.randomUUID().toString())
+    private fun updateSelectedFile() {
+        val status = status.value ?: return
+        if (speakerData.value?.value?.peer?.isLocal != true) return  // only playing peer should update
+        val shouldUpdate = status.task.file != selectedFile.value.file || abs(status.task.position - selectedFile.value.position) > 1.0
+        if (shouldUpdate) {
+            println("updateSelectedFile")
+            cloud.pushSynchronized(PlayerData.SelectedFile(status.task.file, status.task.position, selectedFile.value.jumpCount))
+        } else {
+            println("Skipping updateSelectedFile")
         }
-        else {  // keep task ID
-            val restartCount = if(shouldJump) activeTask!!.restartCount + 1 else activeTask!!.restartCount
-            task = PlayTask(speaker, file, 0.0, false, 0.0, position, restartCount, null, CREATOR, pausedData.value.value, null, activeTask!!.id)
-        }
-
-        activeTask = task
-        cloud.push(PlayTask::class.java, listOf(task), this, true)
     }
 }

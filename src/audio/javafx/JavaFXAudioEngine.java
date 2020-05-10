@@ -27,12 +27,9 @@ public class JavaFXAudioEngine extends AudioEngine
 		super("JavaFX");
 
 		// see https://docs.oracle.com/javafx/2/media/overview.htm
-		supportedFormats = Arrays.asList(new MediaType[]{
-				new MediaType("MP3", "mp3"),
+		supportedFormats = Arrays.asList(new MediaType("MP3", "mp3"),
 				new MediaType("AIFF", "aif"),
-				new MediaType("WAVE", "wav")
-
-		});
+				new MediaType("WAVE", "wav"));
 	}
 
 	@Override
@@ -100,7 +97,7 @@ public class JavaFXAudioEngine extends AudioEngine
 
 		@Override
 		public String getName() {
-			return null;
+			return "System";
 		}
 
 		@Override

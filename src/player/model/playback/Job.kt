@@ -50,7 +50,7 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
             this.previous.value = engine.getOrCreateJob(task.trigger.taskId)
         }
 
-        started.value = checkTriggerCondition()
+        if (!started.value) started.value = checkTriggerCondition()
         if(checkPrepareCondition()) {
             if (player.value == null) player.value = createPlayer()
             player.value?.let { pl -> adjustPlayer(pl, task) }
@@ -72,14 +72,16 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
 
     private fun checkTriggerCondition(): Boolean {
         val task = this.task.value ?: return false
-        if (started.value || task.trigger == null) return true
+        if (task.trigger == null) return true
         val waitingOnJob = previous.value ?: return true
         return if (waitingOnJob.isAlive()) waitingOnJob.finished.value else false
     }
 
     private fun checkPrepareCondition(): Boolean {
-        task.value ?: return false
+        val task = this.task.value ?: return false
+        if (task.trigger == null) return true
         val waitingOnJob = previous.value ?: return true
+        if (waitingOnJob.finished.value) return true
         return if (waitingOnJob.isAlive()) waitingOnJob.started.value else false
     }
 
@@ -100,7 +102,8 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
         val duration = player?.duration ?: task.duration
         val paused = task.paused && player?.isPlaying == false
         val expandedTask = PlayTask(target!!, task.file, gain, mute, balance, position, restartCount.value, duration, task.creator, paused, task.trigger, task.id)
-        return PlayTaskStatus(expandedTask, player != null, finished.value, busyMessage.value, errorMessage.value, System.currentTimeMillis())
+        val active = player != null && started.value && !finished.value
+        return PlayTaskStatus(expandedTask, active, finished.value, busyMessage.value, errorMessage.value, System.currentTimeMillis())
     }
 
 
@@ -140,7 +143,7 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
             }
             if(task.restartCount > restartCount.value) {
                 if (task.position >= 0)
-                    player.setPositionAsync(task.position) { status.value = status(); updateEndListener() }
+                    player.setPositionAsync(task.position) { Platform.runLater { status.value = status(); updateEndListener() } }
                 restartCount.value = task.restartCount
             }
             if (targetDevice != null) {

@@ -148,6 +148,7 @@ class Cloud {
     }
 
     fun pushSynchronizedImpl(data: SynchronizedData, localChange: Boolean) {
+        // TODO this should upate immediately, may cause too many events otherwise
         Platform.runLater {
             if (data.javaClass in sData)
                 sData[data.javaClass]?.value = data

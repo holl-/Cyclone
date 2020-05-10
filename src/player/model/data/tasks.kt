@@ -27,7 +27,7 @@ data class MasterGain(val value: Double) : SynchronizedData()
  * @param trigger References another task that must finish before this one is started.
  * Both tasks must have the same target as this task.
  */
-class PlayTask(
+data class PlayTask(
         val target: Speaker,
         val file: CloudFile,
         val gain: Double,
@@ -42,10 +42,6 @@ class PlayTask(
         val id: String
 ) : Data()
 {
-    override fun toString(): String {
-        return "Play '${file.getName()}' on $target, paused=$paused, gain=$gain, position=$position, duration=$duration, creator=$creator, id=$id"
-    }
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is PlayTask) return false

@@ -22,6 +22,8 @@ import audio.Player;
 import audio.PlayerEvent;
 import audio.UnsupportedMediaFormatException;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.media.MediaMarkerEvent;
 import javafx.scene.media.MediaPlayer;
@@ -258,7 +260,15 @@ public class JavaFXPlayer extends AbstractPlayer {
 		fxPlayer.seek(Duration.seconds(position));
 		informMarkerListenersOnJump(oldPosition, position);
 		firePositionChanged(oldPosition, PlayerEvent.USER_COMMAND);
-		if (onFinished != null) throw new UnsupportedOperationException();
+		if (onFinished != null) {
+			fxPlayer.currentTimeProperty().addListener(new InvalidationListener() {
+				@Override
+				public void invalidated(Observable observable) {
+					onFinished.run();
+					fxPlayer.currentTimeProperty().removeListener(this);
+				}
+			});
+		}
 	}
 
 	@Override

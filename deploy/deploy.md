@@ -24,3 +24,11 @@ copy JDK and JavaFX modules to jdkfx-14\jmods
 
 Additional installer options:
 `--win-shortcut --win-dir-chooser`
+
+
+## VM options for non-JavaFX build
+--module-path "C:\Users\Philipp\IdeaProjects\Cyclone\javafx\javafx-sdk-14.0.1\lib"
+--add-modules javafx.controls,javafx.fxml
+--add-exports javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED
+--add-exports javafx.graphics/com.sun.glass.utils=ALL-UNNAMED
+--add-exports javafx.graphics/com.sun.javafx.tk=ALL-UNNAMED

@@ -239,14 +239,16 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
                 val sData = inputStream.readObject() as List<*>
                 val data = inputStream.readObject() as List<*>
                 logger?.fine("Received data from $peer: ${sData.size} synchronized, ${data.size} owned.")
-                for (sObj in sData) {
-                    cloud.remoteUpdateSynchronized(sObj as SynchronizedData, false, isPeerOlder, logger)
-                }
+                // Update data
                 val classes = HashSet<Any>()
                 for (obj in data) {
                     classes.add(obj!!.javaClass)
                 }
                 cloud.remoteUpdate(peer, classes, data)
+                // Update synchronized
+                for (sObj in sData) {
+                    cloud.remoteUpdateSynchronized(sObj as SynchronizedData, false, isPeerOlder, logger)
+                }
             } catch (exc: ClassNotFoundException) {
                 logger?.warning("Failed to receive synchronized data from $peer: $exc")
             }

@@ -195,8 +195,8 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
             if (peer != null) {
                 graphic = if (peer.isLocal) FXIcons.get("Stop.png", 20.0)
                 else {
-                    if(cloud.isConnected(peer)) FXIcons.get("Loop.png", 20.0)
-                    else FXIcons.get("Settings.png", 20.0)
+                    if(cloud.isConnected(peer)) FXIcons.get("Play.png", 20.0)
+                    else FXIcons.get("Pause.png", 20.0)
                 }
                 text = peer.toString()
             } else {

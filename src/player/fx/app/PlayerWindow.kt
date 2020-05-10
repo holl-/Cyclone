@@ -34,6 +34,7 @@ import javafx.util.Callback
 import javafx.util.Duration
 import player.fx.FileDropOverlay
 import player.fx.PlayerControl
+import player.fx.control.SpeakerCell
 import player.fx.debug.CloudViewer
 import player.fx.debug.PlaybackViewer
 import player.fx.debug.TaskViewer
@@ -53,6 +54,7 @@ import java.util.*
 import java.util.concurrent.Callable
 import java.util.function.Function
 import java.util.stream.Collectors
+
 
 class PlayerWindow internal constructor(private val stage: Stage, val statusWrapper: PlaylistPlayer, // can be null
                                         private val engine: PlaybackEngine, config: CycloneConfig?) : Initializable {
@@ -89,11 +91,10 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
         volume!!.valueProperty().bindBidirectional(statusWrapper.gainProperty)
         speakerSelection!!.items = statusWrapper.speakers
         speakerSelection!!.selectionModel.select(statusWrapper.speakerProperty.get())
-        speakerSelection!!.selectionModel.selectedItemProperty().addListener { p: ObservableValue<out Speaker?>?, o: Speaker?, n: Speaker? -> if (n != null) statusWrapper.speakerProperty.set(n) }
-        statusWrapper.speakerProperty.addListener { p: ObservableValue<out Speaker?>?, o: Speaker?, n: Speaker? -> speakerSelection!!.selectionModel.select(n) }
-        if (settings.config.getString("debug", "false") != "true") {
-            debugMenu!!.parentMenu.items.remove(debugMenu)
-        }
+        speakerSelection!!.selectionModel.selectedItemProperty().addListener { _, _, n -> if (n != null) statusWrapper.speakerProperty.set(n) }
+        speakerSelection!!.setCellFactory { SpeakerCell() }
+        statusWrapper.speakerProperty.addListener { _, _, n -> speakerSelection!!.selectionModel.select(n) }
+        if (settings.config["debug"] != "true") debugMenu!!.parentMenu.items.remove(debugMenu)
     }
 
 
