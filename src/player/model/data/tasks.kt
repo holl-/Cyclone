@@ -95,8 +95,8 @@ data class PlayTaskStatus(
 ) : Data()
 {
     fun message(): String? {
-        if(errorMessage != null) return errorMessage
-        if(busyMessage != null) return busyMessage
+        errorMessage?.let { return errorMessage }
+        busyMessage?.let { return busyMessage }
         return null
     }
 

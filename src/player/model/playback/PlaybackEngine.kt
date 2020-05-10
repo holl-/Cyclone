@@ -82,7 +82,7 @@ class PlaybackEngine (val cloud: Cloud, val audioEngine: AudioEngine, config: Cy
 
     fun getOrCreateJob(taskId: String): Job {
         val existing = jobs.firstOrNull { j -> j.taskId == taskId}
-        if (existing != null) return existing
+        existing?.let { return existing }
         val newJob = Job(taskId, this)
         jobs.add(newJob)
         newJob.status.addListener(InvalidationListener { statusInvalid.value = true })
@@ -103,7 +103,7 @@ class PlaybackEngine (val cloud: Cloud, val audioEngine: AudioEngine, config: Cy
         val statuses = ArrayList<PlayTaskStatus>()
         for(job in jobs) {
             val status = job.status.value
-            if (status != null) statuses.add(status)
+            status?.let { statuses.add(status) }
         }
         cloud.push(PlayTaskStatus::class.java, statuses, this, true)
     }

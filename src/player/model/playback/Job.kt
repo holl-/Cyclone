@@ -53,11 +53,8 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
         started.value = checkTriggerCondition()
         if(checkPrepareCondition()) {
             if (player.value == null) player.value = createPlayer()
-            if(player.value != null)
-                adjustPlayer(player.value!!, task)
-        } else {
-            if (player.value != null) println("Job: Destroy player?")
-        }
+            player.value?.let { pl -> adjustPlayer(pl, task) }
+        }  // else destroy player?
 
         Platform.runLater { status.value = status() }
 

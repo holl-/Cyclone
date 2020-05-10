@@ -1,618 +1,637 @@
-package player.fx.app;
+package player.fx.app
 
-import audio.*;
-import javafx.animation.FadeTransition;
-import javafx.animation.TranslateTransition;
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.event.EventHandler;
-import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
-import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.util.Duration;
-import player.fx.debug.CloudViewer;
-import player.fx.debug.PlaybackViewer;
-import player.fx.debug.TaskViewer;
-import player.model.AudioFiles;
-import player.model.CycloneConfig;
-import player.fx.FileDropOverlay;
-import player.fx.PlayerControl;
-import player.fx.icons.FXIcons;
-import player.model.PlaylistPlayer;
-import player.model.MediaLibrary;
-import player.model.playback.Job;
-import player.model.playback.PlaybackEngine;
-import player.model.data.Speaker;
-import cloud.CloudFile;
+import audio.UnsupportedMediaFormatException
+import cloud.CloudFile
+import javafx.animation.FadeTransition
+import javafx.animation.TranslateTransition
+import javafx.application.Platform
+import javafx.beans.binding.Bindings
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.value.ObservableValue
+import javafx.collections.FXCollections
+import javafx.collections.ListChangeListener
+import javafx.event.ActionEvent
+import javafx.event.EventHandler
+import javafx.fxml.FXML
+import javafx.fxml.FXMLLoader
+import javafx.fxml.Initializable
+import javafx.geometry.Insets
+import javafx.scene.Node
+import javafx.scene.Scene
+import javafx.scene.control.*
+import javafx.scene.control.Alert.AlertType
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyEvent
+import javafx.scene.input.MouseButton
+import javafx.scene.input.MouseEvent
+import javafx.scene.layout.*
+import javafx.scene.paint.Color
+import javafx.stage.Modality
+import javafx.stage.Stage
+import javafx.stage.WindowEvent
+import javafx.util.Callback
+import javafx.util.Duration
+import player.fx.FileDropOverlay
+import player.fx.PlayerControl
+import player.fx.debug.CloudViewer
+import player.fx.debug.PlaybackViewer
+import player.fx.debug.TaskViewer
+import player.fx.icons.FXIcons
+import player.model.AudioFiles
+import player.model.CycloneConfig
+import player.model.MediaLibrary
+import player.model.PlaylistPlayer
+import player.model.data.Speaker
+import player.model.playback.Job
+import player.model.playback.PlaybackEngine
+import java.awt.Desktop
+import java.io.File
+import java.io.IOException
+import java.net.URL
+import java.util.*
+import java.util.concurrent.Callable
+import java.util.function.Function
+import java.util.stream.Collectors
 
-import java.awt.*;
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.*;
-import java.util.List;
-import java.util.stream.Collectors;
+class PlayerWindow internal constructor(private val stage: Stage, val statusWrapper: PlaylistPlayer, // can be null
+                                        private val engine: PlaybackEngine, config: CycloneConfig?) : Initializable {
+    private val root: StackPane
+    private var currentOverlay: Node? = null
 
-public class PlayerWindow implements Initializable {
-	private Stage stage;
-	private StackPane root;
-	private Node currentOverlay;
+    // Default
+    @FXML private var currentSongMenu: Menu? = null
+    @FXML private var settingsMenu: Menu? = null
+    @FXML private var addToLibraryMenu: Menu? = null
+    @FXML private var debugMenu: Menu? = null
+    @FXML private var cannotAddToLibraryItem: MenuItem? = null
+    @FXML private var menuBar: MenuBar? = null
+    @FXML private var volume: Slider? = null
+    @FXML private var speakerSelection: ComboBox<Speaker>? = null
 
-	// Default
-	@FXML private Menu currentSongMenu, settingsMenu, addToLibraryMenu, debugMenu;
-	@FXML private MenuItem cannotAddToLibraryItem;
-	@FXML private MenuBar menuBar;
-	@FXML private Slider volume;
-	@FXML private ComboBox<Speaker> speakerSelection;
-	// Playlist
-	private Node playlistRoot, playlistListView;
-	// Search
-	private Node searchRoot, searchFocus;
+    // Playlist
+    private val playlistRoot: Node
+    private var playlistListView: Node? = null
 
-	private PlaylistPlayer player;
-	private MediaLibrary library;
-	private PlaybackEngine engine; // can be null
-	private AppSettings settings;
-
-
-	PlayerWindow(Stage stage, PlaylistPlayer player, PlaybackEngine engine, CycloneConfig config) throws IOException {
-		this.stage = stage;
-		this.player = player;
-		this.engine = engine;
-		library = player.getLibrary();
-
-		settings = new AppSettings(config, this.player);
-
-		root = new StackPane();
-		root.getChildren().add(loadPlayer());
-		playlistRoot = loadPlaylist();
-		searchRoot = loadSearch();
-
-		player.getCurrentFileProperty().addListener((p, o, n) -> updateAddToLibraryMenu());
-
-		FileDropOverlay overlay = new FileDropOverlay(root);
-		overlay.setActionGenerator(files -> generateDropButtons(files));
-
-		Scene scene;
-		stage.setScene(scene = new Scene(root));
-
-		stage.setTitle("Cyclone");
-		stage.getIcons().add(FXIcons.get("Play2.png", 32).getImage());
-
-		stage.setOnHidden(e -> {
-			quit();
-		});
-	}
-
-	@Override
-	public void initialize(URL location, ResourceBundle resources) {
-		settingsMenu.setText(null);
-		settingsMenu.setGraphic(FXIcons.get("Settings.png", 24));
-		currentSongMenu.setGraphic(FXIcons.get("Media.png", 24));
-		currentSongMenu.textProperty().bind(player.getTitleProperty());
-		currentSongMenu.disableProperty().bind(player.isFileSelectedProperty().not());
-		volume.valueProperty().bindBidirectional(player.getGainProperty());
-		speakerSelection.setItems(player.getSpeakers());
-		speakerSelection.getSelectionModel().select(player.getSpeakerProperty().get());
-		speakerSelection.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
-			if(n != null) player.getSpeakerProperty().set(n);
-		});
-		player.getSpeakerProperty().addListener((p, o, n) -> {
-			speakerSelection.getSelectionModel().select(n);
-		});
-		if(!settings.getConfig().getString("debug", "false").equals("true")) {
-			debugMenu.getParentMenu().getItems().remove(debugMenu);
-		}
-	}
+    // Search
+    private val searchRoot: Node
+    private var searchFocus: Node? = null
+    private val library: MediaLibrary
+    private val settings: AppSettings
 
 
-	private BorderPane loadPlayer() throws IOException {
-		FXMLLoader loader = new FXMLLoader(getClass().getResource("mp3player.fxml"));
-		loader.setController(this);
-		BorderPane playerRoot = loader.load();
+    override fun initialize(location: URL?, resources: ResourceBundle?) {
+        settingsMenu!!.text = null
+        settingsMenu!!.graphic = FXIcons.get("Settings.png", 24.0)
+        currentSongMenu!!.graphic = FXIcons.get("Media.png", 24.0)
+        currentSongMenu!!.textProperty().bind(statusWrapper.titleProperty)
+        currentSongMenu!!.disableProperty().bind(statusWrapper.isFileSelectedProperty.not())
+        volume!!.valueProperty().bindBidirectional(statusWrapper.gainProperty)
+        speakerSelection!!.items = statusWrapper.speakers
+        speakerSelection!!.selectionModel.select(statusWrapper.speakerProperty.get())
+        speakerSelection!!.selectionModel.selectedItemProperty().addListener { p: ObservableValue<out Speaker?>?, o: Speaker?, n: Speaker? -> if (n != null) statusWrapper.speakerProperty.set(n) }
+        statusWrapper.speakerProperty.addListener { p: ObservableValue<out Speaker?>?, o: Speaker?, n: Speaker? -> speakerSelection!!.selectionModel.select(n) }
+        if (settings.config.getString("debug", "false") != "true") {
+            debugMenu!!.parentMenu.items.remove(debugMenu)
+        }
+    }
 
-		PlayerControl control = new PlayerControl();
-		control.durationProperty().bind(player.getDurationProperty());
-		control.positionProperty().bindBidirectional(player.getPositionProperty());
-		control.playingProperty().bindBidirectional(player.getPlayingProperty());
-		control.mediaSelectedProperty().bind(player.isFileSelectedProperty());
-		control.playlistAvailableProperty().bind(player.getPlaylistAvailableProperty());
-		control.shuffledProperty().bindBidirectional(player.getShuffledProperty());
-		control.loopProperty().bindBidirectional(player.getLoopingProperty());
-		control.setOnNext(e -> player.next());
-		control.setOnPrevious(e -> player.previous());
-		control.setOnStop(e -> player.stop());
-		control.setOnShowPlaylist(e -> showPlaylist());
-		control.setOnSearch(e -> showSearch());
-		playerRoot.setCenter(control);
+
+    @Throws(IOException::class)
+    private fun loadPlayer(): BorderPane {
+        val loader = FXMLLoader(javaClass.getResource("mp3player.fxml"))
+        loader.setController(this)
+        val playerRoot = loader.load<BorderPane>()
+        val control = PlayerControl()
+        control.durationProperty().bind(statusWrapper.durationProperty)
+        control.positionProperty().bindBidirectional(statusWrapper.positionProperty)
+        control.playingProperty().bindBidirectional(statusWrapper.playingProperty)
+        control.mediaSelectedProperty().bind(statusWrapper.isFileSelectedProperty)
+        control.playlistAvailableProperty().bind(statusWrapper.playlistAvailableProperty)
+        control.shuffledProperty().bindBidirectional(statusWrapper.shuffledProperty)
+        control.loopProperty().bindBidirectional(statusWrapper.loopingProperty)
+        control.onNext = EventHandler { e: ActionEvent? -> statusWrapper.next() }
+        control.onPrevious = EventHandler { e: ActionEvent? -> statusWrapper.previous() }
+        control.onStop = EventHandler { e: ActionEvent? -> statusWrapper.stop() }
+        control.onShowPlaylist = EventHandler { e: ActionEvent? -> showPlaylist() }
+        control.onSearch = EventHandler { e: ActionEvent? -> showSearch() }
+        playerRoot.center = control
 
 //		control.setOnMouseDragged(e -> e.);
+        return playerRoot
+    }
 
-		return playerRoot;
-	}
+    @Throws(IOException::class)
+    private fun loadPlaylist(): BorderPane {
+        val loader = FXMLLoader(javaClass.getResource("playlist.fxml"))
+        loader.setController(object : Initializable {
+            @FXML private var removeOthersButton: Button? = null
+            @FXML private var playlist: ListView<CloudFile>? = null
 
-	private BorderPane loadPlaylist() throws IOException {
-		FXMLLoader loader = new FXMLLoader(getClass().getResource("playlist.fxml"));
-		loader.setController(new Initializable() {
-			@FXML private Button removeOthersButton;
-			@FXML private ListView<CloudFile> playlist;
+            override fun initialize(location: URL?, resources: ResourceBundle?) {
+                playlist!!.setItems(statusWrapper.playlist)
+                playlist!!.addEventFilter(KeyEvent.KEY_PRESSED, TabAndEnterHandler(playlist))
+                removeOthersButton!!.disableProperty().bind(Bindings.createBooleanBinding(
+                        Callable { statusWrapper.playlist.size == 0 || statusWrapper.playlist.size == 1 && statusWrapper.currentFileProperty.get() === statusWrapper.playlist[0] },
+                        statusWrapper.playlist, statusWrapper.currentFileProperty))
+                playlist!!.selectionModel.selectedItemProperty().addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? ->
+                    if (n != null) {
+                        statusWrapper.currentFileProperty.set(n)
+                        statusWrapper.playingProperty.set(true)
+                    }
+                }
+                statusWrapper.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> playlist!!.selectionModel.select(statusWrapper.currentFileProperty.get()) }
+                playlist!!.setCellFactory { list: ListView<CloudFile?>? -> MediaCell() }
+                playlistListView = playlist
+            }
 
-			@Override
-			public void initialize(URL location, ResourceBundle resources) {
-				playlist.setItems(player.getPlaylist());
-				playlist.addEventFilter(KeyEvent.KEY_PRESSED, new TabAndEnterHandler(playlist));
-				removeOthersButton.disableProperty().bind(Bindings.createBooleanBinding(
-						() -> player.getPlaylist().size() == 0 || (player.getPlaylist().size() == 1 && player.getCurrentFileProperty().get() == player.getPlaylist().get(0)),
-						player.getPlaylist(), player.getCurrentFileProperty()));
-				playlist.getSelectionModel().selectedItemProperty().addListener((p,o,n) -> {
-					if(n != null) {
-						player.getCurrentFileProperty().set(n);
-						player.getPlayingProperty().set(true);
-					}
-				});
-				player.getCurrentFileProperty().addListener((p, o, n) -> {
-					playlist.getSelectionModel().select(player.getCurrentFileProperty().get());
-				});
-				playlist.setCellFactory(list -> new MediaCell());
-				playlistListView = playlist;
-			}
+            @FXML
+            fun closePlaylist() {
+                fadeOut(playlistRoot)
+            }
 
-			@FXML
-			public void closePlaylist() {
-				fadeOut(playlistRoot);
-			}
+            @FXML
+            fun clearPlaylist() {
+                statusWrapper.currentFileProperty.set(null)
+                statusWrapper.playlist.clear()
+                closePlaylist()
+            }
 
-			@FXML
-			public void clearPlaylist() {
-				player.getCurrentFileProperty().set(null);
-				player.getPlaylist().clear();
-				closePlaylist();
-			}
+            @FXML
+            fun clearOthers() {
+                val newList: MutableList<CloudFile> = ArrayList()
+                statusWrapper.currentFileProperty.value?.let { current -> newList.add(current) }
+                statusWrapper.setPlaylist(newList)
+            }
+        })
+        val playlistRoot = loader.load<BorderPane>()
+        playlistRoot.background = Background(BackgroundFill(Color(0.0, 0.0, 0.0, 0.5), CornerRadii.EMPTY, Insets.EMPTY))
+        return playlistRoot
+    }
 
-			@FXML
-			public void clearOthers() {
-				List<CloudFile> newList = new ArrayList<>();
-				if(player.getCurrentFileProperty().get() != null) {
-					newList.add(player.getCurrentFileProperty().get());
-				}
-				player.setPlaylist(newList);
-			}
-		});
-		BorderPane playlistRoot = loader.load();
-		playlistRoot.setBackground(new Background(new BackgroundFill(new Color(0,0,0,0.5), CornerRadii.EMPTY, Insets.EMPTY)));
-		return playlistRoot;
-	}
+    @Throws(IOException::class)
+    private fun loadSearch(): BorderPane {
+        val loader = FXMLLoader(javaClass.getResource("search.fxml"))
+        loader.setController(object : Initializable {
+            @FXML private var searchResult: ListView<CloudFile>? = null
+            @FXML private var searchField: TextField? = null
 
-	private BorderPane loadSearch() throws IOException {
-		FXMLLoader loader = new FXMLLoader(getClass().getResource("search.fxml"));
-		loader.setController(new Initializable() {
-			@FXML private ListView<CloudFile> searchResult;
-			@FXML private TextField searchField;
+            override fun initialize(location: URL?, resources: ResourceBundle?) {
+                searchField!!.textProperty().addListener { p: ObservableValue<out String>?, o: String?, n: String ->
+                    if (n.isEmpty()) {
+                        searchResult!!.setItems(library.recentlyUsed)
+                    } else {
+                        searchResult!!.setItems(library.startSearch(n))
+                    }
+                    if (!searchResult!!.items.isEmpty()) searchResult!!.selectionModel.select(0)
+                    searchResult!!.items.addListener(ListChangeListener { change: ListChangeListener.Change<out CloudFile>? -> if (!searchResult!!.items.isEmpty()) searchResult!!.selectionModel.select(0) })
+                }
+                searchResult!!.setItems(library.recentlyUsed)
+                searchResult!!.setCellFactory { list: ListView<CloudFile>? -> MediaCell() }
+                searchResult!!.onKeyPressed = EventHandler { e: KeyEvent -> if (e.code == KeyCode.ENTER) playSelected(e.isControlDown) }
+                searchField!!.onKeyPressed = EventHandler { e: KeyEvent ->
+                    if (e.code == KeyCode.ENTER) {
+                        playSelected(e.isControlDown)
+                        e.consume()
+                    } else if (e.code == KeyCode.DOWN) {
+                        val next = searchResult!!.selectionModel.selectedIndex + 1
+                        if (searchResult!!.items.size > next) searchResult!!.selectionModel.select(next)
+                        e.consume()
+                    } else if (e.code == KeyCode.UP) {
+                        val prev = searchResult!!.selectionModel.selectedIndex - 1
+                        if (prev >= 0) searchResult!!.selectionModel.select(prev)
+                        e.consume()
+                    }
+                }
+                searchResult!!.onMouseReleased = EventHandler { e: MouseEvent -> if (e.button == MouseButton.PRIMARY) playSelected(e.isControlDown) }
+                searchFocus = searchField
+            }
 
-			@Override
-			public void initialize(URL location, ResourceBundle resources) {
-				searchField.textProperty().addListener((p,o,n) -> {
-					if(n.isEmpty()) {
-						searchResult.setItems(library.getRecentlyUsed());
-					} else {
-						searchResult.setItems(library.startSearch(n));
-					}
-					if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
-					searchResult.getItems().addListener((ListChangeListener<CloudFile>) change -> {
-						if(!searchResult.getItems().isEmpty()) searchResult.getSelectionModel().select(0);
-					});
-				});
-				searchResult.setItems(library.getRecentlyUsed());
-				searchResult.setCellFactory(list -> new MediaCell());
-				searchResult.setOnKeyPressed(e -> { if(e.getCode() == KeyCode.ENTER) playSelected(e.isControlDown()); });
-				searchField.setOnKeyPressed(e -> {
-					if(e.getCode() == KeyCode.ENTER) {
-						playSelected(e.isControlDown());
-						e.consume();
-					} else if(e.getCode() == KeyCode.DOWN) {
-						int next = searchResult.getSelectionModel().getSelectedIndex()+1;
-						if(searchResult.getItems().size() > next) searchResult.getSelectionModel().select(next);
-						e.consume();
-					} else if(e.getCode() == KeyCode.UP){
-						int prev = searchResult.getSelectionModel().getSelectedIndex() - 1;
-						if(prev >= 0) searchResult.getSelectionModel().select(prev);
-						e.consume();
-					}
-				});
-				searchResult.setOnMouseReleased(e -> { if(e.getButton() == MouseButton.PRIMARY) playSelected(e.isControlDown()); });
-				searchFocus = searchField;
-			}
+            @FXML
+            fun closeSearch() {
+                fadeOut(searchRoot)
+            }
 
-			@FXML
-			public void closeSearch() {
-				fadeOut(searchRoot);
-			}
+            private fun playSelected(append: Boolean) {
+                val m = searchResult!!.selectionModel.selectedItem
+                m?.let { playFromLibrary(it, append) }
+                Platform.runLater { closeSearch() }
+            }
+        })
+        val searchRoot = loader.load<BorderPane>()
+        searchRoot.background = Background(BackgroundFill(Color(0.0, 0.0, 0.0, 0.5), CornerRadii.EMPTY, Insets.EMPTY))
+        return searchRoot
+    }
 
-			private void playSelected(boolean append) {
-				CloudFile m = searchResult.getSelectionModel().getSelectedItem();
-				if(m != null) {
-					playFromLibrary(m, append);
-				}
-				Platform.runLater(() -> closeSearch());
-			}
-		});
-		BorderPane searchRoot = loader.load();
-		searchRoot.setBackground(new Background(new BackgroundFill(new Color(0,0,0,0.5), CornerRadii.EMPTY, Insets.EMPTY)));
-		return searchRoot;
-	}
+    private fun generateDropButtons(files: List<File>): List<ToggleButton> {
+        val result: MutableList<ToggleButton> = ArrayList(3)
+        val audioFiles = AudioFiles.trim(AudioFiles.unfold(files))
+        val cold = statusWrapper.playlist.isEmpty()
 
-	public PlaylistPlayer getStatusWrapper() {
-		return player;
-	}
+        // Play / New Playlist
+        if (!audioFiles.isEmpty()) {
+            val play = ToggleButton("Play", FXIcons.get("Play2.png", 32.0))
+            play.onAction = EventHandler { e: ActionEvent? -> play(audioFiles, files[0]) }
+            result.add(play)
+        }
 
-	private List<ToggleButton> generateDropButtons(List<File> files) {
-		List<ToggleButton> result = new ArrayList<>(3);
+        // Add to Playlist
+        if (!cold && !audioFiles.isEmpty()) {
+            val append = ToggleButton("Add to playlist", FXIcons.get("Append.png", 32.0))
+            append.onAction = EventHandler { e: ActionEvent? ->
+                val dfiles = audioFiles.stream().map { file: File? -> CloudFile(file!!) }.collect(Collectors.toList())
+                statusWrapper.addToPlaylist(dfiles)
+                if (statusWrapper.currentFileProperty.get() == null) {
+                    statusWrapper.currentFileProperty.set(dfiles[0])
+                }
+            }
+            result.add(append)
+        }
 
-		List<File> audioFiles = AudioFiles.trim(AudioFiles.unfold(files));
-		boolean cold = player.getPlaylist().isEmpty();
+        // Play Folder
+        if (files.size == 1) {
+            val file = files[0]
+            val allAudioFiles = AudioFiles.allAudioFilesIn(files[0].parentFile)
+            if (allAudioFiles.size > 1) {
+                val playFolder = ToggleButton("Play folder", FXIcons.get("PlayFolder.png", 32.0))
+                playFolder.onAction = EventHandler { e: ActionEvent? -> play(allAudioFiles, if (AudioFiles.isAudioFile(file)) file else allAudioFiles[0]) }
+                result.add(playFolder)
+            }
+        }
+        return result
+    }
 
-		// Play / New Playlist
-		if(!audioFiles.isEmpty()) {
-			ToggleButton play = new ToggleButton("Play", FXIcons.get("Play2.png", 32));
-			play.setOnAction(e -> play(audioFiles, files.get(0)));
-			result.add(play);
-		}
-
-		// Add to Playlist
-		if(!cold && !audioFiles.isEmpty()) {
-			ToggleButton append = new ToggleButton("Add to playlist", FXIcons.get("Append.png", 32));
-			append.setOnAction(e -> {
-				List<CloudFile> dfiles = audioFiles.stream().map(CloudFile::new).collect(Collectors.toList());
-				player.addToPlaylist(dfiles);
-				if(player.getCurrentFileProperty().get() == null) {
-					player.getCurrentFileProperty().set(dfiles.get(0));
-				}
-			});
-			result.add(append);
-		}
-
-		// Play Folder
-		if(files.size() == 1) {
-			File file = files.get(0);
-			List<File> allAudioFiles = AudioFiles.allAudioFilesIn(files.get(0).getParentFile());
-			if(allAudioFiles.size() > 1) {
-				ToggleButton playFolder = new ToggleButton("Play folder", FXIcons.get("PlayFolder.png", 32));
-				playFolder.setOnAction(e -> play(allAudioFiles, AudioFiles.isAudioFile(file) ? file : allAudioFiles.get(0)));
-				result.add(playFolder);
-			}
-		}
-
-		return result;
-	}
-
-	public void play(List<File> localFiles, File startFile) {
-		List<CloudFile> remoteFiles = localFiles.stream().map(CloudFile::new).collect(Collectors.toList());
-//		for(DFile file : remoteFiles) {
+    fun play(localFiles: List<File>, startFile: File?) {
+        val remoteFiles = localFiles.stream().map { file: File? -> CloudFile(file!!) }.collect(Collectors.toList())
+        //		for(DFile file : remoteFiles) {
 //			if(!player.getLibrary().isIndexed(file)) {
 //				player.getLibrary().getOrAdd(file);
 //			}
 //		}
-		player.setPlaylist(remoteFiles);
-		player.getCurrentFileProperty().set(new CloudFile(startFile));
-		player.getPlayingProperty().set(true);
-	}
+        statusWrapper.setPlaylist(remoteFiles)
+        statusWrapper.currentFileProperty.set(CloudFile(startFile!!))
+        statusWrapper.playingProperty.set(true)
+    }
 
-	private void fadeIn(Node node, Node focus) {
-		if(root.getChildren().contains(node)) {
-			fadeOut(node);
-			return;
-		}
-		if(currentOverlay != null) {
-			fadeOut(currentOverlay);
-		}
-		currentOverlay = node;
-		root.getChildren().add(node);
+    private fun fadeIn(node: Node, focus: Node?) {
+        if (root.children.contains(node)) {
+            fadeOut(node)
+            return
+        }
+        if (currentOverlay != null) {
+            fadeOut(currentOverlay!!)
+        }
+        currentOverlay = node
+        root.children.add(node)
+        val time = Duration(200.0)
+        val `in` = TranslateTransition(time, node)
+        `in`.fromY = -20.0
+        `in`.toY = 0.0
+        `in`.play()
+        val fade = FadeTransition(time, node)
+        fade.fromValue = 0.0
+        fade.toValue = 1.0
+        fade.play()
+        focus!!.requestFocus()
+    }
 
-		Duration time = new Duration(200);
-		TranslateTransition in = new TranslateTransition(time, node);
-		in.setFromY(-20);
-		in.setToY(0);
-		in.play();
-		FadeTransition fade = new FadeTransition(time, node);
-		fade.setFromValue(0);
-		fade.setToValue(1);
-		fade.play();
+    private fun fadeOut(node: Node) {
+        val time = Duration(200.0)
+        val `in` = TranslateTransition(time, node)
+        `in`.fromY = 0.0
+        `in`.toY = -10.0
+        `in`.play()
+        val fade = FadeTransition(time, node)
+        fade.fromValue = 1.0
+        fade.toValue = 0.0
+        fade.play()
+        fade.onFinished = EventHandler { e: ActionEvent? -> root.children.remove(node) }
+        currentOverlay = null
+    }
 
-		focus.requestFocus();
-	}
-
-	private void fadeOut(Node node) {
-		Duration time = new Duration(200);
-
-		TranslateTransition in = new TranslateTransition(time, node);
-		in.setFromY(0);
-		in.setToY(-10);
-		in.play();
-
-    	FadeTransition fade = new FadeTransition(time, node);
-		fade.setFromValue(1);
-		fade.setToValue(0);
-		fade.play();
-		fade.setOnFinished(e -> root.getChildren().remove(node));
-
-		currentOverlay = null;
-	}
-
-	public void showPlaylist() {
-		fadeIn(playlistRoot, playlistListView);
-	}
-
-    @FXML
-	public void showSearch() {
-		fadeIn(searchRoot, searchFocus);
-	}
-
-	private void updateAddToLibraryMenu() {
-		addToLibraryMenu.getItems().clear();
-		addToLibraryMenu.setDisable(true);
-
-		if(player.getCurrentFileProperty().get() != null) {
-			CloudFile file = player.getCurrentFileProperty().get();
-			if(file.originatesHere()) {
-				File localFile = new File(file.getPath()).getAbsoluteFile();
-				while(localFile != null && library.isIndexed(new CloudFile(localFile))) {
-					localFile = localFile.getParentFile();
-				}
-				if(localFile != null) {
-					do {
-						File finalFile = localFile;
-						MenuItem item = new MenuItem(localFile.getName().isEmpty() ? localFile.getAbsolutePath() : localFile.getName());
-						item.setGraphic(FXIcons.get(localFile.isDirectory() ? "PlayFolder.png" : "Media.png", 28) );
-						item.setOnAction(e -> library.getRoots().add(new CloudFile(finalFile)));
-						addToLibraryMenu.getItems().add(item);
-						localFile = localFile.getParentFile();
-					} while(localFile != null);
-					addToLibraryMenu.setDisable(false);
-				}
-			}
-		}
-
-		if(addToLibraryMenu.getItems().isEmpty()) {
-			addToLibraryMenu.getItems().setAll(Arrays.asList(cannotAddToLibraryItem));
-		}
-	}
-
-
-	private void playFromLibrary(CloudFile file, boolean append) {
-		List<CloudFile> files;
-		if(file.isDirectory()) {
-			List<File> allFiles = AudioFiles.unfold(Arrays.asList(new File(file.getPath())));
-			files = allFiles.stream().filter(AudioFiles::isAudioFile).map(CloudFile::new).collect(Collectors.toList());
-		}
-		else files = Arrays.asList(file);
-		if(!append) {
-			player.setPlaylist(files);
-			player.getCurrentFileProperty().set(files.get(0));
-		} else {
-			player.addToPlaylist(files);
-			if(player.getCurrentFileProperty().get() == null) {
-				player.getCurrentFileProperty().set(files.get(0));
-			}
-		}
-	}
-
-
-	static class MediaCell extends ListCell<CloudFile>
-	{
-		ImageView fileIcon = FXIcons.get("Play.png", 32);
-		ImageView dirIcon = FXIcons.get("PlayFolder.png", 32);
-
-		@Override
-		protected void updateItem(CloudFile item, boolean empty) {
-			super.updateItem(item, empty);
-			if(item != null) {
-				setText(AudioFiles.inferTitle(item.getPath()));
-				setGraphic(item.isDirectory() ? dirIcon : fileIcon);
-			} else {
-				setText(null);
-				setGraphic(null);
-			}
-		}
-	}
-
-    public void show() {
-		stage.show();
-    	stage.setWidth(314);  // default values, apply for bundled application
-    	stage.setHeight(402);
+    fun showPlaylist() {
+        fadeIn(playlistRoot, playlistListView)
     }
 
     @FXML
-    public void quit() {
-    	System.exit(0);
+    fun showSearch() {
+        fadeIn(searchRoot, searchFocus)
+    }
+
+    private fun updateAddToLibraryMenu() {
+        addToLibraryMenu!!.items.clear()
+        addToLibraryMenu!!.isDisable = true
+        if (statusWrapper.currentFileProperty.get() != null) {
+            val file = statusWrapper.currentFileProperty.get()
+            if (file!!.originatesHere()) {
+                var localFile: File? = File(file.getPath()).absoluteFile
+                while (localFile != null && library.isIndexed(CloudFile(localFile))) {
+                    localFile = localFile.parentFile
+                }
+                if (localFile != null) {
+                    do {
+                        val finalFile = localFile!!
+                        val item = MenuItem(if (localFile.name.isEmpty()) localFile.absolutePath else localFile.name)
+                        item.graphic = FXIcons.get(if (localFile.isDirectory) "PlayFolder.png" else "Media.png", 28.0)
+                        item.onAction = EventHandler { e: ActionEvent? -> library.roots.add(CloudFile(finalFile)) }
+                        addToLibraryMenu!!.items.add(item)
+                        localFile = localFile.parentFile
+                    } while (localFile != null)
+                    addToLibraryMenu!!.isDisable = false
+                }
+            }
+        }
+        if (addToLibraryMenu!!.items.isEmpty()) {
+            addToLibraryMenu!!.items.setAll(Arrays.asList(cannotAddToLibraryItem))
+        }
+    }
+
+    private fun playFromLibrary(file: CloudFile, append: Boolean) {
+        val files: List<CloudFile>
+        files = if (file.isDirectory()) {
+            val allFiles = AudioFiles.unfold(Arrays.asList(File(file.getPath())))
+            allFiles.stream().filter { file: File? -> AudioFiles.isAudioFile(file) }.map { file: File? -> CloudFile(file!!) }.collect(Collectors.toList())
+        } else Arrays.asList(file)
+        if (!append) {
+            statusWrapper.setPlaylist(files)
+            statusWrapper.currentFileProperty.set(files[0])
+        } else {
+            statusWrapper.addToPlaylist(files)
+            if (statusWrapper.currentFileProperty.get() == null) {
+                statusWrapper.currentFileProperty.set(files[0])
+            }
+        }
+    }
+
+    internal class MediaCell : ListCell<CloudFile>() {
+        var fileIcon = FXIcons.get("Play.png", 32.0)
+        var dirIcon = FXIcons.get("PlayFolder.png", 32.0)
+
+        override fun updateItem(item: CloudFile?, empty: Boolean) {
+            super.updateItem(item, empty)
+            if (item != null) {
+                text = AudioFiles.inferTitle(item.getPath())
+                graphic = if (item.isDirectory()) dirIcon else fileIcon
+            } else {
+                text = null
+                graphic = null
+            }
+        }
+    }
+
+    fun show() {
+        stage.show()
+        stage.width = 314.0 // default values, apply for bundled application
+        stage.height = 402.0
     }
 
     @FXML
-    public void displayInfo() {
-    	Alert info = new Alert(AlertType.INFORMATION);
-    	info.setTitle("Info");
-    	info.setHeaderText("Cyclone");
-    	info.setContentText("Version 0.2\nAuthor: Philipp Holl\nMay 2020");
-    	info.initOwner(stage);
-    	info.initModality(Modality.NONE);
-    	info.show();
+    fun quit() {
+        System.exit(0)
     }
 
     @FXML
-    public void openFileLocation() {
-		openFileLocation(player.getCurrentFileProperty().get());
+    fun displayInfo() {
+        val info = Alert(AlertType.INFORMATION)
+        info.title = "Info"
+        info.headerText = "Cyclone"
+        info.contentText = "Version 0.2\nAuthor: Philipp Holl\nMay 2020"
+        info.initOwner(stage)
+        info.initModality(Modality.NONE)
+        info.show()
     }
-
-    private void openFileLocation(CloudFile file) {
-		if(file != null && file.originatesHere()) {
-			try {
-				Desktop.getDesktop().browse(new File(file.getPath()).getParentFile().toURI());
-			} catch (NoSuchElementException | IOException e) {
-				e.printStackTrace();
-				new Alert(AlertType.ERROR, "Could not open location: "+file.getPath(), ButtonType.OK).show();
-			}
-		} else {
-			new Alert(AlertType.INFORMATION, "The file is not located on this systemcontrol.", ButtonType.OK).show();
-		}
-	}
 
     @FXML
-    public void removeCurrentFromPlaylist() {
-		player.removeCurrentFileFromPlaylist();
+    fun openFileLocation() {
+        openFileLocation(statusWrapper.currentFileProperty.get())
     }
 
+    private fun openFileLocation(file: CloudFile?) {
+        if (file != null && file.originatesHere()) {
+            try {
+                Desktop.getDesktop().browse(File(file.getPath()).parentFile.toURI())
+            } catch (e: NoSuchElementException) {
+                e.printStackTrace()
+                Alert(AlertType.ERROR, "Could not open location: " + file.getPath(), ButtonType.OK).show()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                Alert(AlertType.ERROR, "Could not open location: " + file.getPath(), ButtonType.OK).show()
+            }
+        } else {
+            Alert(AlertType.INFORMATION, "The file is not located on this systemcontrol.", ButtonType.OK).show()
+        }
+    }
 
+    @FXML
+    fun removeCurrentFromPlaylist() {
+        statusWrapper.removeCurrentFileFromPlaylist()
+    }
 
-	class TabAndEnterHandler implements EventHandler<KeyEvent> {
-		private Node node;
+    internal inner class TabAndEnterHandler(private val node: Node?) : EventHandler<KeyEvent> {
+        override fun handle(event: KeyEvent) {
+            val parent = node!!.parent
+            if (event.code == KeyCode.ENTER || event.code == KeyCode.ESCAPE) {
+                parent.fireEvent(event.copyFor(parent, parent))
+                event.consume()
+            }
+        }
 
-		public TabAndEnterHandler(Node node) {
-			this.node = node;
-		}
+    }
 
-		public void handle(KeyEvent event) {
-			Parent parent = node.getParent();
-			if(event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE) {
-				parent.fireEvent(event.copyFor(parent, parent));
-				event.consume();
-			}
-		}
-	}
-
-
-	@FXML
-	public void showFileInfo() throws IOException {
-		CloudFile file = player.getCurrentFileProperty().get();
-		if(file == null) return;
-
-		FXMLLoader loader = new FXMLLoader(getClass().getResource("fileinfo.fxml"));
-		loader.setController(new Initializable() {
-		    @FXML
-            private Tab encodingTab, playbackTab;
-			@FXML
-			private Label titleLabel, durationLabel, encodingLabel;
-			@FXML
-			private Hyperlink pathLink;
-			@FXML
-			private TableView<Map.Entry<String, Object>> propertiesTable;
+    @FXML
+    @Throws(IOException::class)
+    fun showFileInfo() {
+        val file = statusWrapper.currentFileProperty.get() ?: return
+        val loader = FXMLLoader(javaClass.getResource("fileinfo.fxml"))
+        loader.setController(object : Initializable {
             @FXML
-            private TableColumn<Map.Entry<String, Object>, String> propertyColumn;
-			@FXML
-            private TableColumn<Map.Entry<String, Object>, Object> valueColumn;
-			@FXML
-            private Label eEncoding, eChannels, eSampleRate, eSampleSize, eFrameSize, eFrameRate, eEndianness, eProperties;
+            private val encodingTab: Tab? = null
+
             @FXML
-            private Label dEncoding, dChannels, dSampleRate, dSampleSize, dFrameSize, dFrameRate, dEndianness, dProperties, playbackEngine;
+            private val playbackTab: Tab? = null
 
-			@Override
-			public void initialize(URL location, ResourceBundle resources) {
-				Optional<Job> opJob = engine.getJobs().stream().filter(j -> j.getTask().get() != null && j.getTask().get().getFile() ==file && j.getPlayer().get() != null).findFirst();
-				if(opJob.isPresent()) {
-					Player player = opJob.get().getPlayer().get();
-					try {
-						player.loadMediaFormat();
-					} catch (IOException | UnsupportedMediaFormatException e) {
-						e.printStackTrace();
-						Alert alert = new Alert(AlertType.ERROR);
-						alert.setTitle("File error");
-						alert.setHeaderText("Failed to retrieve media information.");
-						alert.setContentText(e.getMessage());
-						alert.showAndWait();
-						return;
-					}
-					MediaFile file = player.getMediaFile();
-					MediaFormat format = player.getMediaFormat();
-					audio.MediaInfo info = player.getMediaInfo();
+            @FXML
+            private val titleLabel: Label? = null
 
-					titleLabel.setText(info.getTitle() != null ? info.getTitle() : file.getFileName());
-					pathLink.setText(file.getFile().getAbsolutePath());
-					durationLabel.setText("Duration: " + info.getDuration() + " seconds / " + format.getFrameLength() + " frames");
-					encodingLabel.setText("File type: " + format.getType().getName() + ", size: " + file.getFileSize() / 1024 / 1024 + " MB (" + file.getFileSize() + " bytes)");
-					propertiesTable.getItems().addAll(FXCollections.observableArrayList(format.getProperties().entrySet()));
+            @FXML
+            private val durationLabel: Label? = null
 
-                    AudioDataFormat ef = player.getEncodedFormat();
-                    eEncoding.setText("Encoding: " + ef.getEncodingName());
-                    eChannels.setText("Channels: " + (ef.getChannels() == 2 ? "Stereo" : (ef.getChannels() == 1 ? "Mono" : ef.getChannels())));
-                    eSampleRate.setText("Sample rate: " + ef.getSampleRate() + " Hz");
-                    eSampleSize.setText("Sample size: " + (ef.getSampleSizeInBits() > 0 ? ef.getSampleSizeInBits() + " bits" : "variable"));
-                    eFrameSize.setText("Frame size: " + (ef.getFrameSize() > 0 ? ef.getFrameSize() + " bytes" : "variable"));
-                    eFrameRate.setText("Frame rate: " + ef.getFrameRate() + " Hz");
-                    eEndianness.setText("Endianness: " + (ef.isBigEndian() ? "big endian" : "little endian"));
-                    eProperties.setText((ef.getProperties().isEmpty() ? "" : ef.getProperties().toString()));
+            @FXML
+            private val encodingLabel: Label? = null
 
-                    playbackEngine.setText("Playback engine: " + format.getAudioEngineName());
-                    AudioDataFormat df = player.getDecodedFormat();
-                    dEncoding.setText("Encoding: " + df.getEncodingName());
-                    dChannels.setText("Channels: " + (df.getChannels() == 2 ? "Stereo" : (df.getChannels() == 1 ? "Mono" : df.getChannels())));
-                    dSampleRate.setText("Sample rate: " + df.getSampleRate() + " Hz");
-                    dSampleSize.setText("Sample size: " + (df.getSampleSizeInBits() > 0 ? df.getSampleSizeInBits() + " bits" : "variable"));
-                    dFrameSize.setText("Frame size: " + (df.getFrameSize() > 0 ? df.getFrameSize() + " bytes" : "variable"));
-                    dFrameRate.setText("Frame rate: " + df.getFrameRate() + " Hz");
-                    dEndianness.setText("Endianness: " + (df.isBigEndian() ? "big endian" : "little endian"));
-                    dProperties.setText((df.getProperties().isEmpty() ? "" : df.getProperties().toString()));
-				} else {
-					titleLabel.setText(file.getName());
-					pathLink.setText(file.getPath());
-					durationLabel.setText("Media details are unavailable because file is not stored locally.");
-					encodingTab.setDisable(true);
-					playbackTab.setDisable(true);
-				}
-				propertyColumn.setCellValueFactory(entry -> new SimpleStringProperty(entry.getValue().getKey()));
-				valueColumn.setCellValueFactory(entry -> new SimpleObjectProperty<>(entry.getValue().getValue()));
-			}
+            @FXML
+            private val pathLink: Hyperlink? = null
 
-			@FXML protected void showFolder() {
-				openFileLocation(file);
-			}
-		});
+            @FXML
+            private val propertiesTable: TableView<Map.Entry<String, Any>>? = null
 
-        BorderPane playerRoot = loader.load();
-        Stage stage = new Stage();
-        stage.setTitle("Media Info");
-        stage.setScene(new Scene(playerRoot));
-        stage.show();
-	}
+            @FXML
+            private val propertyColumn: TableColumn<Map.Entry<String?, Any?>, String?>? = null
 
-	@FXML void showSettings() {
-        settings.getStage().show();
+            @FXML
+            private val valueColumn: TableColumn<Map.Entry<String?, Any?>, Any?>? = null
+
+            @FXML
+            private val eEncoding: Label? = null
+
+            @FXML
+            private val eChannels: Label? = null
+
+            @FXML
+            private val eSampleRate: Label? = null
+
+            @FXML
+            private val eSampleSize: Label? = null
+
+            @FXML
+            private val eFrameSize: Label? = null
+
+            @FXML
+            private val eFrameRate: Label? = null
+
+            @FXML
+            private val eEndianness: Label? = null
+
+            @FXML
+            private val eProperties: Label? = null
+
+            @FXML
+            private val dEncoding: Label? = null
+
+            @FXML
+            private val dChannels: Label? = null
+
+            @FXML
+            private val dSampleRate: Label? = null
+
+            @FXML
+            private val dSampleSize: Label? = null
+
+            @FXML
+            private val dFrameSize: Label? = null
+
+            @FXML
+            private val dFrameRate: Label? = null
+
+            @FXML
+            private val dEndianness: Label? = null
+
+            @FXML
+            private val dProperties: Label? = null
+
+            @FXML
+            private val playbackEngine: Label? = null
+            override fun initialize(location: URL?, resources: ResourceBundle?) {
+                val opJob = engine.jobs.stream().filter { j: Job -> j.task.get() != null && j.task.get()!!.file === file && j.player.get() != null }.findFirst()
+                if (opJob.isPresent) {
+                    val player = opJob.get().player.get()!!
+                    try {
+                        player.loadMediaFormat()
+                    } catch (e: IOException) {
+                        e.printStackTrace()
+                        val alert = Alert(AlertType.ERROR)
+                        alert.title = "File error"
+                        alert.headerText = "Failed to retrieve media information."
+                        alert.contentText = e.message
+                        alert.showAndWait()
+                        return
+                    } catch (e: UnsupportedMediaFormatException) {
+                        e.printStackTrace()
+                        val alert = Alert(AlertType.ERROR)
+                        alert.title = "File error"
+                        alert.headerText = "Failed to retrieve media information."
+                        alert.contentText = e.message
+                        alert.showAndWait()
+                        return
+                    }
+                    val file = player.mediaFile
+                    val format = player.mediaFormat
+                    val info = player.mediaInfo
+                    titleLabel!!.text = if (info.title != null) info.title else file.fileName
+                    pathLink!!.text = file.file.absolutePath
+                    durationLabel!!.text = "Duration: " + info.duration + " seconds / " + format.frameLength + " frames"
+                    encodingLabel!!.text = "File type: " + format.type.name + ", size: " + file.fileSize / 1024 / 1024 + " MB (" + file.fileSize + " bytes)"
+                    propertiesTable!!.items.addAll(FXCollections.observableArrayList<Map.Entry<String, Any>>(format.properties.entries))
+                    val ef = player.encodedFormat
+                    eEncoding!!.text = "Encoding: " + ef.encodingName
+                    eChannels!!.text = "Channels: " + if (ef.channels == 2) "Stereo" else if (ef.channels == 1) "Mono" else ef.channels
+                    eSampleRate!!.text = "Sample rate: " + ef.sampleRate + " Hz"
+                    eSampleSize!!.text = "Sample size: " + if (ef.sampleSizeInBits > 0) ef.sampleSizeInBits.toString() + " bits" else "variable"
+                    eFrameSize!!.text = "Frame size: " + if (ef.frameSize > 0) ef.frameSize.toString() + " bytes" else "variable"
+                    eFrameRate!!.text = "Frame rate: " + ef.frameRate + " Hz"
+                    eEndianness!!.text = "Endianness: " + if (ef.isBigEndian) "big endian" else "little endian"
+                    eProperties!!.text = if (ef.properties.isEmpty()) "" else ef.properties.toString()
+                    playbackEngine!!.text = "Playback engine: " + format.audioEngineName
+                    val df = player.decodedFormat
+                    dEncoding!!.text = "Encoding: " + df.encodingName
+                    dChannels!!.text = "Channels: " + if (df.channels == 2) "Stereo" else if (df.channels == 1) "Mono" else df.channels
+                    dSampleRate!!.text = "Sample rate: " + df.sampleRate + " Hz"
+                    dSampleSize!!.text = "Sample size: " + if (df.sampleSizeInBits > 0) df.sampleSizeInBits.toString() + " bits" else "variable"
+                    dFrameSize!!.text = "Frame size: " + if (df.frameSize > 0) df.frameSize.toString() + " bytes" else "variable"
+                    dFrameRate!!.text = "Frame rate: " + df.frameRate + " Hz"
+                    dEndianness!!.text = "Endianness: " + if (df.isBigEndian) "big endian" else "little endian"
+                    dProperties!!.text = if (df.properties.isEmpty()) "" else df.properties.toString()
+                } else {
+                    titleLabel!!.text = file.getName()
+                    pathLink!!.text = file.getPath()
+                    durationLabel!!.text = "Media details are unavailable because file is not stored locally."
+                    encodingTab!!.isDisable = true
+                    playbackTab!!.isDisable = true
+                }
+                propertyColumn!!.cellValueFactory = Callback { entry: TableColumn.CellDataFeatures<Map.Entry<String?, Any?>, String?> -> SimpleStringProperty(entry.value.key) }
+                valueColumn!!.cellValueFactory = Callback { entry: TableColumn.CellDataFeatures<Map.Entry<String?, Any?>, Any?> -> SimpleObjectProperty(entry.value.value) }
+            }
+
+            @FXML
+            protected fun showFolder() {
+                openFileLocation(file)
+            }
+        })
+        val playerRoot = loader.load<BorderPane>()
+        val stage = Stage()
+        stage.title = "Media Info"
+        stage.scene = Scene(playerRoot)
+        stage.show()
     }
 
-    @FXML void openTaskViewer() {
-		Stage stage = new Stage();
-		TaskViewer viewer = new TaskViewer(player.getCloud(), stage);
-		viewer.getStage().show();
-	}
+    @FXML
+    fun showSettings() {
+        settings.stage.show()
+    }
 
-	@FXML void openPlaybackWindow() {
-		PlaybackViewer viewer = new PlaybackViewer(engine);
-		viewer.getStage().show();
-	}
+    @FXML
+    fun openTaskViewer() {
+        val stage = Stage()
+        val viewer = TaskViewer(statusWrapper.cloud, stage)
+        viewer.stage.show()
+    }
 
-	@FXML void openCloudViewer() {
-		CloudViewer viewer = new CloudViewer(player.getCloud(), null);
-		viewer.getStage().show();
-	}
+    @FXML
+    fun openPlaybackWindow() {
+        val viewer = PlaybackViewer(engine)
+        viewer.stage.show()
+    }
+
+    @FXML
+    fun openCloudViewer() {
+        val viewer = CloudViewer(statusWrapper.cloud, null)
+        viewer.stage.show()
+    }
+
+    init {
+        library = statusWrapper.library
+        settings = AppSettings(config!!, statusWrapper)
+        root = StackPane()
+        root.children.add(loadPlayer())
+        playlistRoot = loadPlaylist()
+        searchRoot = loadSearch()
+        statusWrapper.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> updateAddToLibraryMenu() }
+        val overlay = FileDropOverlay(root)
+        overlay.actionGenerator = Function { files: List<File> -> generateDropButtons(files) }
+        var scene: Scene?
+        stage.scene = Scene(root).also { scene = it }
+        stage.title = "Cyclone"
+        stage.icons.add(FXIcons.get("Play2.png", 32.0).image)
+        stage.onHidden = EventHandler { e: WindowEvent? -> quit() }
+    }
 }
