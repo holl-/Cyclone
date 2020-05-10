@@ -3,7 +3,6 @@ package player.fx.app;
 import appinstance.ApplicationParameters;
 import appinstance.InstanceManager;
 import audio.AudioEngineException;
-import audio.javasound.JavaSoundEngine;
 import cloud.Cloud;
 import cloud.Peer;
 import javafx.application.Application;
@@ -57,18 +56,18 @@ public class Launcher extends Application {
 		String computerName = config.get("computerName");
 		if (computerName != null) Peer.getLocal().setName(computerName);
 
-//			Peer.getLocal().setId("1");
-//			Peer.getLocal().setName("peer1");
+		Peer.getLocal().setId("1");
+		Peer.getLocal().setName("peer1");
 		Cloud cloud1 = new Cloud();
 
-//			Cloud cloud2 = new Cloud();
-//			cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
+		Cloud cloud2 = new Cloud();
+		cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
 
-//			CloudViewer viewer1 = new CloudViewer(cloud1, "1");
-//			viewer1.getStage().show();
-//			CloudViewer viewer2 = new CloudViewer(cloud2, "2");
-//			viewer2.getStage().setX(800);
-//			viewer2.getStage().show();
+		CloudViewer viewer1 = new CloudViewer(cloud1, "1");
+		viewer1.getStage().show();
+		CloudViewer viewer2 = new CloudViewer(cloud2, "2");
+		viewer2.getStage().setX(800);
+		viewer2.getStage().show();
 
 
 
@@ -77,7 +76,7 @@ public class Launcher extends Application {
 		PlaylistPlayer player = new PlaylistPlayer(cloud1, config);
 		window = new PlayerWindow(primaryStage, player, engine, config);
 		window.show();
-		addControl(window.getStatusWrapper());
+		addControl(window.getPlayer());
 
 
 		if (Boolean.parseBoolean(config.getString("connectOnStartup", "false"))) {
@@ -93,20 +92,21 @@ public class Launcher extends Application {
 
 
 
-//			PlaylistPlayer player2 = new PlaylistPlayer(cloud2, config);
-//			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
-//			window2.show();
+			PlaylistPlayer player2 = new PlaylistPlayer(cloud2, config);
+			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
+			window2.getStage().setTitle("2");
+			window2.show();
 
 
-//			cloud1.connect("225.4.5.6", 5324, true);
-//			new Thread(() -> {
-//				try {
-//					Thread.sleep(1000);
-//					cloud2.connect("225.4.5.6", 5324, true);
-//				} catch (Exception e) {
-//					e.printStackTrace();
-//				}
-//			}).start();
+			cloud1.connect("225.4.5.6", 5324, true, 1000);
+			new Thread(() -> {
+				try {
+					Thread.sleep(1000);
+					cloud2.connect("225.4.5.6", 5324, true, 1000);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}).start();
 
 	}
 

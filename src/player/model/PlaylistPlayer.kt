@@ -82,7 +82,8 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     private val pausedData = cloud.getSynchronized(PlayerData.Paused::class.java, default = Supplier { PlayerData.Paused(true) })
     private val selectedFile = cloud.getSynchronized(PlayerData.SelectedFile::class.java, default = Supplier { PlayerData.SelectedFile(null, 0.0, 0) })
     private val statuses = cloud.getAll(PlayTaskStatus::class.java)
-    private val status = Bindings.createObjectBinding(Callable { getStatus() }, statuses)
+    private val tasks = cloud.getAll(PlayTask::class.java)
+    private val status = Bindings.createObjectBinding(Callable { getStatus() }, statuses, speakerData, tasks)
 
 
     companion object {
@@ -103,7 +104,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     val playlist: ObservableList<CloudFile> = FXCollections.observableArrayList()
     val speakerProperty: ObjectProperty<Speaker?> = CustomObjectProperty<Speaker?>(listOf(speakerData),
             getter = Supplier { speakerData.value?.value },
-            setter = Consumer { value -> cloud.pushSynchronized(PlayerData.Target(value)) })
+            setter = Consumer { value -> updateSelectedFile(false); cloud.pushSynchronized(PlayerData.Target(value)) })
     // Playback information - depend on status of (remote) PlaybackEngine(s)
     val speakers: ObservableList<Speaker> = cloud.getAll(Speaker::class.java)
     val currentFileProperty: ObjectProperty<CloudFile?> = CustomObjectProperty<CloudFile?>(listOf(status, selectedFile),
@@ -234,12 +235,12 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
         val file = selectedFile.value.file  // not the actual file playing
 
         if (speaker != null && speaker.peer.isLocal && file != null) {
-            builder.paused = pausedData.value.value
             builder.activate(speaker)
-            if (selectedFile.value.jumpCount > jumpCount) {
+            if (selectedFile.value.jumpCount > jumpCount || !builder.isPlaying()) {
                 jumpCount = selectedFile.value.jumpCount
                 builder.play(file, selectedFile.value.position)
             }
+            builder.paused = pausedData.value.value
         }
         else {
             builder.deactivate()
@@ -248,20 +249,17 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
 
 
     private fun getStatus(): PlayTaskStatus? {
-        val scheduled = statuses.filter { status -> status.task.creator == CREATOR && status.task.target == speakerData.value?.value }
+        val scheduled = statuses.filter { status -> status.task.creator == CREATOR && status.task.target == speakerData.value?.value && status.task in tasks }
         scheduled.firstOrNull { status -> status.active }?.let { status -> return status }
         return scheduled.firstOrNull()
     }
 
-    private fun updateSelectedFile() {
+    private fun updateSelectedFile(onlyIfOwner: Boolean = true) {
         val status = status.value ?: return
-        if (speakerData.value?.value?.peer?.isLocal != true) return  // only playing peer should update
-        val shouldUpdate = status.task.file != selectedFile.value.file || abs(status.task.position - selectedFile.value.position) > 1.0
+        if (speakerData.value?.value?.peer?.isLocal != true && onlyIfOwner) return  // only playing peer should update
+        val shouldUpdate = status.task.file != selectedFile.value.file || abs(status.extrapolatePosition() - selectedFile.value.position) > 1.0
         if (shouldUpdate) {
-            println("updateSelectedFile")
-            cloud.pushSynchronized(PlayerData.SelectedFile(status.task.file, status.task.position, selectedFile.value.jumpCount))
-        } else {
-            println("Skipping updateSelectedFile")
+            cloud.pushSynchronized(PlayerData.SelectedFile(status.task.file, status.extrapolatePosition(), selectedFile.value.jumpCount))
         }
     }
 }

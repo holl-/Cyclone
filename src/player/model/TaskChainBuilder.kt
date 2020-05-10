@@ -46,6 +46,7 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
     }
 
     fun deactivate() {
+        if (!active) return
         active = false
         speaker = null
         cloud.yankAll(PlayTask::class.java, this)
@@ -60,6 +61,10 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
         active = true
         this.speaker = speaker
         update()
+    }
+
+    fun isPlaying(): Boolean {
+        return tasks.isNotEmpty()
     }
 
     /**
@@ -83,6 +88,9 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
                     } else {
                         tasks.removeAt(0)
                     }
+                }
+                if (tasks.isEmpty()) {
+                    tasks.add(PlayTask(speaker, file, 0.0, false, 0.0, position, 0, null, creator, paused, null, newId()))
                 }
             }
         }

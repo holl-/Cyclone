@@ -63,7 +63,7 @@
                   </VBox>
                </content>
             </Tab>
-            <Tab fx:id="encodingTab1" text="Playback">
+            <Tab fx:id="playbackTab" text="Playback">
                <content>
                   <VBox prefHeight="200.0" prefWidth="100.0" spacing="8.0">
                      <children>

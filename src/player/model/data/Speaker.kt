@@ -14,10 +14,6 @@ data class Speaker(val peer: Peer,
               val maxGain: Double,
               val isDefault: Boolean) : Data()
 {
-    override fun toString(): String {
-        return name
-    }
-
     override fun equals(o: Any?): Boolean {
         if (this === o) return true
         if (o == null || javaClass != o.javaClass) return false

@@ -47,7 +47,10 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
         }
 
         if (task.trigger != null && previous.value == null) {
-            this.previous.value = engine.getOrCreateJob(task.trigger.taskId)
+            previous.value = engine.getOrCreateJob(task.trigger.taskId)
+        }
+        if (task.trigger == null && previous.value != null) {
+            previous.value = null
         }
 
         if (!started.value) started.value = checkTriggerCondition()

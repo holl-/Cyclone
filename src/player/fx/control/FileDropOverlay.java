@@ -1,4 +1,4 @@
-package player.fx;
+package player.fx.control;
 
 import java.io.File;
 import java.util.ArrayList;

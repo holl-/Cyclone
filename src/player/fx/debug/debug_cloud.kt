@@ -232,7 +232,6 @@ class DisplayLog : Handler()
     init {
         level.addListener(ChangeListener { _, _, l ->
             filteredList.setAll(all.filter { record -> shown(record, l) })
-            println(filteredList.size)
         })
     }
 

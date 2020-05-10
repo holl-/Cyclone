@@ -117,15 +117,8 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
 
     private fun createTaskNode(task: PlayTask, statuses: List<PlayTaskStatus>): Node {
         val node = VBox()
-        val label = Label(task.toString())
-        label.isWrapText = true
-        label.graphic = if(task.paused) FXIcons.get("Pause.png", 20.0) else FXIcons.get("Play.png", 20.0)
-        node.children.add(label)
-        for (status in statuses) {
-            val statusLabel = Label("${status}, position=${status.task.position}, duration=${status.task.duration}")
-            statusLabel.isWrapText = true
-            node.children.add(statusLabel)
-        }
+        val label = TaskView(task, statuses)
+        node.children.add(label.root)
         return node
     }
 }
@@ -213,3 +206,46 @@ class TaskCreator(val cloud: Cloud) : Initializable
     }
 
 }
+
+
+class TaskView(val task: PlayTask, val statuses: List<PlayTaskStatus>) : Initializable {
+    @FXML private var title: TitledPane? = null
+    @FXML private var file: Label? = null
+    @FXML private var filePeer: Label? = null
+    @FXML private var target: Label? = null
+    @FXML private var targetPeer: Label? = null
+    @FXML private var position: Label? = null
+    @FXML private var duration: Label? = null
+    @FXML private var restart: Label? = null
+    @FXML private var trigger: Label? = null
+    @FXML var statusesList: VBox? = null
+
+    var root: Node
+
+    init {
+        val loader = FXMLLoader(javaClass.getResource("task.fxml"))
+        loader.setController(this)
+        root = loader.load<Parent>()
+    }
+
+    override fun initialize(p0: URL?, p1: ResourceBundle?) {
+        title!!.text = task.id
+        file!!.text = task.file.getPath()
+        filePeer!!.text = task.file.getOrigin().name
+        target!!.text = task.target.name
+        targetPeer!!.text = task.target.peer.name
+        position!!.text = "Position: ${task.position}"
+        duration!!.text = "Duration: ${task.duration?.toString() ?: "undefined"}"
+        restart!!.text = "Restarted: ${task.restartCount} times"
+        trigger!!.text = task.trigger?.taskId ?: "immediately"
+        file!!.graphic = if(task.paused) FXIcons.get("Pause.png", 20.0) else FXIcons.get("Play.png", 20.0)
+        for (status in statuses) {
+            val statusLabel = Label("${status.displayString()}, position=${status.task.position}, duration=${status.task.duration}")
+            statusLabel.isWrapText = true
+            statusLabel.graphic = if(status.task.paused) FXIcons.get("Pause.png", 20.0) else FXIcons.get("Play.png", 20.0)
+            statusesList!!.children.add(statusLabel)
+        }
+    }
+
+}
+

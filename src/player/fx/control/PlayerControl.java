@@ -1,4 +1,4 @@
-package player.fx;
+package player.fx.control;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.BooleanPropertyBase;

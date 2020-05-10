@@ -1,4 +1,4 @@
-package player.fx;
+package player.fx.control;
 import javafx.beans.binding.Bindings;
 import javafx.scene.Node;
 import player.fx.icons.FXIcons;

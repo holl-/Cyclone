@@ -32,8 +32,8 @@ import javafx.stage.Stage
 import javafx.stage.WindowEvent
 import javafx.util.Callback
 import javafx.util.Duration
-import player.fx.FileDropOverlay
-import player.fx.PlayerControl
+import player.fx.control.FileDropOverlay
+import player.fx.control.PlayerControl
 import player.fx.control.SpeakerCell
 import player.fx.debug.CloudViewer
 import player.fx.debug.PlaybackViewer
@@ -56,7 +56,7 @@ import java.util.function.Function
 import java.util.stream.Collectors
 
 
-class PlayerWindow internal constructor(private val stage: Stage, val statusWrapper: PlaylistPlayer, // can be null
+class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPlayer, // can be null
                                         private val engine: PlaybackEngine, config: CycloneConfig?) : Initializable {
     private val root: StackPane
     private var currentOverlay: Node? = null
@@ -86,14 +86,15 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
         settingsMenu!!.text = null
         settingsMenu!!.graphic = FXIcons.get("Settings.png", 24.0)
         currentSongMenu!!.graphic = FXIcons.get("Media.png", 24.0)
-        currentSongMenu!!.textProperty().bind(statusWrapper.titleProperty)
-        currentSongMenu!!.disableProperty().bind(statusWrapper.isFileSelectedProperty.not())
-        volume!!.valueProperty().bindBidirectional(statusWrapper.gainProperty)
-        speakerSelection!!.items = statusWrapper.speakers
-        speakerSelection!!.selectionModel.select(statusWrapper.speakerProperty.get())
-        speakerSelection!!.selectionModel.selectedItemProperty().addListener { _, _, n -> if (n != null) statusWrapper.speakerProperty.set(n) }
+        currentSongMenu!!.textProperty().bind(player.titleProperty)
+        currentSongMenu!!.disableProperty().bind(player.isFileSelectedProperty.not())
+        volume!!.valueProperty().bindBidirectional(player.gainProperty)
+        speakerSelection!!.items = player.speakers
+        speakerSelection!!.selectionModel.select(player.speakerProperty.get())
+        speakerSelection!!.selectionModel.selectedItemProperty().addListener { _, _, n -> if (n != null) player.speakerProperty.set(n) }
         speakerSelection!!.setCellFactory { SpeakerCell() }
-        statusWrapper.speakerProperty.addListener { _, _, n -> speakerSelection!!.selectionModel.select(n) }
+        speakerSelection!!.buttonCell = SpeakerCell()
+        player.speakerProperty.addListener { _, _, n -> speakerSelection!!.selectionModel.select(n) }
         if (settings.config["debug"] != "true") debugMenu!!.parentMenu.items.remove(debugMenu)
     }
 
@@ -104,16 +105,16 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
         loader.setController(this)
         val playerRoot = loader.load<BorderPane>()
         val control = PlayerControl()
-        control.durationProperty().bind(statusWrapper.durationProperty)
-        control.positionProperty().bindBidirectional(statusWrapper.positionProperty)
-        control.playingProperty().bindBidirectional(statusWrapper.playingProperty)
-        control.mediaSelectedProperty().bind(statusWrapper.isFileSelectedProperty)
-        control.playlistAvailableProperty().bind(statusWrapper.playlistAvailableProperty)
-        control.shuffledProperty().bindBidirectional(statusWrapper.shuffledProperty)
-        control.loopProperty().bindBidirectional(statusWrapper.loopingProperty)
-        control.onNext = EventHandler { e: ActionEvent? -> statusWrapper.next() }
-        control.onPrevious = EventHandler { e: ActionEvent? -> statusWrapper.previous() }
-        control.onStop = EventHandler { e: ActionEvent? -> statusWrapper.stop() }
+        control.durationProperty().bind(player.durationProperty)
+        control.positionProperty().bindBidirectional(player.positionProperty)
+        control.playingProperty().bindBidirectional(player.playingProperty)
+        control.mediaSelectedProperty().bind(player.isFileSelectedProperty)
+        control.playlistAvailableProperty().bind(player.playlistAvailableProperty)
+        control.shuffledProperty().bindBidirectional(player.shuffledProperty)
+        control.loopProperty().bindBidirectional(player.loopingProperty)
+        control.onNext = EventHandler { e: ActionEvent? -> player.next() }
+        control.onPrevious = EventHandler { e: ActionEvent? -> player.previous() }
+        control.onStop = EventHandler { e: ActionEvent? -> player.stop() }
         control.onShowPlaylist = EventHandler { e: ActionEvent? -> showPlaylist() }
         control.onSearch = EventHandler { e: ActionEvent? -> showSearch() }
         playerRoot.center = control
@@ -130,18 +131,18 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
             @FXML private var playlist: ListView<CloudFile>? = null
 
             override fun initialize(location: URL?, resources: ResourceBundle?) {
-                playlist!!.setItems(statusWrapper.playlist)
+                playlist!!.setItems(player.playlist)
                 playlist!!.addEventFilter(KeyEvent.KEY_PRESSED, TabAndEnterHandler(playlist))
                 removeOthersButton!!.disableProperty().bind(Bindings.createBooleanBinding(
-                        Callable { statusWrapper.playlist.size == 0 || statusWrapper.playlist.size == 1 && statusWrapper.currentFileProperty.get() === statusWrapper.playlist[0] },
-                        statusWrapper.playlist, statusWrapper.currentFileProperty))
+                        Callable { player.playlist.size == 0 || player.playlist.size == 1 && player.currentFileProperty.get() === player.playlist[0] },
+                        player.playlist, player.currentFileProperty))
                 playlist!!.selectionModel.selectedItemProperty().addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? ->
                     if (n != null) {
-                        statusWrapper.currentFileProperty.set(n)
-                        statusWrapper.playingProperty.set(true)
+                        player.currentFileProperty.set(n)
+                        player.playingProperty.set(true)
                     }
                 }
-                statusWrapper.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> playlist!!.selectionModel.select(statusWrapper.currentFileProperty.get()) }
+                player.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> playlist!!.selectionModel.select(player.currentFileProperty.get()) }
                 playlist!!.setCellFactory { list: ListView<CloudFile?>? -> MediaCell() }
                 playlistListView = playlist
             }
@@ -153,16 +154,14 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
 
             @FXML
             fun clearPlaylist() {
-                statusWrapper.currentFileProperty.set(null)
-                statusWrapper.playlist.clear()
+                player.currentFileProperty.set(null)
+                player.playlist.clear()
                 closePlaylist()
             }
 
             @FXML
             fun clearOthers() {
-                val newList: MutableList<CloudFile> = ArrayList()
-                statusWrapper.currentFileProperty.value?.let { current -> newList.add(current) }
-                statusWrapper.setPlaylist(newList)
+                player.setPlaylist(listOfNotNull(player.currentFileProperty.value))
             }
         })
         val playlistRoot = loader.load<BorderPane>()
@@ -227,7 +226,7 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
     private fun generateDropButtons(files: List<File>): List<ToggleButton> {
         val result: MutableList<ToggleButton> = ArrayList(3)
         val audioFiles = AudioFiles.trim(AudioFiles.unfold(files))
-        val cold = statusWrapper.playlist.isEmpty()
+        val cold = player.playlist.isEmpty()
 
         // Play / New Playlist
         if (!audioFiles.isEmpty()) {
@@ -241,9 +240,9 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
             val append = ToggleButton("Add to playlist", FXIcons.get("Append.png", 32.0))
             append.onAction = EventHandler { e: ActionEvent? ->
                 val dfiles = audioFiles.stream().map { file: File? -> CloudFile(file!!) }.collect(Collectors.toList())
-                statusWrapper.addToPlaylist(dfiles)
-                if (statusWrapper.currentFileProperty.get() == null) {
-                    statusWrapper.currentFileProperty.set(dfiles[0])
+                player.addToPlaylist(dfiles)
+                if (player.currentFileProperty.get() == null) {
+                    player.currentFileProperty.set(dfiles[0])
                 }
             }
             result.add(append)
@@ -269,9 +268,13 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
 //				player.getLibrary().getOrAdd(file);
 //			}
 //		}
-        statusWrapper.setPlaylist(remoteFiles)
-        statusWrapper.currentFileProperty.set(CloudFile(startFile!!))
-        statusWrapper.playingProperty.set(true)
+        player.setPlaylist(remoteFiles)
+        player.currentFileProperty.set(CloudFile(startFile!!))
+        player.playingProperty.set(true)
+    }
+
+    @FXML fun removeOthersFromPlaylist() {
+        player.setPlaylist(listOfNotNull(player.currentFileProperty.value))
     }
 
     private fun fadeIn(node: Node, focus: Node?) {
@@ -322,8 +325,8 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
     private fun updateAddToLibraryMenu() {
         addToLibraryMenu!!.items.clear()
         addToLibraryMenu!!.isDisable = true
-        if (statusWrapper.currentFileProperty.get() != null) {
-            val file = statusWrapper.currentFileProperty.get()
+        if (player.currentFileProperty.get() != null) {
+            val file = player.currentFileProperty.get()
             if (file!!.originatesHere()) {
                 var localFile: File? = File(file.getPath()).absoluteFile
                 while (localFile != null && library.isIndexed(CloudFile(localFile))) {
@@ -354,12 +357,12 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
             allFiles.stream().filter { file: File? -> AudioFiles.isAudioFile(file) }.map { file: File? -> CloudFile(file!!) }.collect(Collectors.toList())
         } else Arrays.asList(file)
         if (!append) {
-            statusWrapper.setPlaylist(files)
-            statusWrapper.currentFileProperty.set(files[0])
+            player.setPlaylist(files)
+            player.currentFileProperty.set(files[0])
         } else {
-            statusWrapper.addToPlaylist(files)
-            if (statusWrapper.currentFileProperty.get() == null) {
-                statusWrapper.currentFileProperty.set(files[0])
+            player.addToPlaylist(files)
+            if (player.currentFileProperty.get() == null) {
+                player.currentFileProperty.set(files[0])
             }
         }
     }
@@ -396,7 +399,7 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
         val info = Alert(AlertType.INFORMATION)
         info.title = "Info"
         info.headerText = "Cyclone"
-        info.contentText = "Version 0.2\nAuthor: Philipp Holl\nMay 2020"
+        info.contentText = "Version 0.3\nAuthor: Philipp Holl\nMay 2020"
         info.initOwner(stage)
         info.initModality(Modality.NONE)
         info.show()
@@ -404,7 +407,7 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
 
     @FXML
     fun openFileLocation() {
-        openFileLocation(statusWrapper.currentFileProperty.get())
+        openFileLocation(player.currentFileProperty.get())
     }
 
     private fun openFileLocation(file: CloudFile?) {
@@ -419,13 +422,13 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
                 Alert(AlertType.ERROR, "Could not open location: " + file.getPath(), ButtonType.OK).show()
             }
         } else {
-            Alert(AlertType.INFORMATION, "The file is not located on this systemcontrol.", ButtonType.OK).show()
+            Alert(AlertType.INFORMATION, "The file is not located on this system.", ButtonType.OK).show()
         }
     }
 
     @FXML
     fun removeCurrentFromPlaylist() {
-        statusWrapper.removeCurrentFileFromPlaylist()
+        player.removeCurrentFileFromPlaylist()
     }
 
     internal inner class TabAndEnterHandler(private val node: Node?) : EventHandler<KeyEvent> {
@@ -442,86 +445,86 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
     @FXML
     @Throws(IOException::class)
     fun showFileInfo() {
-        val file = statusWrapper.currentFileProperty.get() ?: return
+        val file = player.currentFileProperty.get() ?: return
         val loader = FXMLLoader(javaClass.getResource("fileinfo.fxml"))
         loader.setController(object : Initializable {
             @FXML
-            private val encodingTab: Tab? = null
+            private var encodingTab: Tab? = null
 
             @FXML
-            private val playbackTab: Tab? = null
+            private var playbackTab: Tab? = null
 
             @FXML
-            private val titleLabel: Label? = null
+            private var titleLabel: Label? = null
 
             @FXML
-            private val durationLabel: Label? = null
+            private var durationLabel: Label? = null
 
             @FXML
-            private val encodingLabel: Label? = null
+            private var encodingLabel: Label? = null
 
             @FXML
-            private val pathLink: Hyperlink? = null
+            private var pathLink: Hyperlink? = null
 
             @FXML
-            private val propertiesTable: TableView<Map.Entry<String, Any>>? = null
+            private var propertiesTable: TableView<Map.Entry<String, Any>>? = null
 
             @FXML
-            private val propertyColumn: TableColumn<Map.Entry<String?, Any?>, String?>? = null
+            private var propertyColumn: TableColumn<Map.Entry<String?, Any?>, String?>? = null
 
             @FXML
-            private val valueColumn: TableColumn<Map.Entry<String?, Any?>, Any?>? = null
+            private var valueColumn: TableColumn<Map.Entry<String?, Any?>, Any?>? = null
 
             @FXML
-            private val eEncoding: Label? = null
+            private var eEncoding: Label? = null
 
             @FXML
-            private val eChannels: Label? = null
+            private var eChannels: Label? = null
 
             @FXML
-            private val eSampleRate: Label? = null
+            private var eSampleRate: Label? = null
 
             @FXML
-            private val eSampleSize: Label? = null
+            private var eSampleSize: Label? = null
 
             @FXML
-            private val eFrameSize: Label? = null
+            private var eFrameSize: Label? = null
 
             @FXML
-            private val eFrameRate: Label? = null
+            private var eFrameRate: Label? = null
 
             @FXML
-            private val eEndianness: Label? = null
+            private var eEndianness: Label? = null
 
             @FXML
-            private val eProperties: Label? = null
+            private var eProperties: Label? = null
 
             @FXML
-            private val dEncoding: Label? = null
+            private var dEncoding: Label? = null
 
             @FXML
-            private val dChannels: Label? = null
+            private var dChannels: Label? = null
 
             @FXML
-            private val dSampleRate: Label? = null
+            private var dSampleRate: Label? = null
 
             @FXML
-            private val dSampleSize: Label? = null
+            private var dSampleSize: Label? = null
 
             @FXML
-            private val dFrameSize: Label? = null
+            private var dFrameSize: Label? = null
 
             @FXML
-            private val dFrameRate: Label? = null
+            private var dFrameRate: Label? = null
 
             @FXML
-            private val dEndianness: Label? = null
+            private var dEndianness: Label? = null
 
             @FXML
-            private val dProperties: Label? = null
+            private var dProperties: Label? = null
 
             @FXML
-            private val playbackEngine: Label? = null
+            private var playbackEngine: Label? = null
             override fun initialize(location: URL?, resources: ResourceBundle?) {
                 val opJob = engine.jobs.stream().filter { j: Job -> j.task.get() != null && j.task.get()!!.file === file && j.player.get() != null }.findFirst()
                 if (opJob.isPresent) {
@@ -603,7 +606,7 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
     @FXML
     fun openTaskViewer() {
         val stage = Stage()
-        val viewer = TaskViewer(statusWrapper.cloud, stage)
+        val viewer = TaskViewer(player.cloud, stage)
         viewer.stage.show()
     }
 
@@ -615,18 +618,18 @@ class PlayerWindow internal constructor(private val stage: Stage, val statusWrap
 
     @FXML
     fun openCloudViewer() {
-        val viewer = CloudViewer(statusWrapper.cloud, null)
+        val viewer = CloudViewer(player.cloud, null)
         viewer.stage.show()
     }
 
     init {
-        library = statusWrapper.library
-        settings = AppSettings(config!!, statusWrapper)
+        library = player.library
+        settings = AppSettings(config!!, player)
         root = StackPane()
         root.children.add(loadPlayer())
         playlistRoot = loadPlaylist()
         searchRoot = loadSearch()
-        statusWrapper.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> updateAddToLibraryMenu() }
+        player.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> updateAddToLibraryMenu() }
         val overlay = FileDropOverlay(root)
         overlay.actionGenerator = Function { files: List<File> -> generateDropButtons(files) }
         var scene: Scene?

@@ -11,7 +11,7 @@ class SpeakerCell : ListCell<Speaker>() {
     override fun updateItem(item: Speaker?, empty: Boolean) {
         super.updateItem(item, empty)
         if (item != null) {
-            text = if (item.peer.isLocal) item.name else "${item.name} - ${item.peer.name}"
+            text = if (item.peer.isLocal) item.name else "${item.peer.name} - ${item.name}"
             val fontWeight = if (item.isDefault) FontWeight.BOLD else FontWeight.NORMAL
             val fontPosture = if (item.peer.isLocal) FontPosture.REGULAR else FontPosture.ITALIC
             font = Font.font(font.family, fontWeight, fontPosture, font.size)

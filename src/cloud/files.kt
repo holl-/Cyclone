@@ -120,6 +120,10 @@ class CloudFile(file: File) : Data() {
         return origin.isLocal
     }
 
+    fun getOrigin(): Peer {
+        return origin
+    }
+
 
     override fun toString(): String {
         return path

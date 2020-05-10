@@ -1,4 +1,4 @@
-package player.fx;
+package player.fx.control;
 
 import javafx.scene.Node;
 import javafx.scene.shape.ArcTo;
