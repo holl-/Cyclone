@@ -172,8 +172,8 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
     }
 
     fun references(): List<Job> {
-        val previous = this.previous.value ?: return listOf()
-        return listOf(previous)
+        if (started.value) return emptyList()
+        return listOfNotNull(previous.value)
     }
 
     fun dispose() {

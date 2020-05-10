@@ -96,7 +96,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         speakerSelection!!.setCellFactory { SpeakerCell() }
         speakerSelection!!.buttonCell = SpeakerCell()
         player.speakerProperty.addListener { _, _, n -> speakerSelection!!.selectionModel.select(n) }
-        if (settings.config["debug"] != "true") debugMenu!!.parentMenu.items.remove(debugMenu)
+        if (!settings.config.debug.value) debugMenu!!.parentMenu.items.remove(debugMenu)
     }
 
 

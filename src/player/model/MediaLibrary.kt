@@ -37,13 +37,6 @@ class MediaLibrary {
         TODO()
     }
 
-    fun addDefaultRoots() {
-        val music = File(System.getProperty("user.home"), "Music")
-        if (music.exists() && music.isDirectory) {
-            roots.add(CloudFile(music))
-        }
-    }
-
     fun startSearch(pattern: String): ObservableList<CloudFile> {
         val set = FXCollections.observableArrayList<CloudFile>()
         val lowerPattern = pattern.toLowerCase()
@@ -76,7 +69,7 @@ class MediaLibrary {
         if(file.isDirectory() or AudioFiles.isAudioFile(file.getName()))
             list.add(file)
         if(file.isDirectory()) {
-            file.list().forEach { child -> recursiveAdd(child, list) }
+            File(file.getPath()).listFiles()!!.forEach { child -> recursiveAdd(CloudFile(child), list) }
         }
     }
 

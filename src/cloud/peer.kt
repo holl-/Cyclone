@@ -76,7 +76,7 @@ class Peer(var isLocal: Boolean, var name: String, var address: String, var id: 
 
 }
 
-private fun getComputerName(): String {
+fun getComputerName(): String {
     val env = System.getenv()
     return if (env.containsKey("COMPUTERNAME")) env["COMPUTERNAME"]!! else if (env.containsKey("HOSTNAME")) env["HOSTNAME"]!! else "Unknown Computer"
 }

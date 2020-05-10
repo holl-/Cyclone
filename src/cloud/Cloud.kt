@@ -114,16 +114,10 @@ class Cloud {
 
 
     @Throws(IOException::class)
-    internal fun listFiles(peer: Peer, path: String): Stream<CloudFile> {
-        TODO("not required for first version")
-    }
-
-    @Throws(IOException::class)
     internal fun openStream(peer: Peer, path: String, fileSize: Long): InputStream {
         val conn = tcp?.connections?.firstOrNull { c -> c.peer == peer } ?: throw IOException("Not connected")
         return conn.openFileStream(path, fileSize)
     }
-
 
 
 

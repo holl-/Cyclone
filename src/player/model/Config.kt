@@ -1,40 +1,115 @@
 package player.model
 
+import cloud.CloudFile
+import cloud.getComputerName
+import javafx.application.Platform
+import javafx.beans.InvalidationListener
+import javafx.beans.property.*
+import player.CastToStringProperty
+import player.CustomObjectProperty
 import java.io.File
 import java.io.IOException
 import java.util.*
+import java.util.function.Consumer
+import java.util.function.Supplier
+import java.util.stream.Collectors
 
 
 fun getConfigFile(filename: String): File {
     return File(System.getProperty("user.home") + "/AppData/Roaming/Cyclone/" + filename).absoluteFile
 }
 
-class CycloneConfig(val file: File) {
-    val properties = Properties()
+class CycloneConfig(val file: File)
+{
+    // General
+    val singleInstance = SimpleBooleanProperty(this, "singleInstance", true);
+    val skin = SimpleStringProperty(this, "skin", "")
+    val debug = SimpleBooleanProperty(this, "debug", false)
+    // Audio
+    val audioEngine = SimpleStringProperty(this, "audioEngine", "")
+    val bufferTime = SimpleDoubleProperty(this, "bufferTime", 0.0)
+    // Library
+    val library = SimpleStringProperty(this, "library", "")
+    // Network
+    val connectOnStartup = SimpleBooleanProperty(this, "connectOnStartup", false)
+    val computerName = SimpleStringProperty(this, "computerName", "")
+    val multicastAddress = SimpleStringProperty(this, "multicastAddress", "")
+    val multicastPort = SimpleIntegerProperty(this, "multicastPort", 0)
+    val multicastPortString = CastToStringProperty(CustomObjectProperty<String>(listOf(multicastPort), Supplier { multicastPort.value.toString() }, Consumer<String?> { v -> multicastPort.value = v!!.toInt() }))
+    val broadcastInterval = SimpleDoubleProperty(this, "broadcastInterval", 0.0)
+    val broadcastIntervalString = CastToStringProperty(CustomObjectProperty<String>(listOf(broadcastInterval), Supplier { broadcastInterval.value.toString() }, Consumer<String?> { v -> broadcastInterval.value = v!!.toDouble() }))
 
+    private val allProperties = listOf(
+            singleInstance, skin,
+            audioEngine, bufferTime,
+            library,
+            connectOnStartup, computerName, multicastAddress, multicastPort, broadcastInterval
+    )
 
-    fun getString(key: String, defaultValue: String): String {
-        return properties.getOrDefault(key, defaultValue) as String
-    }
+    val hasUnsavedChanges = SimpleBooleanProperty(false)
 
-    operator fun get(key: String): String? {
-        return properties[key] as String?
-    }
-
-    fun update(values: Map<String, Any>) {
-        for (entry in values) {
-            properties[entry.key] = entry.value.toString()
+    init {
+        reset()
+        for (property in allProperties) {
+            property.addListener { _, _, _ -> hasUnsavedChanges.value = true }
         }
+        hasUnsavedChanges.addListener(InvalidationListener { Platform.runLater { save() } })
     }
 
-    fun write() {
+    fun reset() {
+        // General
+        singleInstance.value = true
+        skin.value = "Modena"
+        // Audio
+        audioEngine.value = "java"
+        bufferTime.value = 0.2
+        // Library
+        val music = File(System.getProperty("user.home"), "Music")
+        library.value = if (music.isDirectory) music.toString() else ""
+        // Network
+        connectOnStartup.value = false
+        computerName.value = getComputerName()
+        multicastAddress.value = "225.139.25.1"
+        multicastPort.value = 5324
+        broadcastInterval.value = 1.0
+    }
+
+    fun save() {
+        if (!hasUnsavedChanges.value) return
+        println("Saving config")
         if(!file.parentFile.exists())
             file.parentFile.mkdirs()
-        properties.store(file.printWriter(), null)
+        val properties = Properties()
+        for (property in allProperties) {
+            properties[property.name] = property.value.toString()
+        }
+        file.printWriter().use {
+            properties.store(it, null)
+        }
+        hasUnsavedChanges.value = false
     }
 
-    fun read() {
-        properties.load(file.bufferedReader())
+    fun load() {
+        val properties = Properties()
+        file.bufferedReader().use { properties.load(it) }
+        for (property in allProperties) {
+            when (property) {
+                is IntegerProperty -> properties[property.name]?.let { v -> property.value = (v as String).toInt() }
+                is BooleanProperty -> properties[property.name]?.let { v -> property.value = (v as String).toBoolean() }
+                is DoubleProperty -> properties[property.name]?.let { v -> property.value = (v as String).toDouble() }
+                else -> properties[property.name]?.let { v -> property.value = v as String }
+            }
+        }
+        hasUnsavedChanges.value = false
+    }
+
+    fun getLibraryFiles(): List<CloudFile> {
+        val roots = library.value.split(";".toRegex()).toTypedArray()
+        return roots.map { s -> s.trim() }.filter { s -> s.isNotEmpty() }.map { s -> CloudFile(File(s)) }
+    }
+
+    fun setLibraryFiles(files: List<CloudFile>) {
+        library.value = files.stream().map { f -> f.getPath() }.collect(Collectors.joining(";"))
     }
 
 
@@ -45,7 +120,7 @@ class CycloneConfig(val file: File) {
         fun getGlobal(): CycloneConfig {
             if(!INITIALIZED) {
                 try {
-                    GLOBAL_CONFIG.read()
+                    GLOBAL_CONFIG.load()
                 } catch (exc: IOException) {}
                 INITIALIZED = true
             }

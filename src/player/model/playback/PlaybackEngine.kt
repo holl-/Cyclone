@@ -31,9 +31,9 @@ import java.util.stream.Collectors
  */
 class PlaybackEngine (val cloud: Cloud, val config: CycloneConfig)
 {
-    val audioEngine: AudioEngine = createEngine(config["audioEngine"])
+    val audioEngine: AudioEngine = createEngine(config.audioEngine.value)
     private val tasks = cloud.getAll(PlayTask::class.java)
-    private val masterGainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(config["gain"]?.toDouble() ?: 0.0) })
+    private val masterGainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(0.0) })
 
     // Public properties
     val jobs = FXCollections.observableArrayList<Job>()
@@ -87,7 +87,7 @@ class PlaybackEngine (val cloud: Cloud, val config: CycloneConfig)
     fun getOrCreateJob(taskId: String): Job {
         val existing = jobs.firstOrNull { j -> j.taskId == taskId}
         existing?.let { return existing }
-        val newJob = Job(taskId, this, config.getString("bufferTime", "0.2").toDouble())
+        val newJob = Job(taskId, this, config.bufferTime.value)
         jobs.add(newJob)
         newJob.status.addListener(InvalidationListener { statusInvalid.value = true })
         return newJob

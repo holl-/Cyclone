@@ -71,27 +71,6 @@ class CloudFile(file: File) : Data() {
     }
 
     /**
-     * Obtains a list of files contained in this directory by the remote peer.
-     *
-     * @return files contained in this directory
-     * @throws UnsupportedOperationException
-     * if this file is not a directory
-     * @throws IOException
-     * if the remote peer is not available
-     */
-    @Throws(UnsupportedOperationException::class, IOException::class)
-    fun list(): Stream<CloudFile> {
-        if(!isDirectory()) throw java.lang.UnsupportedOperationException("list() unavailable for files. " + getPath())
-        return if(originatesHere()) {
-            val dir = File(path)
-            val names = dir.list()
-            Arrays.stream(names).map { name -> CloudFile(File(dir, name)) }
-        } else {
-            cloud!!.listFiles(origin, path)
-        }
-    }
-
-    /**
      * Opens an `InputStream` for this file.
      *
      * @return an `InputStream` for this file

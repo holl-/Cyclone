@@ -122,10 +122,6 @@ class CustomBooleanProperty(
         if (newValue == lastValue) return
         val oldValue = lastValue
         lastValue = newValue
-        fireChangedInvalidated(oldValue, newValue)
-    }
-
-    private fun fireChangedInvalidated(oldValue: Boolean, newValue: Boolean) {
         for (l in changeListeners) {
             l.changed(this, oldValue, newValue)
         }
@@ -243,7 +239,7 @@ class CustomBooleanProperty(
 //}
 //
 class CustomObjectProperty<T>(
-        dependencies: Iterable<Observable>,
+        private val dependencies: Iterable<Observable>,
         private val getter: Supplier<T?>,
         private val setter: Consumer<T?>
 ) : ObjectProperty<T?>(), Property<T?>
@@ -293,6 +289,11 @@ class CustomObjectProperty<T>(
     }
 
     override fun getName(): String? {
+        for (dependency in dependencies) {
+            if (dependency is ReadOnlyProperty<*>) {
+                return dependency.name
+            }
+        }
         return null
     }
 

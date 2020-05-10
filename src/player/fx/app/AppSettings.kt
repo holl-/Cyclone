@@ -1,11 +1,9 @@
 package player.fx.app
 
-import com.aquafx_project.AquaFx
 import cloud.CloudFile
-import cloud.Peer
+import com.aquafx_project.AquaFx
 import javafx.application.Application
 import javafx.application.Platform
-import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
 import javafx.collections.ListChangeListener
 import javafx.collections.transformation.FilteredList
@@ -17,14 +15,17 @@ import javafx.scene.control.*
 import javafx.stage.DirectoryChooser
 import javafx.stage.Stage
 import javafx.stage.Window
+import player.CastToBooleanProperty
+import player.CustomObjectProperty
 import player.model.CycloneConfig
 import player.model.PlaylistPlayer
 import java.io.File
 import java.net.URL
 import java.util.*
 import java.util.concurrent.Callable
+import java.util.function.Consumer
 import java.util.function.Predicate
-import java.util.stream.Collectors
+import java.util.function.Supplier
 
 class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initializable {
     var stage: Stage = Stage()
@@ -50,76 +51,54 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     private val windows = FilteredList<Window>(Window.getWindows(), Predicate { w -> w is Stage })
     private var saveDisabled: Boolean = false
 
+    private val isJavaSound = CastToBooleanProperty(CustomObjectProperty<Boolean>(listOf(config.audioEngine),  // needs to be referenced, else it will be garbage collected
+            getter = Supplier { config.audioEngine.value == "java" },
+            setter = Consumer { v -> if(v == true) config.audioEngine.value = "java" }))
+    private val isJavaFXSound = CastToBooleanProperty(CustomObjectProperty<Boolean>(listOf(config.audioEngine),  // needs to be referenced, else it will be garbage collected
+            getter = Supplier { config.audioEngine.value == "javafx" },
+            setter = Consumer { v -> if(v == true) config.audioEngine.value = "javafx" }))
+
     init {
-        var loader = FXMLLoader(javaClass.getResource("settings.fxml"))
+        val loader = FXMLLoader(javaClass.getResource("settings.fxml"))
         loader.setController(this);
         stage.scene = Scene(loader.load())
 
         windows.addListener( ListChangeListener { change -> while(change.next()) applyStyle(skin!!.selectionModel.selectedItem, change.addedSubList) })
-    }
 
+        config.skin.addListener { _, _, newStyle -> applyStyle(newStyle, windows)}
+
+        Platform.runLater {applyStyle(config.skin.value, windows)}
+    }
 
     override fun initialize(location: URL?, resources: ResourceBundle?) {
+        // General
+        singleInstance!!.selectedProperty().bindBidirectional(config.singleInstance)
         skin!!.items.setAll("Modena", "Caspian", "AquaFX", "Dark")
+        skin!!.selectionModel.select(config.skin.value)
+        skin!!.selectionModel.selectedItemProperty().addListener { _, _, v -> config.skin.value = v }
+        config.skin.addListener { _, _, v -> skin!!.selectionModel.select(v) }
+        // Library
         libraryDirectories!!.items = player.library.roots
-
-        val soundEngineGroup = ToggleGroup()
-        javaSound!!.toggleGroup = soundEngineGroup
-        javaFXSound!!.toggleGroup = soundEngineGroup
-
-        updateUIValues()
-
-        skin!!.selectionModel.selectedItemProperty().addListener { _, _, newStyle -> applyStyle(newStyle, windows)}
-        connectionStatus!!.textProperty().bind(player.cloud.connectionStatus)
-        bufferTimeDisplay!!.textProperty().bind(Bindings.createStringBinding(Callable { "${(bufferTime!!.value * 1000).toInt()}" }, bufferTime!!.valueProperty()))
-        bufferTime!!.disableProperty().bind(javaFXSound!!.selectedProperty())
-
-        // --- Save on Change ---
-        for (property in listOf(
-                connectOnStartup!!.selectedProperty(),
-                singleInstance!!.selectedProperty(),
-                player.library.roots,
-                computerName!!.textProperty(),
-                multicastAddress!!.textProperty(),
-                multicastPort!!.textProperty(),
-                broadcastInterval!!.textProperty(),
-                javaSound!!.selectedProperty(),
-                javaFXSound!!.selectedProperty(),
-                bufferTime!!.valueProperty())) {
-            property.addListener { _ -> save()}
-        }
-
-        Platform.runLater {applyStyle(skin!!.selectionModel.selectedItem, windows)}
-
-        // --- control listeners --- ToDo this will be saved in serialized form in the future using Cloud.write
-        player.loopingProperty.addListener{_ -> save()}
-        player.shuffledProperty.addListener{_ -> save()}
-        player.gainProperty.addListener{_ -> save()}
-    }
-
-    fun updateUIValues() {
-        // --- General ---
-        singleInstance!!.selectedProperty().set(config.getString("singleInstance", "true").toBoolean())
-        skin!!.selectionModel.select(config.getString("skin", "Modena"))
-        // --- Audio ---
-        val isJFX = config["audioEngine"] == "javafx"
-        javaSound!!.isSelected = !isJFX
-        javaFXSound!!.isSelected = isJFX
-        bufferTime!!.value = config["bufferTime"]?.toDouble() ?: 0.2
-        // --- Library ---
         if(!player.library.roots.isEmpty()) {
             libraryDirectories!!.selectionModel.select(0)
         }
-
-        // --- Network ---
-        connectOnStartup!!.isSelected = config.getString("connectOnStartup", "false").toBoolean()
-        computerName!!.text = Peer.getLocal().name
-        multicastAddress!!.text = config.getString("multicastAddress", "225.139.25.1")
-        multicastPort!!.text = config.getString("multicastPort", "5324")
-        broadcastInterval!!.text = config.getString("broadcastRate", "1")
-
+        // Audio
+        val soundEngineGroup = ToggleGroup()
+        javaSound!!.toggleGroup = soundEngineGroup
+        javaFXSound!!.toggleGroup = soundEngineGroup
+        javaSound!!.selectedProperty().bindBidirectional(isJavaSound)
+        javaFXSound!!.selectedProperty().bindBidirectional(isJavaFXSound)
+        bufferTime!!.valueProperty().bindBidirectional(config.bufferTime)
+        bufferTimeDisplay!!.textProperty().bind(Bindings.createStringBinding(Callable { "${(bufferTime!!.value * 1000).toInt()}" }, bufferTime!!.valueProperty()))
+        bufferTime!!.disableProperty().bind(javaFXSound!!.selectedProperty())
+        // Network
+        connectOnStartup!!.selectedProperty().bindBidirectional(config.connectOnStartup)
+        computerName!!.textProperty().bindBidirectional(config.computerName)
+        multicastAddress!!.textProperty().bindBidirectional(config.multicastAddress)
+        multicastPort!!.textProperty().bindBidirectional(config.multicastPortString)
+        broadcastInterval!!.textProperty().bindBidirectional(config.broadcastIntervalString)
+        connectionStatus!!.textProperty().bind(player.cloud.connectionStatus)
     }
-
 
     fun applyStyle(style: String, windows: List<Window>) {
         when (style) {
@@ -138,35 +117,12 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
                 Application.setUserAgentStylesheet(style.toUpperCase())
             }
         }
-        save()
-    }
-
-
-    private fun save() {
-        if (saveDisabled) return
-        config.update(mapOf<String, Any>(
-                "skin" to skin!!.selectionModel.selectedItem,
-                "singleInstance" to singleInstance!!.isSelected,
-                "looping" to player.loopingProperty.get(),
-                "shuffled" to player.shuffledProperty.get(),
-                "gain" to player.gainProperty.get(),
-                "library" to player.library.roots.stream().map { f -> f.getPath() }.collect(Collectors.joining("; ")),
-                "connectOnStartup" to connectOnStartup!!.isSelected,
-                "computerName" to computerName!!.text,
-                "multicastAddress" to multicastAddress!!.text,
-                "multicastPort" to multicastPort!!.text,
-                "broadcastRate" to broadcastInterval!!.text,
-                "audioEngine" to if (javaFXSound!!.isSelected) "javafx" else "java",
-                "bufferTime" to bufferTime!!.value
-        ))
-        config.write()
     }
 
     @FXML
     private fun removeLibraryRoot() {
         if(libraryDirectories!!.selectionModel.selectedItem != null)
             player.library.roots.remove(libraryDirectories!!.selectionModel.selectedItem)
-        save()
     }
 
     @FXML
@@ -175,10 +131,8 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         val dir: File? = chooser.showDialog(stage)
         if(dir != null) {
             player.library.roots.add(CloudFile(dir))
-            save()
         }
     }
-
 
     @FXML fun disconnect() {
         player.cloud.disconnect()
@@ -193,11 +147,7 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     }
 
     @FXML fun reset() {
-        config.properties.clear()
-        config.write()
-        saveDisabled = true
-        updateUIValues()
-        saveDisabled = false
+        config.reset()
     }
 
 }

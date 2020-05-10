@@ -19,12 +19,11 @@ import systemcontrol.LocalMachine;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class Launcher extends Application {
+public class Launch2 extends Application {
 	private PlayerWindow window;
 	private CycloneConfig config;
 
@@ -57,7 +56,20 @@ public class Launcher extends Application {
 		String computerName = config.getComputerName().get();
 		if (computerName != null) Peer.getLocal().setName(computerName);
 
+		Peer.getLocal().setId("1");
+		Peer.getLocal().setName("peer1");
 		Cloud cloud1 = new Cloud();
+
+		Cloud cloud2 = new Cloud();
+		cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
+
+		CloudViewer viewer1 = new CloudViewer(cloud1, "1");
+		viewer1.getStage().show();
+		CloudViewer viewer2 = new CloudViewer(cloud2, "2");
+		viewer2.getStage().setX(800);
+		viewer2.getStage().show();
+
+
 
 		PlaybackEngine engine = new PlaybackEngine(cloud1, config);
 
@@ -66,9 +78,36 @@ public class Launcher extends Application {
 		window.show();
 		addControl(window.getPlayer());
 
+
 		if (config.getConnectOnStartup().get()) {
 			cloud1.connect(config.getMulticastAddress().get(), config.getMulticastPort().get(), true, 1000);
 		}
+
+//			TaskViewer viewer = new TaskViewer(cloud, new Stage());
+//			viewer.getStage().show();
+//			PlaybackViewer pbv = new PlaybackViewer(engine);
+//			pbv.getStage().show();
+//			CloudViewer cv = new CloudViewer(cloud);
+//			cv.getStage().show();
+
+
+
+			PlaylistPlayer player2 = new PlaylistPlayer(cloud2, config);
+			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
+			window2.getStage().setTitle("2");
+			window2.getStage().setX(window2.getStage().getX() + 300);
+			window2.show();
+
+			cloud1.connect(config.getMulticastAddress().get(), config.getMulticastPort().get(), true, 1000);
+			new Thread(() -> {
+				try {
+					Thread.sleep(1000);
+					cloud2.connect(config.getMulticastAddress().get(), config.getMulticastPort().get(), true, 1000);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}).start();
+
 	}
 
 	private void play(ApplicationParameters parameters) {
@@ -84,9 +123,7 @@ public class Launcher extends Application {
 		}
 	}
 
-	public static void main(String[] args)
-	{
-		System.out.println(Arrays.toString(args));
+	public static void main(String[] args) {
 		launch(args);
 	}
 

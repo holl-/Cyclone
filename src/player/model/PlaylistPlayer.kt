@@ -74,9 +74,9 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     private val builder = TaskChainBuilder(cloud, Function { file -> after(file) }, CREATOR)
 
     // Synchronized PlaylistPlayer data objects
-    private val loopingData = cloud.getSynchronized(PlayerData.Looping::class.java, default = Supplier { PlayerData.Looping(config["looping"]?.toBoolean() ?: true) })
-    private val shuffledData = cloud.getSynchronized(PlayerData.Shuffled::class.java, default = Supplier { PlayerData.Shuffled(config["shuffled"]?.toBoolean() ?: false) })
-    private val gainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(config["gain"]?.toDouble() ?: 0.0) })
+    private val loopingData = cloud.getSynchronized(PlayerData.Looping::class.java, default = Supplier { PlayerData.Looping(true) })
+    private val shuffledData = cloud.getSynchronized(PlayerData.Shuffled::class.java, default = Supplier { PlayerData.Shuffled(false) })
+    private val gainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(0.0) })
     private val playlistData = cloud.getSynchronized(PlayerData.Playlist::class.java, default = Supplier { PlayerData.Playlist(emptyList()) })
     private val speakerData = cloud.getSynchronized(PlayerData.Target::class.java, default = Supplier { PlayerData.Target(null) })
     private val pausedData = cloud.getSynchronized(PlayerData.Paused::class.java, default = Supplier { PlayerData.Paused(true) })
@@ -131,14 +131,8 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
 
 
     init {
-        // --- Config ---
-        if (config.properties.containsKey("library")) {
-            val roots = config.getString("library", "").split(";".toRegex()).toTypedArray()
-            for (root in roots) {
-                if (!root.trim().isEmpty())
-                    library.roots.add(CloudFile(File(root.trim())))
-            }
-        } else library.addDefaultRoots()
+        library.roots.addAll(config.getLibraryFiles())
+        library.roots.addListener(ListChangeListener<CloudFile> { config.setLibraryFiles(library.roots) })
 
         playlistData.addListener(ChangeListener{ _, _, _ -> playlist.setAll(playlistData.value?.files ?: emptyList())}) // synchronized playlist
 
