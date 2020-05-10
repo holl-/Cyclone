@@ -190,8 +190,18 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
             if(onBar) {
                 getSkinnable().setValue(getValueAt(e.getX(), e.getY()));
                 showTooltipAtPos(barTooltip, getSkinnable().getValue());
+                onBar = false;
+            } else {
+                Parent parent = getNode().getParent();
+                parent.fireEvent(e.copyFor(parent, parent));
             }
-            onBar = false;
+        });
+        getSkinnable().setOnMousePressed(e -> {
+            onBar = isOnBar(e.getX(), e.getY());
+            if (!onBar) {
+                Parent parent = getNode().getParent();
+                parent.fireEvent(e.copyFor(parent, parent));
+            }
         });
     }
 
@@ -218,7 +228,7 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
     private void updateMouseOver(MouseEvent e, boolean isDragged) {
         double angle = getAngle(e.getX(), e.getY());
         double pos = getValueAt(e.getX(), e.getY());
-        onBar = (onBar && isDragged) || isOnBar(e.getX(), e.getY());
+//        onBar = (onBar && isDragged) || isOnBar(e.getX(), e.getY());
 
         // update tooltip
         if(onBar) {

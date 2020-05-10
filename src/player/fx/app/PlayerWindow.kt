@@ -35,6 +35,7 @@ import javafx.util.Duration
 import player.fx.control.FileDropOverlay
 import player.fx.control.PlayerControl
 import player.fx.control.SpeakerCell
+import player.fx.control.WindowDrag
 import player.fx.debug.CloudViewer
 import player.fx.debug.PlaybackViewer
 import player.fx.debug.TaskViewer
@@ -119,7 +120,8 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         control.onSearch = EventHandler { e: ActionEvent? -> showSearch() }
         playerRoot.center = control
 
-//		control.setOnMouseDragged(e -> e.);
+        WindowDrag(stage, control)
+
         return playerRoot
     }
 

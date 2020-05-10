@@ -60,14 +60,14 @@ public class Launcher extends Application {
 		Peer.getLocal().setName("peer1");
 		Cloud cloud1 = new Cloud();
 
-		Cloud cloud2 = new Cloud();
-		cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
-
-		CloudViewer viewer1 = new CloudViewer(cloud1, "1");
-		viewer1.getStage().show();
-		CloudViewer viewer2 = new CloudViewer(cloud2, "2");
-		viewer2.getStage().setX(800);
-		viewer2.getStage().show();
+//		Cloud cloud2 = new Cloud();
+//		cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
+//
+//		CloudViewer viewer1 = new CloudViewer(cloud1, "1");
+//		viewer1.getStage().show();
+//		CloudViewer viewer2 = new CloudViewer(cloud2, "2");
+//		viewer2.getStage().setX(800);
+//		viewer2.getStage().show();
 
 
 
@@ -92,21 +92,20 @@ public class Launcher extends Application {
 
 
 
-			PlaylistPlayer player2 = new PlaylistPlayer(cloud2, config);
-			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
-			window2.getStage().setTitle("2");
-			window2.show();
-
-
-			cloud1.connect("225.4.5.6", 5324, true, 1000);
-			new Thread(() -> {
-				try {
-					Thread.sleep(1000);
-					cloud2.connect("225.4.5.6", 5324, true, 1000);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}).start();
+//			PlaylistPlayer player2 = new PlaylistPlayer(cloud2, config);
+//			PlayerWindow window2 = new PlayerWindow(new Stage(), player2, engine, config);
+//			window2.getStage().setTitle("2");
+//			window2.show();
+//
+//			cloud1.connect("225.4.5.6", 5324, true, 1000);
+//			new Thread(() -> {
+//				try {
+//					Thread.sleep(1000);
+//					cloud2.connect("225.4.5.6", 5324, true, 1000);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}).start();
 
 	}
 
