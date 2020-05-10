@@ -191,7 +191,7 @@ public interface Player {
 	 * @throws AudioEngineException if activating the media fails
 	 * @throws IllegalStateException if the player is not prepared
 	 */
-	void activate(AudioDevice device) throws AudioEngineException, IllegalStateException;
+	void activate(AudioDevice device, double bufferTime) throws AudioEngineException, IllegalStateException;
 	void deactivate();
 
 	void addActivationListener(PlayerEventListener l);
@@ -207,7 +207,7 @@ public interface Player {
 	 * @throws AudioEngineException if opening the given device causes an error
 	 * @throws IllegalStateException if the player is not active
 	 */
-	void switchDevice(AudioDevice device) throws AudioEngineException, IllegalStateException;
+	void switchDevice(AudioDevice device, double bufferTime) throws AudioEngineException, IllegalStateException;
 
 	/**
 	 * Tests if the audio data of the given player can be played through

@@ -15,7 +15,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
-class Job(val taskId: String, val engine: PlaybackEngine) {
+class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double) {
     var task = SimpleObjectProperty<PlayTask?>()  // alive when not null
     private val restartCount = SimpleIntegerProperty(-1)
 
@@ -138,8 +138,8 @@ class Job(val taskId: String, val engine: PlaybackEngine) {
             val targetDevice = engine.speakerMap[task.target]
             if (targetDevice == null) player.deactivate()
             else {
-                if(player.device != null) player.switchDevice(targetDevice)
-                else player.activate(targetDevice)
+                if(player.device != null) player.switchDevice(targetDevice, bufferTime)
+                else player.activate(targetDevice, bufferTime)
             }
             if(task.restartCount > restartCount.value) {
                 if (task.position >= 0)

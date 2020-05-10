@@ -150,17 +150,21 @@ public class VirtualChannel
 		}
 	}
 
-	public synchronized void setLine(Mixer newMixer, double gain, boolean mute, boolean closeOldLine) throws LineUnavailableException {
+	public synchronized void setLine(Mixer newMixer, double gain, boolean mute, boolean closeOldLine, double bufferTime) throws LineUnavailableException {
 		SourceDataLine newLine = AudioSystem.getSourceDataLine(format, newMixer.getMixerInfo());
-		setLine(newLine, gain, mute, closeOldLine);
+		setLine(newLine, gain, mute, closeOldLine, bufferTime);
 	}
 
-	public synchronized void setLine(SourceDataLine newLine, double gain, boolean mute, boolean closeOldLine) throws LineUnavailableException {
+	public synchronized void setLine(SourceDataLine newLine, double gain, boolean mute, boolean closeOldLine, double bufferTime) throws LineUnavailableException {
 		SourceDataLine oldLine = line;
 		boolean wasRunning = running;
 
 		if(!newLine.isOpen()) {
-			newLine.open(format);
+			int bufferSize = (int) (bufferTime * format.getFrameRate());  // 16 kB works
+			if (bufferSize % format.getFrameSize() != 0) {
+				bufferSize += format.getFrameSize() - (bufferSize % format.getFrameSize());
+			}
+			newLine.open(format, bufferSize);
 		} else {
 			if(!format.matches(newLine.getFormat())) throw new IllegalArgumentException("line is opened with the wrong format");
 		}

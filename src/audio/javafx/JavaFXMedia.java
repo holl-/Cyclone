@@ -1,6 +1,9 @@
 package audio.javafx;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 
@@ -28,7 +31,13 @@ public class JavaFXMedia
 		if(fxMedia != null) return;
 		
 		URI uri = mediaFile.toURI();
-		if(uri == null) throw new IOException("media must support one of the following URI formats: HTTP, FILE, JAR");
+		if(uri == null) {
+			File file = File.createTempFile("stream", mediaFile.getFileName());
+			try(FileOutputStream out = new FileOutputStream(file); InputStream in = mediaFile.openStream()) {
+				in.transferTo(out);
+			}
+			uri = file.toURI();
+		}
 		try {
 			fxMedia = new Media(uri.toString());
 		} catch(MediaException exc) {

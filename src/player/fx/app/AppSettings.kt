@@ -5,6 +5,8 @@ import cloud.CloudFile
 import cloud.Peer
 import javafx.application.Application
 import javafx.application.Platform
+import javafx.beans.InvalidationListener
+import javafx.beans.binding.Bindings
 import javafx.collections.ListChangeListener
 import javafx.collections.transformation.FilteredList
 import javafx.fxml.FXML
@@ -20,6 +22,7 @@ import player.model.PlaylistPlayer
 import java.io.File
 import java.net.URL
 import java.util.*
+import java.util.concurrent.Callable
 import java.util.function.Predicate
 import java.util.stream.Collectors
 
@@ -29,6 +32,11 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     // General
     @FXML var skin: ComboBox<String>? = null
     @FXML var singleInstance: CheckBox? = null
+    // Audio
+    @FXML var javaSound: RadioButton? = null
+    @FXML var javaFXSound: RadioButton? = null
+    @FXML var bufferTime: Slider? = null
+    @FXML var bufferTimeDisplay: Label? = null
     // Library
     @FXML var libraryDirectories: ListView<CloudFile>? = null
     // Network
@@ -52,21 +60,19 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
 
 
     override fun initialize(location: URL?, resources: ResourceBundle?) {
-        // --- Skin ---
         skin!!.items.setAll("Modena", "Caspian", "AquaFX", "Dark")
+        libraryDirectories!!.items = player.library.roots
+
+        val soundEngineGroup = ToggleGroup()
+        javaSound!!.toggleGroup = soundEngineGroup
+        javaFXSound!!.toggleGroup = soundEngineGroup
+
         updateUIValues()
 
         skin!!.selectionModel.selectedItemProperty().addListener { _, _, newStyle -> applyStyle(newStyle, windows)}
-        Platform.runLater {applyStyle(skin!!.selectionModel.selectedItem, windows)}
-
-        // --- Single instance ---
-        // --- Library ---
-        libraryDirectories!!.items = player.library.roots
-        if(!player.library.roots.isEmpty()) {
-            libraryDirectories!!.selectionModel.select(0)
-        }
-
         connectionStatus!!.textProperty().bind(player.cloud.connectionStatus)
+        bufferTimeDisplay!!.textProperty().bind(Bindings.createStringBinding(Callable { "${(bufferTime!!.value * 1000).toInt()}" }, bufferTime!!.valueProperty()))
+        bufferTime!!.disableProperty().bind(javaFXSound!!.selectedProperty())
 
         // --- Save on Change ---
         for (property in listOf(
@@ -76,9 +82,14 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
                 computerName!!.textProperty(),
                 multicastAddress!!.textProperty(),
                 multicastPort!!.textProperty(),
-                broadcastInterval!!.textProperty())) {
+                broadcastInterval!!.textProperty(),
+                javaSound!!.selectedProperty(),
+                javaFXSound!!.selectedProperty(),
+                bufferTime!!.valueProperty())) {
             property.addListener { _ -> save()}
         }
+
+        Platform.runLater {applyStyle(skin!!.selectionModel.selectedItem, windows)}
 
         // --- control listeners --- ToDo this will be saved in serialized form in the future using Cloud.write
         player.loopingProperty.addListener{_ -> save()}
@@ -87,8 +98,18 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     }
 
     fun updateUIValues() {
-        skin!!.selectionModel.select(config.getString("skin", "Modena"))
+        // --- General ---
         singleInstance!!.selectedProperty().set(config.getString("singleInstance", "true").toBoolean())
+        skin!!.selectionModel.select(config.getString("skin", "Modena"))
+        // --- Audio ---
+        val isJFX = config["audioEngine"] == "javafx"
+        javaSound!!.isSelected = !isJFX
+        javaFXSound!!.isSelected = isJFX
+        bufferTime!!.value = config["bufferTime"]?.toDouble() ?: 0.2
+        // --- Library ---
+        if(!player.library.roots.isEmpty()) {
+            libraryDirectories!!.selectionModel.select(0)
+        }
 
         // --- Network ---
         connectOnStartup!!.isSelected = config.getString("connectOnStartup", "false").toBoolean()
@@ -134,7 +155,9 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
                 "computerName" to computerName!!.text,
                 "multicastAddress" to multicastAddress!!.text,
                 "multicastPort" to multicastPort!!.text,
-                "broadcastRate" to broadcastInterval!!.text
+                "broadcastRate" to broadcastInterval!!.text,
+                "audioEngine" to if (javaFXSound!!.isSelected) "javafx" else "java",
+                "bufferTime" to bufferTime!!.value
         ))
         config.write()
     }

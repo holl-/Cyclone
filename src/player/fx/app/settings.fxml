@@ -6,15 +6,18 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
-
 
 <BorderPane xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
    <center>
@@ -33,49 +36,76 @@
                                     <Insets />
                                  </VBox.margin>
                                  <padding>
-                                    <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                                    <Insets bottom="4.0" top="8.0" />
                                  </padding>
                               </Separator>
                               <Label text="Appearance" />
                               <ComboBox fx:id="skin" prefWidth="150.0" promptText="Skin" />
                            </children>
                            <padding>
-                              <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+                              <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
                            </padding>
                         </VBox>
                      </center>
                   </BorderPane>
                </content>
           </Tab>
-          <Tab disable="true" text="Audio">
+          <Tab text="Audio">
                <content>
                   <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
                      <children>
+                        <Label text="Audio engine" />
+                        <GridPane>
+                          <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="286.85711669921875" minWidth="10.0" prefWidth="130.28573608398438" />
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="453.7142639160156" minWidth="10.0" prefWidth="453.7142639160156" />
+                          </columnConstraints>
+                          <rowConstraints>
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                          </rowConstraints>
+                           <children>
+                              <RadioButton fx:id="javaSound" mnemonicParsing="false" text="Java Sound" />
+                              <RadioButton fx:id="javaFXSound" mnemonicParsing="false" text="JavaFX" GridPane.rowIndex="1" />
+                              <Label text="Enables device selection" GridPane.columnIndex="1" />
+                              <Label text="Loads files more quickly" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                           </children>
+                        </GridPane>
+                        <Separator layoutX="18.0" layoutY="102.0" prefWidth="200.0">
+                           <padding>
+                              <Insets bottom="4.0" top="4.0" />
+                           </padding>
+                        </Separator>
                         <Label text="Audio buffer length" />
                         <HBox spacing="4.0">
                            <children>
-                              <Slider max="1000.0" value="200.0" />
-                              <Label text="200" />
+                              <Slider fx:id="bufferTime" max="0.5" value="0.2" />
+                              <Label fx:id="bufferTimeDisplay" text="200" />
                               <Label text="milliseconds" />
                            </children>
                         </HBox>
-                        <Label text="Too small values can cause stuttering, too large values lag in volume control." />
+                        <Label text="Small values can cause stuttering, large values increase latency for volume control." />
                         <Separator prefWidth="200.0">
                            <padding>
-                              <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                              <Insets bottom="4.0" top="4.0" />
                            </padding>
                         </Separator>
                         <Label text="Minimum volume" />
                         <HBox>
                            <children>
-                              <TextField text="0.01" />
+                              <TextField disable="true" text="0.01" />
                            </children>
                         </HBox>
-                        <Label text="The minimum volume defines the range the volume slider." />
-                        <Label text="When the volume slider reaches the left most position, the sound is muted." />
+                        <Label text="The volume at the left-most position of the volume slider." />
+                        <Separator layoutX="22.0" layoutY="128.0" prefWidth="200.0">
+                           <padding>
+                              <Insets bottom="4.0" top="4.0" />
+                           </padding>
+                        </Separator>
+                        <Label text="Changes to the audio configuration takes effect only after restarting the application." />
                      </children>
                      <padding>
-                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+                        <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
                      </padding>
                   </VBox>
                </content>
@@ -95,13 +125,13 @@
                         <Label text="Hint: Add a parent directory by playing a song and choosing &quot;Add to library&quot; from the file menu." wrapText="true" />
                         <Separator prefWidth="200.0">
                            <padding>
-                              <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                              <Insets bottom="4.0" top="4.0" />
                            </padding>
                         </Separator>
                         <CheckBox disable="true" mnemonicParsing="false" prefHeight="17.0" prefWidth="326.0" text="Follow symbolic links" />
                      </children>
                      <padding>
-                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+                        <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
                      </padding>
                   </VBox>
                </content>
@@ -110,26 +140,21 @@
                <content>
                   <VBox prefHeight="200.0" prefWidth="100.0" spacing="4.0">
                      <padding>
-                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+                        <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
                      </padding>
                      <children>
-                        <Label text="The application may need to be restarted after changing the network configuration." />
-                        <Separator prefWidth="200.0">
-                           <padding>
-                              <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                           </padding>
-                        </Separator>
                         <CheckBox fx:id="connectOnStartup" mnemonicParsing="false" prefHeight="17.0" prefWidth="361.0" text="Automatically connect on startup" />
                         <Separator prefWidth="200.0">
                            <padding>
-                              <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                              <Insets bottom="4.0" top="4.0" />
                            </padding>
                         </Separator>
                         <Label text="Computer name" />
                         <TextField fx:id="computerName" />
+                        <Label text="The application may need to be restarted after changing the computer name." />
                         <Separator prefWidth="200.0">
                            <padding>
-                              <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+                              <Insets bottom="4.0" top="4.0" />
                            </padding>
                         </Separator>
                         <Label text="Network configuration" />
@@ -150,7 +175,7 @@
                         </HBox>
                         <Separator layoutX="18.0" layoutY="39.0" prefWidth="200.0">
                            <padding>
-                              <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                              <Insets bottom="4.0" top="4.0" />
                            </padding>
                         </Separator>
                         <HBox spacing="6.0">

@@ -112,7 +112,7 @@ public class JSPlayer extends AbstractPlayer
 
 
 	@Override
-	public void activate(AudioDevice device) throws AudioEngineException {
+	public void activate(AudioDevice device, double bufferTime) throws AudioEngineException {
 		if(!isPrepared()) throw new IllegalStateException("player must be prepared first");
 		if(isActive()) throw new IllegalStateException("player is already active");
 		if(media.getEncodedAudioFormat() == null) throw new IllegalStateException("player must be prepared before activating");
@@ -125,7 +125,7 @@ public class JSPlayer extends AbstractPlayer
 		}
 		channel.setPlayer(this);
 		try {
-			channel.setDevice((JavaSoundMixer) device);
+			channel.setDevice((JavaSoundMixer) device, bufferTime);
 		} catch (LineUnavailableException e) {
 			throw new AudioEngineException(e);
 		}
@@ -261,11 +261,11 @@ public class JSPlayer extends AbstractPlayer
 	}
 
 	@Override
-	public void switchDevice(AudioDevice device) throws AudioEngineException {
+	public void switchDevice(AudioDevice device, double bufferTime) throws AudioEngineException {
 		if(channel == null) throw new IllegalStateException("must be active to switch device");
 		if(!(device instanceof JavaSoundMixer)) throw new IllegalArgumentException("illegal device: "+device);
 		try {
-			channel.setDevice((JavaSoundMixer) device);
+			channel.setDevice((JavaSoundMixer) device, bufferTime);
 		} catch (LineUnavailableException e) {
 			throw new AudioEngineException(e);
 		}

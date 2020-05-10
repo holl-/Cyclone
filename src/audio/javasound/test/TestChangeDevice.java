@@ -44,7 +44,7 @@ public class TestChangeDevice extends Application
 					AudioDevice arg1, AudioDevice arg2) {
 				System.out.println("Changine device to "+arg2);
 				try {
-					player.switchDevice(arg2);
+					player.switchDevice(arg2, 0.2);
 				} catch (AudioEngineException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -77,7 +77,7 @@ public class TestChangeDevice extends Application
 			long time = System.currentTimeMillis();
 			player.prepare();
 			System.out.println("Time to prepare: "+(System.currentTimeMillis()-time));
-			player.activate(engine.getDefaultDevice());
+			player.activate(engine.getDefaultDevice(), 0.2);
 		} catch (UnsupportedMediaFormatException | IOException
 				| AudioEngineException e) {
 			// TODO Auto-generated catch block

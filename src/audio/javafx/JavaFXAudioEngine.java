@@ -97,7 +97,7 @@ public class JavaFXAudioEngine extends AudioEngine
 
 		@Override
 		public String getName() {
-			return "System";
+			return "Primary device";
 		}
 
 		@Override

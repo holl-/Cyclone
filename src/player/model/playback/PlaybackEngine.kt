@@ -2,6 +2,8 @@ package player.model.playback
 
 import audio.AudioDevice
 import audio.AudioEngine
+import audio.javafx.JavaFXAudioEngine
+import audio.javasound.JavaSoundEngine
 import cloud.Cloud
 import cloud.Peer.Companion.getLocal
 import javafx.beans.InvalidationListener
@@ -14,6 +16,7 @@ import player.model.data.MasterGain
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
+import java.lang.IllegalArgumentException
 import java.util.concurrent.Callable
 import java.util.function.Supplier
 import java.util.stream.Collectors
@@ -26,8 +29,9 @@ import java.util.stream.Collectors
  *
  * When a playback event occurs like an error or end-of-file, the PlaybackEngine updates the status.
  */
-class PlaybackEngine (val cloud: Cloud, val audioEngine: AudioEngine, config: CycloneConfig)
+class PlaybackEngine (val cloud: Cloud, val config: CycloneConfig)
 {
+    val audioEngine: AudioEngine = createEngine(config["audioEngine"])
     private val tasks = cloud.getAll(PlayTask::class.java)
     private val masterGainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(config["gain"]?.toDouble() ?: 0.0) })
 
@@ -83,10 +87,9 @@ class PlaybackEngine (val cloud: Cloud, val audioEngine: AudioEngine, config: Cy
     fun getOrCreateJob(taskId: String): Job {
         val existing = jobs.firstOrNull { j -> j.taskId == taskId}
         existing?.let { return existing }
-        val newJob = Job(taskId, this)
+        val newJob = Job(taskId, this, config.getString("bufferTime", "0.2").toDouble())
         jobs.add(newJob)
         newJob.status.addListener(InvalidationListener { statusInvalid.value = true })
-        println(jobs)
         return newJob
     }
 
@@ -101,7 +104,7 @@ class PlaybackEngine (val cloud: Cloud, val audioEngine: AudioEngine, config: Cy
         statusInvalid.value = false
 
         val statuses = ArrayList<PlayTaskStatus>()
-        for(job in jobs) {
+        for(job in ArrayList(jobs)) {
             val status = job.status.value
             status?.let { statuses.add(status) }
         }
@@ -112,6 +115,16 @@ class PlaybackEngine (val cloud: Cloud, val audioEngine: AudioEngine, config: Cy
     fun dispose() {
         jobs.forEach { job -> job.dispose() }
         cloud.yankAll(null, this)
+    }
+
+    private fun createEngine(name: String?): AudioEngine {
+        if (name == "javafx") {
+            return JavaFXAudioEngine()
+        }
+        if (name == null || name == "java") {
+            return JavaSoundEngine()
+        }
+        throw IllegalArgumentException("Unknown audio engine: $name")
     }
 
 }

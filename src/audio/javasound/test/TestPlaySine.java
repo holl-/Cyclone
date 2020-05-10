@@ -23,7 +23,7 @@ public class TestPlaySine {
 				AudioSystem2.toAudioDataFormat(sine.getFormat()),
 				null));
 		player.prepare();
-		player.activate(engine.getDefaultDevice());
+		player.activate(engine.getDefaultDevice(), 0.2);
 		player.start();
 				
 	}

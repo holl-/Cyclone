@@ -72,7 +72,7 @@ public class Launcher extends Application {
 
 
 
-		PlaybackEngine engine = new PlaybackEngine(cloud1, new JavaSoundEngine(), config);
+		PlaybackEngine engine = new PlaybackEngine(cloud1, config);
 
 		PlaylistPlayer player = new PlaylistPlayer(cloud1, config);
 		window = new PlayerWindow(primaryStage, player, engine, config);

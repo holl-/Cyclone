@@ -32,10 +32,10 @@ public class JSChannel
 		seek(player.getInactivePosition());
 	}
 
-	public void setDevice(JavaSoundMixer device) throws LineUnavailableException {
+	public void setDevice(JavaSoundMixer device, double bufferTime) throws LineUnavailableException {
 		if(mixer == device) return;
 		mixer = device;
-		vChannel.setLine(mixer.getMixer(), activePlayer.getGain(), activePlayer.isMute(), true);
+		vChannel.setLine(mixer.getMixer(), activePlayer.getGain(), activePlayer.isMute(), true, bufferTime);
 	}
 
 	public void seek(int posMillis) {

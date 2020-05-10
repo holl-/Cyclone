@@ -165,7 +165,7 @@ public class JavaFXPlayer extends AbstractPlayer {
 	}
 
 	@Override
-	public void activate(AudioDevice device) throws AudioEngineException {
+	public void activate(AudioDevice device, double bufferTime) throws AudioEngineException {
 		if(device != JavaFXAudioEngine.DEVICE) throw new IllegalArgumentException("illegal device: "+device);
 		fireActivated(getPosition(), PlayerEvent.USER_COMMAND);
 	}
@@ -183,7 +183,7 @@ public class JavaFXPlayer extends AbstractPlayer {
 	}
 
 	@Override
-	public void switchDevice(AudioDevice device) throws AudioEngineException,
+	public void switchDevice(AudioDevice device, double bufferTime) throws AudioEngineException,
 			IllegalStateException {
 		if(device != JavaFXAudioEngine.DEVICE) throw new IllegalArgumentException("illegal device: "+device);
 	}
