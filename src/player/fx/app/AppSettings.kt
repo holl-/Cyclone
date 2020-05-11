@@ -62,6 +62,7 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         val loader = FXMLLoader(javaClass.getResource("settings.fxml"))
         loader.setController(this);
         stage.scene = Scene(loader.load())
+        stage.title = "Cyclone Settings"
 
         windows.addListener( ListChangeListener { change -> while(change.next()) applyStyle(skin!!.selectionModel.selectedItem, change.addedSubList) })
 

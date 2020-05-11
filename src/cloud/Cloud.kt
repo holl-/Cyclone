@@ -1,16 +1,19 @@
 package cloud
 
 import javafx.application.Platform
+import javafx.beans.InvalidationListener
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
+import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
+import player.FireLater
+import java.io.*
 import java.lang.IllegalStateException
+import java.util.concurrent.Callable
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
 import java.util.function.Supplier
 import java.util.logging.*
 import java.util.stream.Stream
@@ -121,16 +124,17 @@ class Cloud {
 
 
 
-    fun<T : SynchronizedData> getSynchronized(cls: Class<T>, default: Supplier<T>): ObservableValue<T> {
+    fun<T : SynchronizedData> getSynchronized(cls: Class<T>, default: Supplier<T>, observeOnPlatformThread: Boolean = true): ObservableValue<T> {
         @Suppress("UNCHECKED_CAST")
-        if(cls in sData) return sData[cls] as ObservableValue<T>
+        val result =  if(cls in sData) sData[cls] as ObservableValue<T>
         else {
             val defaultValue = default.get()
             val property = SimpleObjectProperty(defaultValue)
             sData[cls] = property
             pushSynchronized(defaultValue)
-            return property
+            property
         }
+        return if (!observeOnPlatformThread) result else FireLater(result)
     }
 
     /**
@@ -142,15 +146,12 @@ class Cloud {
     }
 
     fun pushSynchronizedImpl(data: SynchronizedData, localChange: Boolean) {
-        // TODO this should upate immediately, may cause too many events otherwise
-        Platform.runLater {
-            if (data.javaClass in sData)
-                sData[data.javaClass]?.value = data
-            else
-                sData[data.javaClass] = SimpleObjectProperty(data)
-            fireUpdate()
-            if (localChange) tcp?.synchronizedUpdated(data)
-        }
+        if (data.javaClass in sData)
+            sData[data.javaClass]?.value = data
+        else
+            sData[data.javaClass] = SimpleObjectProperty(data)
+        fireUpdate()
+        if (localChange) tcp?.synchronizedUpdated(data)
     }
 
     fun remoteUpdateSynchronized(data: SynchronizedData, forceReplace: Boolean, isDataOlder: Boolean, logger: Logger?) {
@@ -273,12 +274,30 @@ class Cloud {
     }
 
 
-    fun write(data: List<Data>, file: File) {
-
+    internal fun getSynchronizedData(): List<SynchronizedData> {
+        return sData.map { (_, prop) -> prop.value }
     }
 
-    fun read(file: File) {
 
+    fun write(file: File) {
+        ObjectOutputStream(file.outputStream()).use {
+            it.writeObject(getSynchronizedData())
+        }
+    }
+
+    fun read(file: File, isDataOlder: Boolean) {
+        val task = Executors.newFixedThreadPool(1) { r -> DeserializerThread(this, localPeer, r)}.submit(Callable {
+            var readList: List<*>? = null
+            ObjectInputStream(file.inputStream()).use {
+                readList = it.readObject() as List<*>
+            }
+            readList
+        })
+        val objects = task.get() ?: throw IOException()
+        for (sObj in objects) {
+            val transformed = (sObj as SynchronizedData).fromFile()
+            transformed?.let { remoteUpdateSynchronized(transformed, false, isDataOlder, logger) }
+        }
     }
 
     fun peerDisconnected(peer: Peer) {

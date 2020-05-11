@@ -1,5 +1,6 @@
 package player
 
+import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.beans.Observable
 import javafx.beans.property.*
@@ -11,233 +12,6 @@ import java.util.function.Consumer
 import java.util.function.Supplier
 
 
-//
-//
-//// TODO can these classes be replaced by bindings?
-//
-//private open class SynchronizedDoubleProperty (
-//        val cloud: Cloud,
-//        private val name: String,
-//        private val bean: Any,
-//        val getter: DoubleSupplier,
-//        val setter: DoubleConsumer
-//) : DoubleProperty()
-//{
-//    private var lastValue = 0.0
-//    private val changeListeners: MutableList<ChangeListener<in Number?>> = CopyOnWriteArrayList()
-//    private val invalidationListeners: MutableList<InvalidationListener> = CopyOnWriteArrayList()
-//
-//
-//    init {
-//        invalidated()
-//        register()
-//    }
-//
-//    private fun register() {
-//        distributed.addDataChangeListener({ e -> Platform.runLater { invalidated() } })
-//    }
-//
-//    fun invalidated() {
-//        val newValue = getter.asDouble
-//        if (newValue == lastValue) return
-//        val oldValue = lastValue
-//        lastValue = newValue
-//        fireChangedInvalidated(oldValue, newValue)
-//    }
-//
-//    protected fun fireChangedInvalidated(oldValue: Double, newValue: Double) {
-//        for (l in changeListeners) {
-//            l.changed(this, oldValue, newValue)
-//        }
-//        for (l in invalidationListeners) {
-//            l.invalidated(this)
-//        }
-//    }
-//
-//    override fun bind(observable: ObservableValue<out Number?>) {
-//        throw UnsupportedOperationException()
-//    }
-//
-//    override fun unbind() {
-//        return
-//    }
-//
-//    override fun isBound(): Boolean {
-//        return false
-//    }
-//
-//    override fun getBean(): Any {
-//        return bean
-//    }
-//
-//    override fun getName(): String {
-//        return name
-//    }
-//
-//    override fun addListener(listener: ChangeListener<in Number?>) {
-//        changeListeners.add(listener)
-//    }
-//
-//    override fun removeListener(listener: ChangeListener<in Number?>) {
-//        changeListeners.remove(listener)
-//    }
-//
-//    override fun addListener(listener: InvalidationListener) {
-//        invalidationListeners.add(listener)
-//    }
-//
-//    override fun removeListener(listener: InvalidationListener) {
-//        invalidationListeners.remove(listener)
-//    }
-//
-//    override fun get(): Double {
-//        return lastValue
-//    }
-//
-//    override fun set(value: Double) {
-//        if (value != lastValue) setter.accept(value)
-//    }
-//}
-//
-//
-class CustomBooleanProperty(
-        dependencies: Iterable<Observable>,
-        private val getter: BooleanSupplier,
-        private val setter: Consumer<Boolean>
-) : BooleanProperty()
-{
-    private var lastValue = false
-    private val changeListeners: MutableList<ChangeListener<in Boolean>> = CopyOnWriteArrayList()
-    private val invalidationListeners: MutableList<InvalidationListener> = CopyOnWriteArrayList()
-
-    init {
-        invalidate()
-        for(dependency in dependencies) {
-            dependency.addListener { invalidate() }
-        }
-    }
-
-    private fun invalidate() {
-        val newValue = getter.asBoolean
-        if (newValue == lastValue) return
-        val oldValue = lastValue
-        lastValue = newValue
-        for (l in changeListeners) {
-            l.changed(this, oldValue, newValue)
-        }
-        for (l in invalidationListeners) {
-            l.invalidated(this)
-        }
-    }
-
-    override fun bind(observable: ObservableValue<out Boolean>) {
-        throw UnsupportedOperationException()
-    }
-
-    override fun unbind() {
-        return
-    }
-
-    override fun isBound(): Boolean {
-        return false
-    }
-
-    override fun getBean(): Any? {
-        return null
-    }
-
-    override fun getName(): String? {
-        return null
-    }
-
-    override fun addListener(listener: ChangeListener<in Boolean>) {
-        changeListeners.add(listener)
-    }
-
-    override fun removeListener(listener: ChangeListener<in Boolean>) {
-        changeListeners.remove(listener)
-    }
-
-    override fun addListener(listener: InvalidationListener) {
-        invalidationListeners.add(listener)
-    }
-
-    override fun removeListener(listener: InvalidationListener) {
-        invalidationListeners.remove(listener)
-    }
-
-    override fun get(): Boolean {
-        return lastValue
-    }
-
-    override fun set(value: Boolean) {
-        if (value != lastValue) setter.accept(value)
-    }
-}
-//
-//private class DistributedReadOnlyStringProperty(private val name: String, private val bean: Any, distributed: Distributed, getter: Supplier<String>) : ReadOnlyStringProperty() {
-//    private val distributed: Distributed
-//    private val getter: Supplier<String>
-//    private var lastValue: String? = null
-//    private val changeListeners: MutableList<ChangeListener<in String>> = CopyOnWriteArrayList()
-//    private val invalidationListeners: MutableList<InvalidationListener> = CopyOnWriteArrayList()
-//    private fun register() {
-//        distributed.addDataChangeListener({ e -> Platform.runLater { invalidated() } })
-//    }
-//
-//    protected fun invalidated() {
-//        val newValue = getter.get()
-//        if (newValue === lastValue) return
-//        val oldValue = lastValue
-//        lastValue = newValue
-//        fireChangedInvalidated(oldValue, newValue)
-//    }
-//
-//    protected fun fireChangedInvalidated(oldValue: String?, newValue: String?) {
-//        for (l in changeListeners) {
-//            l.changed(this, oldValue, newValue)
-//        }
-//        for (l in invalidationListeners) {
-//            l.invalidated(this)
-//        }
-//    }
-//
-//    override fun getBean(): Any {
-//        return bean
-//    }
-//
-//    override fun getName(): String {
-//        return name
-//    }
-//
-//    override fun addListener(listener: ChangeListener<in String>) {
-//        changeListeners.add(listener)
-//    }
-//
-//    override fun removeListener(listener: ChangeListener<in String>) {
-//        changeListeners.remove(listener)
-//    }
-//
-//    override fun addListener(listener: InvalidationListener) {
-//        invalidationListeners.add(listener)
-//    }
-//
-//    override fun removeListener(listener: InvalidationListener) {
-//        invalidationListeners.remove(listener)
-//    }
-//
-//    override fun get(): String {
-//        return lastValue!!
-//    }
-//
-//    init {
-//        this.distributed = distributed
-//        this.getter = getter
-//        invalidated()
-//        register()
-//    }
-//}
-//
 class CustomObjectProperty<T>(
         private val dependencies: Iterable<Observable>,
         private val getter: Supplier<T?>,
@@ -342,6 +116,7 @@ class CastToBooleanProperty(val property: Property<Boolean?>) : BooleanPropertyB
     }
 }
 
+
 class CastToDoubleProperty(val property: Property<Number?>) : DoublePropertyBase()
 {
     init {
@@ -379,4 +154,41 @@ class CastToStringProperty(val property: Property<String?>) : StringPropertyBase
     protected fun finalize() {
         unbindBidirectional(property)
     }
+}
+
+
+class FireLater<T>(val value: ObservableValue<T>) : ObservableValue<T>
+{
+    private val changeListeners: MutableList<ChangeListener<in T>> = CopyOnWriteArrayList()
+    private val invalidationListeners: MutableList<InvalidationListener> = CopyOnWriteArrayList()
+
+    init {
+        value.addListener { prop, old, new -> Platform.runLater {
+            changeListeners.forEach { l -> l.changed(prop, old, new) }
+        } }
+        value.addListener { _ -> Platform.runLater {
+            invalidationListeners.forEach { l -> l.invalidated(this) }
+        } }
+    }
+
+    override fun removeListener(l: ChangeListener<in T>?) {
+        changeListeners.remove(l)
+    }
+
+    override fun removeListener(l: InvalidationListener?) {
+        invalidationListeners.remove(l)
+    }
+
+    override fun addListener(l: InvalidationListener?) {
+        l?.let { invalidationListeners.add(l) }
+    }
+
+    override fun addListener(l: ChangeListener<in T>?) {
+        l?.let { changeListeners.add(l) }
+    }
+
+    override fun getValue(): T {
+        return value.value
+    }
+
 }

@@ -183,7 +183,7 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
     }
 
     fun sendEverything() {
-        val sData = cloud.sData.map { (_, prop) -> prop.value }
+        val sData = cloud.getSynchronizedData()
         val data = cloud.getLocalData()
         if(senderThread.isShutdown) logger?.warning("Cannot send all data to $peer because thread is shut down")
         senderThread.submit {

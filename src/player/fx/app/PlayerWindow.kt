@@ -40,10 +40,7 @@ import player.fx.debug.CloudViewer
 import player.fx.debug.PlaybackViewer
 import player.fx.debug.TaskViewer
 import player.fx.icons.FXIcons
-import player.model.AudioFiles
-import player.model.CycloneConfig
-import player.model.MediaLibrary
-import player.model.PlaylistPlayer
+import player.model.*
 import player.model.data.Speaker
 import player.model.playback.Job
 import player.model.playback.PlaybackEngine
@@ -83,6 +80,11 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     private val settings: AppSettings
 
 
+    init {
+        stage.setOnCloseRequest { quit() }
+    }
+
+
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         settingsMenu!!.text = null
         settingsMenu!!.graphic = FXIcons.get("Settings.png", 24.0)
@@ -90,11 +92,11 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         currentSongMenu!!.textProperty().bind(player.titleProperty)
         currentSongMenu!!.disableProperty().bind(player.isFileSelectedProperty.not())
         volume!!.valueProperty().bindBidirectional(player.gainProperty)
-        speakerSelection!!.items = player.speakers
-        speakerSelection!!.selectionModel.select(player.speakerProperty.get())
-        speakerSelection!!.selectionModel.selectedItemProperty().addListener { _, _, n -> if (n != null) player.speakerProperty.set(n) }
         speakerSelection!!.setCellFactory { SpeakerCell() }
         speakerSelection!!.buttonCell = SpeakerCell()
+        speakerSelection!!.items = player.speakers
+        Platform.runLater { speakerSelection!!.selectionModel.select(player.speakerProperty.get()) }
+        speakerSelection!!.selectionModel.selectedItemProperty().addListener { _, _, n -> if (n != null) player.speakerProperty.set(n) }
         player.speakerProperty.addListener { _, _, n -> speakerSelection!!.selectionModel.select(n) }
         if (!settings.config.debug.value) debugMenu!!.parentMenu.items.remove(debugMenu)
     }
@@ -393,6 +395,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
 
     @FXML
     fun quit() {
+        player.cloud.write(getConfigFile("status.cld"))
         System.exit(0)
     }
 

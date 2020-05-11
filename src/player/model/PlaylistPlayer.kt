@@ -48,9 +48,18 @@ private class PlayerData
         override fun resolveConflict(other: SynchronizedData): SynchronizedData {
             return if (value == null) other else this
         }
+
+        override fun fromFile(): SynchronizedData? {
+            return Target(null)
+        }
     }
 
     data class Paused(val value: Boolean) : SynchronizedData()
+    {
+        override fun fromFile(): SynchronizedData? {
+            return Paused(true)
+        }
+    }
 
     /**
      * @param file start file of the last play request. Playback can move on to other files without this changing.
@@ -60,6 +69,15 @@ private class PlayerData
      * As long as this value stays constant, any changes are interpreted as updates with no actions required.
      */
     data class SelectedFile(val file: CloudFile?, val position: Double, val jumpCount: Long) : SynchronizedData()
+    {
+        override fun fromFile(): SynchronizedData? {
+            return if (file != null && File(file.getPath()).exists()) {
+                SelectedFile(file, 0.0, 0)
+            } else {
+                SelectedFile(null, 0.0, 0)
+            }
+        }
+    }
 
 }
 
@@ -101,7 +119,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     val gainProperty: DoubleProperty = CastToDoubleProperty(CustomObjectProperty<Number?>(listOf(gainData),
             getter = Supplier<Number?> { gainData.value?.value ?: 0 },
             setter = Consumer { value -> cloud.pushSynchronized(MasterGain(value!!.toDouble())) }))
-    val playlist: ObservableList<CloudFile> = FXCollections.observableArrayList()
+    val playlist: ObservableList<CloudFile> = FXCollections.observableArrayList(playlistData.value.files)
     val speakerProperty: ObjectProperty<Speaker?> = CustomObjectProperty<Speaker?>(listOf(speakerData),
             getter = Supplier { speakerData.value?.value },
             setter = Consumer { value -> updateSelectedFile(false); cloud.pushSynchronized(PlayerData.Target(value)) })

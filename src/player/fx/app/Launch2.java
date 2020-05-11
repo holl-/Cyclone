@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static player.model.ConfigKt.getConfigFile;
+
 public class Launch2 extends Application {
 	private PlayerWindow window;
 	private CycloneConfig config;
@@ -59,8 +61,10 @@ public class Launch2 extends Application {
 		Peer.getLocal().setId("1");
 		Peer.getLocal().setName("peer1");
 		Cloud cloud1 = new Cloud();
+		cloud1.read(getConfigFile("status.cld"), true);
 
 		Cloud cloud2 = new Cloud();
+		cloud2.read(getConfigFile("status.cld"), true);
 		cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
 
 		CloudViewer viewer1 = new CloudViewer(cloud1, "1");

@@ -52,4 +52,13 @@ abstract class SynchronizedData : Serializable {
     open fun resolveConflict(other: SynchronizedData): SynchronizedData {
         return this
     }
+
+    /**
+     * This method is called on an object that was read from disc.
+     * The return value of this object will be pushed to the cloud.
+     * If null, nothing will be pushed to the cloud.
+     */
+    open fun fromFile(): SynchronizedData? {
+        return this
+    }
 }

@@ -11,7 +11,6 @@ import javafx.stage.Stage;
 import mediacommand.CombinationManager;
 import mediacommand.MediaCommand;
 import mediacommand.MediaCommandManager;
-import player.fx.debug.CloudViewer;
 import player.model.CycloneConfig;
 import player.model.PlaylistPlayer;
 import player.model.playback.PlaybackEngine;
@@ -23,6 +22,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static player.model.ConfigKt.getConfigFile;
 
 public class Launcher extends Application {
 	private PlayerWindow window;
@@ -58,6 +59,14 @@ public class Launcher extends Application {
 		if (computerName != null) Peer.getLocal().setName(computerName);
 
 		Cloud cloud1 = new Cloud();
+		File prevStatus = getConfigFile("status.cld");
+		if (prevStatus.exists()) {
+			try {
+				cloud1.read(prevStatus, true);
+			}catch (Exception exc) {
+				exc.printStackTrace();
+			}
+		}
 
 		PlaybackEngine engine = new PlaybackEngine(cloud1, config);
 
