@@ -34,17 +34,13 @@ public class RoundPlayerSkin extends SkinBase<PlayerControl>
 	private Group buttonRoot;
 	private ToggleButton playButton, loopButton, shuffleButton;
 	private Button stopButton, prevButton, nextButton, listButton, searchButton;
-	private double innerMargin = 2, outerMargin = 5;
+	private final double innerMargin = 2, outerMargin = 5;
 	private ImageView playIcon, pauseIcon;
-	private DoubleProperty heightScale;
+	private final DoubleProperty heightScale = new SimpleDoubleProperty(1);
 
 
 	public RoundPlayerSkin(PlayerControl control) {
 		super(control);
-
-		heightScale = new SimpleDoubleProperty(1);
-//		heightScale.bind(Bindings.min(getSkinnable().widthProperty(), getSkinnable().heightProperty()).divide(1/300.0));
-
 		createSlider();
 		createButtons();
 	}
@@ -52,6 +48,9 @@ public class RoundPlayerSkin extends SkinBase<PlayerControl>
 
 	private void createSlider() {
 		slider = new CircularSlider();
+		// ToDo set ticks to 10/60 seconds
+		slider.setMajorTickUnit(60);
+		slider.setMinorTickCount(6);
 		slider.setLabelFormatter(new DoubleStringConverter() {
 			@Override
 			public String toString(Double timeExact) {

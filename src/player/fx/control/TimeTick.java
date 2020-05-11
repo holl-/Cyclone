@@ -25,8 +25,6 @@ public class TimeTick {
 		arc.setMouseTransparent(true);
 		arc.getStyleClass().add(cssClass);
 		arc.setStrokeLineCap(StrokeLineCap.BUTT);
-//		arc.setFill(null);
-//		arc.setStroke(paint);
 		arc.getTransforms().add(rotate = new Rotate());
 	}
 

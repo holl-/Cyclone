@@ -22,9 +22,9 @@ fun getConfigFile(filename: String): File {
 class CycloneConfig(val file: File)
 {
     // General
+    val debug = SimpleBooleanProperty(this, "debug", false)
     val singleInstance = SimpleBooleanProperty(this, "singleInstance", true);
     val skin = SimpleStringProperty(this, "skin", "")
-    val debug = SimpleBooleanProperty(this, "debug", false)
     // Audio
     val audioEngine = SimpleStringProperty(this, "audioEngine", "")
     val bufferTime = SimpleDoubleProperty(this, "bufferTime", 0.0)
@@ -40,7 +40,7 @@ class CycloneConfig(val file: File)
     val broadcastIntervalString = CastToStringProperty(CustomObjectProperty<String>(listOf(broadcastInterval), Supplier { broadcastInterval.value.toString() }, Consumer<String?> { v -> broadcastInterval.value = v!!.toDouble() }))
 
     private val allProperties = listOf(
-            singleInstance, skin,
+            debug, singleInstance, skin,
             audioEngine, bufferTime,
             library,
             connectOnStartup, computerName, multicastAddress, multicastPort, broadcastInterval

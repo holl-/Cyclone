@@ -54,7 +54,7 @@ public class PlayerControl extends Control {
 	public void setPosition(double position) { positionProperty().set(position); }
 
 
-	/** true if minor tick marks should be displayed */
+	
     private BooleanProperty loop = new BooleanPropertyBase(true) {
         @Override
         public Object getBean() {
@@ -70,7 +70,7 @@ public class PlayerControl extends Control {
     public final void setLoop(boolean value) { loop.set(value); }
     public final BooleanProperty loopProperty() { return loop; }
 
-    /** true if minor tick marks should be displayed */
+    
     private BooleanProperty shuffled = new BooleanPropertyBase(false) {
         @Override
         public Object getBean() {
@@ -86,7 +86,7 @@ public class PlayerControl extends Control {
     public final void setShuffled(boolean value) { shuffled.set(value); }
     public final BooleanProperty shuffledProperty() { return shuffled; }
 
-    /** true if minor tick marks should be displayed */
+    
     private BooleanProperty playing = new BooleanPropertyBase(false) {
         @Override
         public Object getBean() {

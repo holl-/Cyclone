@@ -12,6 +12,7 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
 import javafx.geometry.VPos;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
@@ -42,40 +43,38 @@ import javafx.util.converter.DoubleStringConverter;
 
 public class CircularSliderSkin extends SkinBase<CircularSlider> {
     private Shape foregroundMask; // invisible, but throws shadow
-    private DropShadow shadow;
-    private Circle centralClip;
+    private final DropShadow shadow;
+    private final Circle centralClip;
 
-    private double barRadius, barWidth; // effective values, depend on layout size
-
-    private Group centralGroup;
-    private Scale centralScale;
+    private final Group centralGroup;
+    private final Scale centralScale;
 
     // Ticks
-    private List<TimeTick> ticks;
-    private Group tickGroup;
-    private double tickScale = 0.0005;
-    private Duration tickAnimationLength = new Duration(1000);
+    private final List<TimeTick> ticks = new ArrayList<>();
+    private final Group tickGroup;
+    private final Duration tickAnimationLength = new Duration(1000);
     private DoubleProperty currentTickOpacy;
 
     // Bar
-    private Region styledBarBox;
-    private Path bar, oldBar;
+    private double barRadius, barWidth; // effective values, depend on layout size
+    private final Region styledBarBox;
+    private final Path bar;
+    private final Path oldBar;
     private FadeTransition oldBarFade;
-    private StackPane cssThumb, thumb;
+    private final StackPane cssThumb;
+    private final StackPane thumb;
     private double filledAngle = Double.NaN;
     private boolean onBar; // mouse pressed on bar or dragged from bar
-    private Duration barFadeToZeroDuration = new Duration(600);
+    private final Duration barFadeToZeroDuration = new Duration(600);
 
     // Value tooltips
-    private Tooltip mouseTooltip, barTooltip;
+    private final Tooltip mouseTooltip, barTooltip;
     private Timeline barTooltipAnimation, mouseTooltipAnimation;
-    private long barTooltipFadeInLength = 300, barTooltipFadeOutLength = 500, mouseTooltipFadeInLength = 50, mouseTooltipFadeOutLength = 200;
-
+    private double mouseTooltipTargetOpacity, barTooltipTargetOpacity;
 
 
     public CircularSliderSkin(CircularSlider control) {
         super(control);
-
 
         shadow = new DropShadow();
         shadow.setColor(new Color(0, 0, 0, 0.6));
@@ -138,11 +137,9 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
 
         // Value tooltips
         mouseTooltip = new Tooltip();
-//		mouseTooltip.setAutoHide(true);
         mouseTooltip.setOpacity(0);
 
         barTooltip = new Tooltip();
-//		barTooltip.setAutoHide(true);
         barTooltip.setOpacity(0);
         barTooltip.textProperty().bindBidirectional(control.valueProperty(), new StringConverter<Number>() {
 
@@ -156,18 +153,21 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
                 return getLabelFormatter().fromString(string);
             }
         });
+        getSkinnable().valueProperty().addListener(e -> {
+            if (barTooltip.isShowing()) positionTooltipAtAngle(barTooltip, angleFromValue(getSkinnable().getValue()));
+        });
 
 
         // Register listeners
 
-        control.maxProperty().addListener((p,o,n) -> {rebuildTicks(); rebuildBar();});
-        control.minProperty().addListener((p,o,n) -> {rebuildTicks(); rebuildBar();});
+        control.maxProperty().addListener((p,o,n) -> {updateTicks(); rebuildBar();});
+        control.minProperty().addListener((p,o,n) -> {updateTicks(); rebuildBar();});
         control.valueProperty().addListener(e -> rebuildBar());
 
-        control.tickLengthProperty().addListener(e -> rebuildTicks());
-        control.minorTickLengthProperty().addListener(e -> rebuildTicks());
-        control.majorTickUnitProperty().addListener(e -> rebuildTicks());
-        control.minorTickCountProperty().addListener(e -> rebuildTicks());
+        control.tickLengthProperty().addListener(e -> updateTicks());
+        control.minorTickLengthProperty().addListener(e -> updateTicks());
+        control.majorTickUnitProperty().addListener(e -> updateTicks());
+        control.minorTickCountProperty().addListener(e -> updateTicks());
 
         control.minorTickVisibleProperty().addListener(e -> updateTickVisibility());
         control.tickMarkVisibleProperty().addListener(e -> updateTickVisibility());
@@ -175,26 +175,8 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
         styledBarBox.backgroundProperty().addListener(e -> updateBarStyle());
 
         // Mouse events
-        getSkinnable().setOnMouseMoved(e -> updateMouseOver(e, false));
-        getSkinnable().setOnMouseDragged(e -> updateMouseOver(e, true));
-        getSkinnable().setOnMouseExited(e -> {
-            mouseTooltipAnimation = fadeTooltip(mouseTooltipFadeOutLength, 0, mouseTooltip, mouseTooltipAnimation);
-            thumb.setOpacity(0);
-            barTooltipAnimation = fadeTooltip(barTooltipFadeOutLength, 0, barTooltip, barTooltipAnimation);
-        });
         getSkinnable().setOnMouseEntered(e -> {
-            updateMouseOver(e, false);
-            barTooltipAnimation = fadeTooltip(barTooltipFadeInLength, 1, barTooltip, barTooltipAnimation);
-        });
-        getSkinnable().setOnMouseReleased(e -> {
-            if(onBar) {
-                getSkinnable().setValue(getValueAt(e.getX(), e.getY()));
-                showTooltipAtPos(barTooltip, getSkinnable().getValue());
-                onBar = false;
-            } else {
-                Parent parent = getNode().getParent();
-                parent.fireEvent(e.copyFor(parent, parent));
-            }
+            fadeBarTooltip(1.0);
         });
         getSkinnable().setOnMousePressed(e -> {
             onBar = isOnBar(e.getX(), e.getY());
@@ -203,25 +185,22 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
                 parent.fireEvent(e.copyFor(parent, parent));
             }
         });
-    }
-
-
-    private Timeline fadeTooltip(long duration, double targetOpacity, Tooltip barTooltip, Timeline barTooltipAnimation) {
-        if(barTooltipAnimation != null && barTooltipAnimation.getStatus() == Animation.Status.RUNNING) {
-            barTooltipAnimation.stop();
-        }
-        if(targetOpacity > 0 && !barTooltip.isShowing()) {
-            showTooltipAtPos(barTooltip, getSkinnable().getValue());
-        }
-        barTooltipAnimation = new Timeline(new KeyFrame(Duration.ZERO, new KeyValue(barTooltip.opacityProperty(), barTooltip.getOpacity())),
-                new KeyFrame(new Duration(duration), new KeyValue(barTooltip.opacityProperty(), targetOpacity)));
-        if(targetOpacity == 0) {
-            barTooltipAnimation.setOnFinished(e -> {
-                barTooltip.hide();
-            });
-        }
-        barTooltipAnimation.play();
-        return barTooltipAnimation;
+        getSkinnable().setOnMouseMoved(e -> updateMouseOver(e, false));
+        getSkinnable().setOnMouseDragged(e -> updateMouseOver(e, true));
+        getSkinnable().setOnMouseReleased(e -> {
+            if(onBar) {
+                getSkinnable().setValue(getValueAt(e.getX(), e.getY()));
+                onBar = false;
+            } else {
+                Parent parent = getNode().getParent();
+                parent.fireEvent(e.copyFor(parent, parent));
+            }
+        });
+        getSkinnable().setOnMouseExited(e -> {
+            thumb.setOpacity(0);
+            fadeBarTooltip(0);
+            fadeMouseTooltip(0, e);
+        });
     }
 
 
@@ -230,23 +209,62 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
         double pos = getValueAt(e.getX(), e.getY());
 //        onBar = (onBar && isDragged) || isOnBar(e.getX(), e.getY());
 
-        // update tooltip
-        if(onBar) {
+        if (isOnBar(e.getX(), e.getY()) || (isDragged && onBar)) {
             mouseTooltip.setText(getLabelAt(pos));
-            showTooltipAtAngle(mouseTooltip, angle);
-            mouseTooltipAnimation = fadeTooltip(mouseTooltipFadeInLength, 1, mouseTooltip, mouseTooltipAnimation);
+            fadeMouseTooltip(1, e);
             e.consume();
-        } else {
-            mouseTooltipAnimation = fadeTooltip(mouseTooltipFadeOutLength, 0, mouseTooltip, mouseTooltipAnimation);
+        }
+        if (!onBar && !isOnBar(e.getX(), e.getY())) {
+            fadeMouseTooltip(0, e);
             Parent parent = getNode().getParent();
             parent.fireEvent(e.copyFor(parent, parent));
         }
+
+        fadeBarTooltip(1);
 
         // update thumb
         Point2D thumbLoc = getLocationFromAngle(angle, barRadius);
         thumb.setLayoutX(thumbLoc.getX() - thumb.getWidth()/2);
         thumb.setLayoutY(thumbLoc.getY() - thumb.getHeight()/2);
         thumb.setOpacity(onBar ? 1 : 0.4);
+    }
+
+
+    private void fadeBarTooltip(double targetOpacity) {
+        if (targetOpacity == barTooltipTargetOpacity) return;
+        barTooltipTargetOpacity = targetOpacity;
+        long barTooltipFadeInLength = 300;
+        fadeTooltip(barTooltipFadeInLength, targetOpacity, barTooltip, barTooltipAnimation);
+    }
+
+    private void fadeMouseTooltip(double targetOpacity, MouseEvent e) {
+        positionTooltipAtAngle(mouseTooltip, getAngle(e.getX(), e.getY()));
+        if (targetOpacity == mouseTooltipTargetOpacity) return;
+        mouseTooltipTargetOpacity = targetOpacity;
+        long mouseTooltipFadeInLength = 50;
+        fadeTooltip(mouseTooltipFadeInLength, targetOpacity, mouseTooltip, mouseTooltipAnimation);
+    }
+
+
+    private Timeline fadeTooltip(long durationPerUnit, double targetOpacity, Tooltip tooltip, Timeline timeline) {
+        if(timeline != null && timeline.getStatus() == Animation.Status.RUNNING) {
+            timeline.stop();
+        }
+        double currentValue = tooltip.getOpacity();
+        double distance = Math.abs(currentValue - targetOpacity);
+        timeline = new Timeline(
+                new KeyFrame(Duration.ZERO, new KeyValue(tooltip.opacityProperty(), currentValue)),
+                new KeyFrame(new Duration(durationPerUnit * distance), new KeyValue(tooltip.opacityProperty(), targetOpacity)));
+
+        if(targetOpacity > 0) {
+            if (!tooltip.isShowing()) tooltip.show(getSkinnable().getScene().getWindow());
+        } else {
+            timeline.setOnFinished(e -> {
+                tooltip.hide();
+            });
+        }
+        timeline.play();
+        return timeline;
     }
 
     public double getAngle(double x, double y) {
@@ -275,19 +293,19 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
         return new Point2D(rad*Math.sin(angle)+getSkinnable().getWidth()/2, -rad*Math.cos(angle)+getSkinnable().getHeight()/2);
     }
 
-    private void showTooltipAtPos(Tooltip tooltip, double pos) {
-        double angle = 2*Math.PI * (pos-getSkinnable().getMin()) / (getSkinnable().getMax() - getSkinnable().getMin());
+    private double angleFromValue(double value) {
+        double angle = 2*Math.PI * (value-getSkinnable().getMin()) / (getSkinnable().getMax() - getSkinnable().getMin());
         if(Double.isNaN(angle)) angle = 0;
-        showTooltipAtAngle(tooltip, angle);
+        return angle;
     }
 
-    private void showTooltipAtAngle(Tooltip tooltip, double angle) {
+    private void positionTooltipAtAngle(Tooltip tooltip, double angle) {
         double rad = barRadius + barWidth/2;
         double relPos = angle / 2 / Math.PI;
-        showTooltipAt(tooltip, getLocationFromAngle(angle, rad), relPos < 0.5, relPos > 0.25 && relPos < 0.75);
+        positionTooltipAt(tooltip, getLocationFromAngle(angle, rad), relPos < 0.5, relPos > 0.25 && relPos < 0.75);
     }
 
-    private void showTooltipAt(Tooltip tooltip, Point2D point, boolean left, boolean top) {
+    private void positionTooltipAt(Tooltip tooltip, Point2D point, boolean left, boolean top) {
         CircularSlider control = getSkinnable();
         point = control.localToScreen(point);
         tooltip.setAnchorLocation(left ?
@@ -295,9 +313,6 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
             (top ? AnchorLocation.WINDOW_TOP_RIGHT : AnchorLocation.WINDOW_BOTTOM_RIGHT));
         tooltip.setAnchorX(point.getX());
         tooltip.setAnchorY(point.getY());
-        if(!tooltip.isShowing()) {
-            tooltip.show(getSkinnable().getScene().getWindow());
-        }
     }
 
     private boolean isOnBar(double x, double y) {
@@ -326,13 +341,6 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
     }
 
     private void updateTicks() {
-        if(ticks == null) {
-            ticks = new ArrayList<>();
-            rebuildTicks();
-        }
-    }
-
-    private void rebuildTicks() {
     	// Fade old
     	if(currentTickOpacy != null) {
     		List<TimeTick> oldTicks = new ArrayList<>(ticks);
@@ -356,6 +364,7 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
         for(double pos = Math.ceil(min / minorUnit) * minorUnit; pos < max; pos += minorUnit) {
             boolean major = isInt(pos/majorUnit, 1e-6);
             double preTransformLength = (major ? getSkinnable().getTickLength() : getSkinnable().getMinorTickLength());
+            double tickScale = 0.0005;
             TimeTick tick = new TimeTick(pos,
                     major,
                     preTransformLength * preTransformLength * tickScale,
@@ -483,9 +492,14 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
         return Math.max(height, getSkinnable().getPrefWidth());
     }
 
+    private Rectangle2D currentShape = new Rectangle2D(0, 0, 0, 0);
+
     @Override
-    protected void layoutChildren(double contentX, double contentY,
-            double contentWidth, double contentHeight) {
+    protected void layoutChildren(double contentX, double contentY, double contentWidth, double contentHeight) {
+        Rectangle2D newShape = new Rectangle2D(contentX, contentY, contentWidth, contentHeight);
+        if (newShape.equals(currentShape)) return;
+        currentShape = newShape;
+
         barRadius = Math.max(0, Math.min(contentWidth, contentHeight) * getSkinnable().getDiameter() / 2);
         barWidth = Math.min(contentWidth, contentHeight) * getSkinnable().getThickness();
         centralClip.setRadius(1+barWidth/2/barRadius);
