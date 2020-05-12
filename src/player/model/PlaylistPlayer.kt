@@ -29,7 +29,7 @@ import kotlin.math.abs
  * This data object specifies the state of a PlaylistPlayer.
  * It is sufficient to generate a Program.
  */
-private class PlayerData
+class PlayerData
 {
 
     data class Playlist(val files: List<CloudFile>) : SynchronizedData()
@@ -152,7 +152,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
         library.roots.addAll(config.getLibraryFiles())
         library.roots.addListener(ListChangeListener<CloudFile> { config.setLibraryFiles(library.roots) })
 
-        playlistData.addListener(ChangeListener{ _, _, _ -> playlist.setAll(playlistData.value?.files ?: emptyList())}) // synchronized playlist
+        playlistData.addListener(ChangeListener{ _, _, _ -> playlist.setAll(playlistData.value?.files ?: emptyList())})
 
         for(obs in listOf(loopingData, shuffledData, playlistData, pausedData, selectedFile, speakerData)) {
             obs.addListener { _ -> updateTasks() }
@@ -197,7 +197,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
         if (file == null) return playlist[0]
         val index = playlist.indexOf(file)
         if (index < 0) return null
-        return if (index < playlist.size - 1) playlist[index + 1]!! else if (loopingProperty.value) playlist[0] else null
+        return if (index < playlist.size - 1) playlist[index + 1]!! else if (loopingData.value.value) playlist[0] else null
     }
 
     fun getPrevious(): CloudFile? {
@@ -224,7 +224,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
         if(playlist.size > index) {
             currentFileProperty.set(playlist[index])
         } else {
-            if(loopingProperty.get()) {
+            if(loopingProperty.get() && playlist.isNotEmpty()) {
                 currentFileProperty.set(playlist[0])
             } else {
                 currentFileProperty.set(null)

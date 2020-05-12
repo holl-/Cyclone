@@ -115,7 +115,10 @@ class CloudFile(file: File) : Data() {
 
         other as CloudFile
 
-        if (origin != other.origin) return false
+        if (origin != other.origin) {
+            if (path == other.path) println("Two files have the same path '$path' but different origins: $origin, ${other.origin}")
+            return false
+        }
         if (path != other.path) return false
 
         return true

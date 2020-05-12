@@ -2,6 +2,7 @@ package player.fx.app
 
 import cloud.CloudFile
 import com.aquafx_project.AquaFx
+import extensions.ambience.AmbienceExtension
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
@@ -12,6 +13,7 @@ import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
 import javafx.scene.Scene
 import javafx.scene.control.*
+import javafx.scene.layout.VBox
 import javafx.stage.DirectoryChooser
 import javafx.stage.Stage
 import javafx.stage.Window
@@ -47,6 +49,8 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     @FXML var multicastPort: TextField? = null
     @FXML var broadcastInterval: TextField? = null
     @FXML var connectionStatus: Label? = null
+    // Extensions
+    @FXML var extensions: VBox? = null
 
     private val windows = FilteredList<Window>(Window.getWindows(), Predicate { w -> w is Stage })
     private var saveDisabled: Boolean = false
@@ -99,6 +103,13 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         multicastPort!!.textProperty().bindBidirectional(config.multicastPortString)
         broadcastInterval!!.textProperty().bindBidirectional(config.broadcastIntervalString)
         connectionStatus!!.textProperty().bind(player.cloud.connectionStatus)
+        // Extensions
+        val knownExtensions = listOf(AmbienceExtension())
+        for (extension in knownExtensions) {
+            val pane = ExtensionInfo(extension, extension.name in config.getEnabledExtensions(), player.cloud)
+            pane.enabledProperty().addListener { _, _, _ -> config.setEnabledExtensions(extensions!!.children.map { n -> n as ExtensionInfo }.filter { e -> e.isEnabled() }.map { e -> e.extension.name }) }
+            extensions!!.children.add(pane)
+        }
     }
 
     fun applyStyle(style: String, windows: List<Window>) {
@@ -149,6 +160,14 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
 
     @FXML fun reset() {
         config.reset()
+    }
+
+    fun saveExtensions() {
+        for (pane in extensions!!.children) {
+            val extension = pane as ExtensionInfo
+            if (extension.isEnabled())
+                extension.save()
+        }
     }
 
 }

@@ -396,6 +396,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     @FXML
     fun quit() {
         player.cloud.write(getConfigFile("status.cld"))
+        settings.saveExtensions()
         System.exit(0)
     }
 

@@ -38,12 +38,15 @@ class CycloneConfig(val file: File)
     val multicastPortString = CastToStringProperty(CustomObjectProperty<String>(listOf(multicastPort), Supplier { multicastPort.value.toString() }, Consumer<String?> { v -> multicastPort.value = v!!.toInt() }))
     val broadcastInterval = SimpleDoubleProperty(this, "broadcastInterval", 0.0)
     val broadcastIntervalString = CastToStringProperty(CustomObjectProperty<String>(listOf(broadcastInterval), Supplier { broadcastInterval.value.toString() }, Consumer<String?> { v -> broadcastInterval.value = v!!.toDouble() }))
+    // Extensions
+    val enabledExtensions = SimpleStringProperty(this, "enabledExtensions", "")
 
     private val allProperties = listOf(
             debug, singleInstance, skin,
             audioEngine, bufferTime,
             library,
-            connectOnStartup, computerName, multicastAddress, multicastPort, broadcastInterval
+            connectOnStartup, computerName, multicastAddress, multicastPort, broadcastInterval,
+            enabledExtensions
     )
 
     val hasUnsavedChanges = SimpleBooleanProperty(false)
@@ -110,6 +113,15 @@ class CycloneConfig(val file: File)
 
     fun setLibraryFiles(files: List<CloudFile>) {
         library.value = files.stream().map { f -> f.getPath() }.collect(Collectors.joining(";"))
+    }
+
+    fun getEnabledExtensions(): List<String> {
+        val extensions = enabledExtensions.value.split(";".toRegex()).toTypedArray()
+        return extensions.map { s -> s.trim() }.filter { s -> s.isNotEmpty() }
+    }
+
+    fun setEnabledExtensions(extensions: List<String>) {
+        enabledExtensions.value = extensions.stream().collect(Collectors.joining(";"))
     }
 
 

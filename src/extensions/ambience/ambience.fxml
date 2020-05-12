@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="500.0" prefWidth="750.0" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
+   <left>
+      <VBox prefWidth="180.0" spacing="8.0" BorderPane.alignment="CENTER">
+         <children>
+            <ToggleButton fx:id="playing" maxWidth="1000.0" minHeight="40.0" mnemonicParsing="false" />
+            <Label text="Master Volume" />
+            <Slider fx:id="masterVolume" max="0.0" min="-40.0" value="-10.0" />
+            <Label text="Ambiences" />
+            <ListView fx:id="ambiences" editable="true" fixedCellSize="40.0" />
+            <BorderPane>
+               <center>
+                  <Button mnemonicParsing="false" onAction="#createAmbience" text="+" />
+               </center>
+            </BorderPane>
+         </children>
+         <padding>
+            <Insets right="8.0" />
+         </padding>
+      </VBox>
+   </left>
+   <padding>
+      <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
+   </padding>
+   <center>
+      <BorderPane prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+         <center>
+            <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="ALWAYS" BorderPane.alignment="CENTER">
+               <content>
+                  <VBox>
+                     <children>
+                        <VBox fx:id="ambiencePane" />
+                        <Button mnemonicParsing="false" onAction="#createEffect" text="+" />
+                     </children>
+                  </VBox>
+               </content>
+            </ScrollPane>
+         </center>
+      </BorderPane>
+   </center>
+</BorderPane>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<TitledPane animated="false" text="Extension name" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
+   <graphic>
+      <CheckBox fx:id="enabled" mnemonicParsing="false" />
+   </graphic>
+   <content>
+      <VBox spacing="6.0">
+         <children>
+            <Label fx:id="description" text="Description" />
+            <HBox spacing="6.0">
+               <children>
+                  <Label text="Version" />
+                  <Label fx:id="version" text="unknown" />
+               </children>
+            </HBox>
+            <CheckBox fx:id="autoShow" disable="true" mnemonicParsing="false" prefHeight="17.0" prefWidth="249.0" selected="true" text="Open this extension when it is loaded" />
+            <StackPane fx:id="settings" />
+         </children>
+      </VBox>
+   </content>
+</TitledPane>

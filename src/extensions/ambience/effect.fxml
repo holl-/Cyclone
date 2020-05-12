@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<TitledPane xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
+   <content>
+      <VBox spacing="12.0">
+         <children>
+            <HBox alignment="CENTER_LEFT" spacing="4.0">
+               <children>
+                  <Label text="Volume " />
+                  <Slider fx:id="gain" max="0.0" min="-40.0" />
+                  <Separator orientation="VERTICAL">
+                     <padding>
+                        <Insets left="6.0" right="6.0" />
+                     </padding>
+                  </Separator>
+                  <Label text="From: " />
+                  <ComboBox fx:id="direction" prefHeight="25.0" prefWidth="168.0" promptText="direction" />
+               </children>
+            </HBox>
+            <GridPane>
+               <columnConstraints>
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="202.42852783203125" minWidth="10.0" prefWidth="135.5714111328125" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="301.0" minWidth="10.0" prefWidth="296.4285888671875" />
+               </columnConstraints>
+               <rowConstraints>
+                  <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+               </rowConstraints>
+               <children>
+                  <CheckBox fx:id="continuous" maxWidth="1000.0" mnemonicParsing="false" selected="true" text="Continuous" />
+                  <HBox alignment="CENTER_LEFT" spacing="6.0" GridPane.columnIndex="1">
+                     <children>
+                        <TextField fx:id="nTimes" prefHeight="25.0" prefWidth="41.0" text="1" />
+                        <Label text="times per" />
+                        <ComboBox fx:id="perTimeUnit" prefHeight="25.0" prefWidth="122.0" promptText="time unit" />
+                     </children>
+                  </HBox>
+               </children>
+            </GridPane>
+         </children>
+      </VBox>
+   </content>
+   <graphic>
+      <HBox alignment="CENTER_LEFT" spacing="6.0">
+         <children>
+            <Button mnemonicParsing="false" onAction="#deleteEffect" text="X" />
+            <ComboBox fx:id="selectFromPlaylist" prefHeight="25.0" prefWidth="115.0" promptText="From playlist" />
+            <Button mnemonicParsing="false" onAction="#selectFile" text="Select file..." />
+            <Label fx:id="fileDisplay" text="File" textOverrun="CENTER_ELLIPSIS" />
+         </children>
+      </HBox>
+   </graphic>
+</TitledPane>
