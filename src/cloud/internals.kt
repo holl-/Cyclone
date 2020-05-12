@@ -321,21 +321,4 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
 }
 
 
-
-//fun main(args: Array<String>) {
-//    val c = CloudMulticast()
-//    c.startPinging()
-
-//    DeserializerThread(cloud, Peer.getLocal(), Runnable {
-//        val original = CloudFile(File("C:\\song.mp3"))
-//        val buffer = ByteArrayOutputStream(1024)
-//        ObjectOutputStream(buffer).writeObject(original)
-//        println(buffer.size())  // actual size of object (119 for peer)
-//        val recovered = ObjectInputStream(ByteArrayInputStream(buffer.toByteArray())).readObject() as CloudFile
-//        println(recovered)
-//        println(recovered.originatesHere())
-//    }).start()
-//}
-
-
 class DeserializerThread(val cloud: Cloud, val fromPeer: Peer, target: Runnable) : Thread(target)

@@ -5,8 +5,9 @@ import cloud.CloudFile
 import extensions.CycloneExtension
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
-import javafx.beans.property.DoubleProperty
-import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.binding.BooleanBinding
+import javafx.beans.binding.BooleanExpression
+import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
@@ -31,15 +32,20 @@ import player.CustomObjectProperty
 import player.fx.control.SpeakerCell
 import player.fx.icons.FXIcons
 import player.model.PlayerData
+import player.model.TaskChainBuilder
 import player.model.data.MasterGain
 import player.model.data.Speaker
 import java.io.File
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
+import java.lang.IllegalArgumentException
 import java.net.URL
 import java.util.*
 import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.function.Consumer
+import java.util.function.Function
 import java.util.function.Supplier
 
 
@@ -149,8 +155,12 @@ class AmbienceApp(val settings: AmbienceSettings, val cloud: Cloud, val extensio
             val ambience = Ambience(this)
             ambience.load(stream)
             ambiences!!.items.add(ambience)
-            ambiences!!.selectionModel.select(ambience)
         }
+        if (ambiences!!.items.isNotEmpty()) ambiences!!.selectionModel.select(0)
+    }
+
+    fun isPlaying(ambience: Ambience): BooleanBinding {
+        return Bindings.createBooleanBinding(Callable { playing!!.isSelected && ambience in ambiences!!.selectionModel.selectedItems }, playing!!.selectedProperty(), ambiences!!.selectionModel.selectedItemProperty())
     }
 }
 
@@ -168,6 +178,7 @@ private class AmbienceNameConverter(val listView: ListView<Ambience>): StringCon
 
 class Ambience(val window: AmbienceApp, var name: String = "New ambience") {
     val effects = VBox()
+    val playing = window.isPlaying(this)
 
     init {
         effects.spacing = 8.0
@@ -198,7 +209,7 @@ class Ambience(val window: AmbienceApp, var name: String = "New ambience") {
 }
 
 
-class EffectPane(val ambience: Ambience) : StackPane(), Initializable {
+class EffectPane(val ambience: Ambience) : StackPane(), Initializable, Function<CloudFile, CloudFile?> {
     val root: TitledPane
     val file = SimpleObjectProperty<File>()
 
@@ -210,13 +221,25 @@ class EffectPane(val ambience: Ambience) : StackPane(), Initializable {
     @FXML var nTimes: TextField? = null
     @FXML var perTimeUnit: ComboBox<String>? = null
 
+    private val player = TaskChainBuilder(ambience.window.cloud, this, "Amb", 2)
+    private val countdown = Countdown()
+
+    private var playing: BooleanExpression? = null
+    private var inSilentMode = false
+
     init {
         val loader = FXMLLoader(javaClass.getResource("effect.fxml"))
         loader.setController(this)
         root = loader.load()
-        root.isExpanded = false
         children.add(root)
-        Platform.runLater { root.isExpanded = true }
+        countdown.finished.addListener { _, _, finished -> if (finished) updatePlayer(false) }
+        player.pauseOnFinish.bind(continuous!!.selectedProperty().not())
+        player.finishedFlag.addListener { _, _, _ -> updatePlayer(false) }
+        Platform.runLater {
+            if (direction!!.selectionModel.selectedItem == null && direction!!.items.isNotEmpty()) {
+                direction!!.selectionModel.select(0)
+            }
+        }
     }
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
@@ -245,6 +268,48 @@ class EffectPane(val ambience: Ambience) : StackPane(), Initializable {
         direction!!.items = ambience.window.settings.soundSources
         direction!!.buttonCell = SoundSourceCell()
         direction!!.cellFactory = Callback { SoundSourceCell() }
+
+        playing = Bindings.createBooleanBinding(Callable { ambience.playing.value && direction!!.selectionModel.selectedItem != null && file.value != null },
+                ambience.playing, direction!!.selectionModel.selectedItemProperty(), file)
+        playing!!.addListener { _, _, _ -> updatePlayer(true) }
+
+        gain!!.valueProperty().addListener { _, _, _ -> updatePlayer(false) }
+    }
+
+    private fun updatePlayer(restart: Boolean) {
+        val speaker = direction!!.selectionModel.selectedItem?.getSpeaker()
+        val file = this.file.value
+        val playing = speaker != null && this.playing!!.value && file != null && ambience.playing.value
+        player.gain.value = gain!!.value
+        player.balance.value = direction!!.selectionModel.selectedItem?.getBalance() ?: 0.0
+        if (continuous!!.isSelected) {
+            // Handle continuous case
+            player.paused.value = !playing
+            if (playing) {
+                player.activate(speaker!!)
+                if (restart) player.play(CloudFile(file), 0.0)
+            }
+        } else {
+            // Handle random case
+            if (restart || player.finishedFlag.value) {  // We now enter silent mode
+                player.finishedFlag.value = false
+                countdown.reset(Math.random() / playRatePerSecond())
+                inSilentMode = true
+            }
+            else if (countdown.finished.value) {  // We now enter
+                inSilentMode = false
+            }
+            if (inSilentMode) {
+                countdown.paused.value = !playing
+            } else {
+                player.paused.value = !playing
+                if (playing) {
+                    player.activate(speaker!!)
+                    if (!player.isPlaying()) player.play(CloudFile(file), 0.0)
+                }
+            }
+        }
+        if (!playing) player.deactivate()
     }
 
     @FXML fun selectFile() {
@@ -289,6 +354,56 @@ class EffectPane(val ambience: Ambience) : StackPane(), Initializable {
                 text = item.name!!.text
             } else {
                 text = null
+            }
+        }
+    }
+
+    override fun apply(t: CloudFile): CloudFile? {
+        return file.value?.let { CloudFile(it) }
+    }
+
+    fun playRatePerSecond(): Double {
+        val unitInSeconds = when (perTimeUnit!!.selectionModel.selectedItem) {
+            "minute" -> 60
+            "hour" -> 60 * 60
+            "10 minutes" ->  10 * 60
+            else -> throw IllegalArgumentException()
+        }
+        return nTimes!!.text.toDouble() / unitInSeconds
+    }
+
+    private class Countdown() {
+        private var remaining = 0.0
+        val paused = SimpleBooleanProperty(true)
+        val finished: ReadOnlyBooleanProperty = SimpleBooleanProperty(false)
+        private var startTime: Long = 0
+        private val pool = Executors.newFixedThreadPool(1)
+        private var task: Future<*>? = null
+
+        init {
+            paused.addListener { _, _, paused ->
+                if (paused) {
+                    task?.cancel(true)
+                    val elapsed = System.currentTimeMillis() - startTime
+                    remaining -= elapsed
+                } else {
+                    startThread()
+                }
+            }
+        }
+
+        fun reset(seconds: Double) {
+            task?.cancel(true)
+            remaining = seconds
+            (finished as SimpleBooleanProperty).value = false
+            if (!paused.value) startThread()
+        }
+
+        private fun startThread() {
+            startTime = System.currentTimeMillis()
+            task = pool.submit {
+                Thread.sleep((remaining * 1000).toLong())
+                Platform.runLater { (finished as BooleanProperty).value = true }
             }
         }
     }
@@ -349,6 +464,13 @@ class SoundSource(val cloud: Cloud, val settings: AmbienceSettings) : StackPane(
         loader.setController(this)
         val root = loader.load<Parent>()
         children.add(root)
+
+        Platform.runLater(Runnable {
+            if(speaker!!.value == null && !speakers.isEmpty()) {
+                val defaultSpeaker = speakers.firstOrNull { s -> s.isDefault } ?: speakers[0]
+                speaker!!.value = defaultSpeaker
+            }
+        })
     }
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
@@ -374,6 +496,14 @@ class SoundSource(val cloud: Cloud, val settings: AmbienceSettings) : StackPane(
         stream.readUTF()  // speaker name
         stream.readUTF()  // speaker peer
         balance!!.value = stream.readDouble()
+    }
+
+    fun getSpeaker(): Speaker? {
+        return speaker!!.selectionModel.selectedItem
+    }
+
+    fun getBalance(): Double {
+        return balance!!.value
     }
 
     override fun toString(): String {

@@ -21,15 +21,15 @@
          <children>
             <HBox alignment="CENTER_LEFT" spacing="4.0">
                <children>
-                  <Label text="Volume " />
-                  <Slider fx:id="gain" max="0.0" min="-40.0" />
-                  <Separator orientation="VERTICAL">
-                     <padding>
-                        <Insets left="6.0" right="6.0" />
-                     </padding>
-                  </Separator>
                   <Label text="From: " />
                   <ComboBox fx:id="direction" prefHeight="25.0" prefWidth="168.0" promptText="direction" />
+                  <Separator orientation="VERTICAL">
+                     <padding>
+                        <Insets bottom="4.0" left="6.0" right="6.0" top="4.0" />
+                     </padding>
+                  </Separator>
+                  <Label text="Volume " />
+                  <Slider fx:id="gain" max="0.0" min="-40.0" />
                </children>
             </HBox>
             <GridPane>

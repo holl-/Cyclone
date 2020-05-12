@@ -236,7 +236,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
         Platform.runLater(Runnable {
             if(speakerProperty.value == null && !speakers.isEmpty()) {
                 val defaultSpeaker = speakers.firstOrNull { s -> s.isDefault } ?: speakers[0]
-                speakerProperty.set(defaultSpeaker)
+                speakerProperty.value = defaultSpeaker
             }
         })
     }
@@ -252,7 +252,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
                 jumpCount = selectedFile.value.jumpCount
                 builder.play(file, selectedFile.value.position)
             }
-            builder.paused = pausedData.value.value
+            builder.paused.value = pausedData.value.value
         }
         else {
             builder.deactivate()

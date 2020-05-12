@@ -41,7 +41,10 @@
                   <VBox>
                      <children>
                         <VBox fx:id="ambiencePane" />
-                        <Button mnemonicParsing="false" onAction="#createEffect" text="+" />
+                        <Button mnemonicParsing="false" onAction="#createEffect" text="+">
+                           <VBox.margin>
+                              <Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
+                           </VBox.margin></Button>
                      </children>
                   </VBox>
                </content>

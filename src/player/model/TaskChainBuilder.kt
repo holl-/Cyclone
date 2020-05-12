@@ -4,6 +4,8 @@ import cloud.Cloud
 import cloud.CloudFile
 import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleDoubleProperty
 import javafx.beans.property.SimpleObjectProperty
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
@@ -27,22 +29,27 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
     private var speaker: Speaker? = null
     val currentTask = SimpleObjectProperty<PlayTask?>()
     val currentStatus = Bindings.createObjectBinding(Callable { currentTask.value?.let { task -> status(task) } }, currentTask, statuses)
-
-    var paused: Boolean = false
-        set(value) {
-            if (field == value) return
-            field = value
-            if (active) update()
-        }
-    // balance, mute, gain can be implemented like paused
+    val pauseOnFinish = SimpleBooleanProperty(false)
+    val paused = SimpleBooleanProperty(false)
+    val finishedFlag = SimpleBooleanProperty(false)
+    val balance = SimpleDoubleProperty(0.0)
+    val gain = SimpleDoubleProperty(0.0)
 
 
     init {
         statuses.addListener(InvalidationListener {
             if (active && !tasks.isEmpty() && status(tasks[0])?.finished == true) {
-                update()  // A song just finished
+                finishedFlag.value = true
+                if (pauseOnFinish.value) {
+                    paused.value = true
+                }
+                else update()  // A song just finished
             }
         })
+
+        paused.addListener { _, _, _ -> if (active) update() }
+        balance.addListener { _, _, _ -> if (active) update() }
+        gain.addListener { _, _, _ -> if (active) update() }
     }
 
     fun deactivate() {
@@ -63,6 +70,10 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
         update()
     }
 
+    /**
+     * Whether a file is scheduled to be played.
+     * This method ignores the paused status.
+     */
     fun isPlaying(): Boolean {
         return tasks.isNotEmpty()
     }
@@ -74,23 +85,23 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
         val speaker = this.speaker ?: throw IllegalStateException("No speaker set")
         when {
             tasks.isEmpty() -> {
-                tasks.add(PlayTask(speaker, file, 0.0, false, 0.0, position, 0, null, creator, paused, null, newId()))
+                tasks.add(createTask(file, position, 0, null, newId()))
             }
             tasks.firstOrNull()?.file == file -> {  // is this the active task? -> keep it
                 // jump within file
-                tasks[0] = PlayTask(speaker, file, 0.0, false, 0.0, position, tasks[0].restartCount + 1, null, creator, paused, null, tasks[0].id)
+                tasks[0] = createTask(file, position, tasks[0].restartCount + 1, null, tasks[0].id)
             }
             else -> {  // is this a scheduled task? Move forward, remove trigger, remove previous
                 for (task in ArrayList(tasks)) {
                     if (task.file == file) {
-                        tasks[0] = PlayTask(speaker, file, 0.0, false, 0.0, position, task.restartCount, null, creator, paused, null, task.id)
+                        tasks[0] = createTask(file, position, task.restartCount, null, task.id)
                         break
                     } else {
                         tasks.removeAt(0)
                     }
                 }
                 if (tasks.isEmpty()) {
-                    tasks.add(PlayTask(speaker, file, 0.0, false, 0.0, position, 0, null, creator, paused, null, newId()))
+                    tasks.add(createTask(file, position, 0, null, newId()))
                 }
             }
         }
@@ -111,7 +122,7 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
         // Go through the list of tasks. Do tasks have to be altered? Do they still match the playlist or do we have to discard part of the chain?
         for ((index, task) in tasks.withIndex()) {
             // Adjust this task's properties, file should be correct
-            val adjustedTask = PlayTask(speaker!!, task.file, 0.0, false, 0.0, task.position, task.restartCount, null, creator, paused, task.trigger, task.id)
+            val adjustedTask = createTask(task.file, task.position, task.restartCount, if(index > 0) task.trigger else null, task.id)
             tasks[index] = adjustedTask
 
             // Check whether next task should be discarded
@@ -128,7 +139,7 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
         // If there is no task left (should only happen if maxTasks=1), build a new one
         if (tasks.size == 0) {
             fileChain.apply(lastFinished!!.file)?.let { file ->
-                tasks.add(PlayTask(speaker!!, file, 0.0, false, 0.0, 0.0, 0, null, creator, paused, null, newId()))
+                tasks.add(createTask(file, 0.0, 0, null, newId()))
             }
         }
 
@@ -136,13 +147,19 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
             // Add new tasks if we have too few
             while (tasks.size < maxTasks) {
                 fileChain.apply(tasks.last().file)?.let { file ->
-                    tasks.add(PlayTask(speaker!!, file, 0.0, false, 0.0, 0.0, 0, null, creator, paused, TaskTrigger(tasks.last().id), newId()))
+                    tasks.add(createTask(file, 0.0, 0, TaskTrigger(tasks.last().id), newId()))
                 } ?: break
             }
         }
 
         currentTask.value = tasks.firstOrNull()
         cloud.push(PlayTask::class.java, tasks, this, true)
+    }
+
+
+    private fun createTask(file: CloudFile, position: Double, restartCount: Int, trigger: TaskTrigger?, id: String): PlayTask {
+        val paused = if (pauseOnFinish.value && trigger != null) true else paused.value
+        return PlayTask(speaker!!, file, gain.value, false, balance.value, position, restartCount, null, creator, paused, trigger, id)
     }
 
 
