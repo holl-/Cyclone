@@ -53,11 +53,11 @@ import	org.tritonus.TDebug;
  * <p>
  * Also, the file name extension should be deprecated and moved
  * to <code>AudioFileFormat</code>. There are some file formats
- * which have varying extensions depending, e.g. on the encoding.
+ * which have varying player.extensions depending, e.g. on the encoding.
  * An example for this is MPEG: the special encoding Mpeg 1, layer 3
  * has the extension mp3, whereas other Mpeg files use mpeg or mpg.<br>
  * This could be implemented with 2 methods in <code>AudioFileFormat</code>:
- * <ol><li>String[] getFileExtensions(): returns all usable extensions
+ * <ol><li>String[] getFileExtensions(): returns all usable player.extensions
  *         for this file.
  *     <li>String getDefaultFileExtension(): returns the preferred extension.
  * </ol>

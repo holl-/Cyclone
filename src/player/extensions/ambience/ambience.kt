@@ -1,8 +1,8 @@
-package extensions.ambience
+package player.extensions.ambience
 
 import cloud.Cloud
 import cloud.CloudFile
-import extensions.CycloneExtension
+import player.extensions.CycloneExtension
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.beans.binding.BooleanBinding

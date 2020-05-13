@@ -1,13 +1,12 @@
 package player.fx.app
 
 import cloud.Cloud
-import extensions.CycloneExtension
+import player.extensions.CycloneExtension
 import javafx.application.Platform
 import javafx.beans.property.BooleanProperty
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
-import javafx.scene.Parent
 import javafx.scene.control.CheckBox
 import javafx.scene.control.Label
 import javafx.scene.control.TitledPane

@@ -2,7 +2,7 @@ package player.fx.app
 
 import cloud.CloudFile
 import com.aquafx_project.AquaFx
-import extensions.ambience.AmbienceExtension
+import player.extensions.ambience.AmbienceExtension
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.binding.Bindings

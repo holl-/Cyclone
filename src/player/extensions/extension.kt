@@ -1,4 +1,4 @@
-package extensions
+package player.extensions
 
 import cloud.Cloud
 import javafx.scene.Node

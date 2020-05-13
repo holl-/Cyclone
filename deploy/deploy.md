@@ -19,7 +19,7 @@ copy JDK and JavaFX modules to jdkfx-14\jmods
 3. Run jpackage
 
 ```
-"C:\Program Files\Java\jdkfx-14\bin\jpackage" --name "Cyclone" --type "msi" --app-version "0.3" --win-menu --icon "deploy\icon.ico" --description "Cyclone Media Player" --file-associations "deploy\file-associations.properties" --input "out\artifacts\Cyclone_jar" --main-class player.fx.app.Launcher --main-jar Cyclone.jar
+"C:\Program Files\Java\jdkfx-14\bin\jpackage" --name "Cyclone" --type "msi" --app-version "0.4" --win-menu --icon "deploy\icon.ico" --description "Cyclone Media Player" --file-associations "deploy\file-associations.properties" --input "out\artifacts\Cyclone_jar" --main-class player.fx.app.Launcher --main-jar Cyclone.jar
 ```
 
 Additional installer options:
