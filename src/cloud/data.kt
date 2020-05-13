@@ -34,11 +34,21 @@ import java.io.Serializable
  * @author Philipp Holl
  */
 abstract class Data : Serializable
+{
+    /**
+     * Two data objects are identical if their serialized forms are identical.
+     */
+    open fun identical(other: Data): Boolean {
+        return this === other
+    }
+}
 
 
 /**
  * Only one instance per class implementing SynchronizedData is allowed.
  * Sharing other objects of the same class will replace the old one.
+ *
+ * SynchronizedData must have an empty constructor to create a default object.
  */
 abstract class SynchronizedData : Serializable {
 

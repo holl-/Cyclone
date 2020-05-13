@@ -19,6 +19,7 @@ import javafx.stage.Stage
 import javafx.stage.Window
 import player.CastToBooleanProperty
 import player.CustomObjectProperty
+import player.FireLater
 import player.model.CycloneConfig
 import player.model.PlaylistPlayer
 import java.io.File
@@ -102,7 +103,7 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         multicastAddress!!.textProperty().bindBidirectional(config.multicastAddress)
         multicastPort!!.textProperty().bindBidirectional(config.multicastPortString)
         broadcastInterval!!.textProperty().bindBidirectional(config.broadcastIntervalString)
-        connectionStatus!!.textProperty().bind(player.cloud.connectionStatus)
+        connectionStatus!!.textProperty().bind(FireLater<String>(player.cloud.connectionStatus, Platform::runLater))
         // Extensions
         val knownExtensions = listOf(AmbienceExtension())
         for (extension in knownExtensions) {

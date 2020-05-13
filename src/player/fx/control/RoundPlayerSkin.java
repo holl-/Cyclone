@@ -37,6 +37,8 @@ public class RoundPlayerSkin extends SkinBase<PlayerControl>
 	private final double innerMargin = 2, outerMargin = 5;
 	private ImageView playIcon, pauseIcon;
 	private final DoubleProperty heightScale = new SimpleDoubleProperty(1);
+	private final double splitV = 0.2; // -1 to 1
+	private final double splitH = 0.3;
 
 
 	public RoundPlayerSkin(PlayerControl control) {
@@ -159,8 +161,6 @@ public class RoundPlayerSkin extends SkinBase<PlayerControl>
 	}
 
 	private void layoutButtons(double rad) {
-		double splitV = 0.3; // -1 to 1
-		double splitH = 0.3;
 		double inset = innerMargin;
 		Circle region = new Circle(rad);
 		setButtonShape(playButton, Shape.intersect(region, new Rectangle(-rad, -rad, 2*rad, (1+splitV)*rad-inset)));

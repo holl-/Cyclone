@@ -34,4 +34,8 @@ class DMediaFile(val file: CloudFile) : MediaFile {
     override fun openStream(): InputStream {
         return file.openStream()
     }
+
+    override fun toString(): String {
+        return fileName
+    }
 }

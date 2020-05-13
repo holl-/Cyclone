@@ -20,6 +20,7 @@ import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
+import player.FireLater
 import player.fx.icons.FXIcons
 import player.model.data.MasterGain
 import java.net.URL
@@ -103,7 +104,7 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
         logView?.items = log.filteredList
         logView?.setCellFactory { LogCell() }
         recordingLog!!.selectedProperty().bindBidirectional(log.recording)
-        connectionStatus!!.textProperty().bind(cloud.connectionStatus)
+        connectionStatus!!.textProperty().bind(FireLater<String>(cloud.connectionStatus, Platform::runLater))
         sClass!!.items = FXCollections.observableArrayList("Master Gain")
         sClass!!.selectionModel.select(0)
         sValue!!.text = "0"

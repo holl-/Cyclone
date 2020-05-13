@@ -34,17 +34,27 @@ class PlayerData
 
     data class Playlist(val files: List<CloudFile>) : SynchronizedData()
     {
+        constructor() : this(emptyList())
+
         override fun resolveConflict(other: SynchronizedData): SynchronizedData {
             return if (files.isEmpty()) other else this
         }
     }
 
     data class Looping(val value: Boolean) : SynchronizedData()
+    {
+        constructor() : this(true)
+    }
 
     data class Shuffled(val value: Boolean) : SynchronizedData()
+    {
+        constructor() : this(false)
+    }
 
     data class Target(val value: Speaker?) : SynchronizedData()
     {
+        constructor() : this(null)
+
         override fun resolveConflict(other: SynchronizedData): SynchronizedData {
             return if (value == null) other else this
         }
@@ -56,6 +66,8 @@ class PlayerData
 
     data class Paused(val value: Boolean) : SynchronizedData()
     {
+        constructor() : this(true)
+
         override fun fromFile(): SynchronizedData? {
             return Paused(true)
         }
@@ -70,6 +82,8 @@ class PlayerData
      */
     data class SelectedFile(val file: CloudFile?, val position: Double, val jumpCount: Long) : SynchronizedData()
     {
+        constructor() : this(null, 0.0, 0)
+
         override fun fromFile(): SynchronizedData? {
             return if (file != null && File(file.getPath()).exists()) {
                 SelectedFile(file, 0.0, 0)
@@ -92,15 +106,15 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     private val builder = TaskChainBuilder(cloud, Function { file -> after(file) }, CREATOR)
 
     // Synchronized PlaylistPlayer data objects
-    private val loopingData = cloud.getSynchronized(PlayerData.Looping::class.java, default = Supplier { PlayerData.Looping(true) })
-    private val shuffledData = cloud.getSynchronized(PlayerData.Shuffled::class.java, default = Supplier { PlayerData.Shuffled(false) })
-    private val gainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(0.0) })
-    private val playlistData = cloud.getSynchronized(PlayerData.Playlist::class.java, default = Supplier { PlayerData.Playlist(emptyList()) })
-    private val speakerData = cloud.getSynchronized(PlayerData.Target::class.java, default = Supplier { PlayerData.Target(null) })
-    private val pausedData = cloud.getSynchronized(PlayerData.Paused::class.java, default = Supplier { PlayerData.Paused(true) })
-    private val selectedFile = cloud.getSynchronized(PlayerData.SelectedFile::class.java, default = Supplier { PlayerData.SelectedFile(null, 0.0, 0) })
-    private val statuses = cloud.getAll(PlayTaskStatus::class.java)
-    private val tasks = cloud.getAll(PlayTask::class.java)
+    private val loopingData = cloud.getSynchronized(PlayerData.Looping::class.java, Platform::runLater)
+    private val shuffledData = cloud.getSynchronized(PlayerData.Shuffled::class.java, Platform::runLater)
+    private val gainData = cloud.getSynchronized(MasterGain::class.java, Platform::runLater)
+    private val playlistData = cloud.getSynchronized(PlayerData.Playlist::class.java, Platform::runLater)
+    private val speakerData = cloud.getSynchronized(PlayerData.Target::class.java, Platform::runLater)
+    private val pausedData = cloud.getSynchronized(PlayerData.Paused::class.java, Platform::runLater)
+    private val selectedFile = cloud.getSynchronized(PlayerData.SelectedFile::class.java, Platform::runLater)
+    private val statuses = cloud.getAll(PlayTaskStatus::class.java, this, Platform::runLater)
+    private val tasks = cloud.getAll(PlayTask::class.java, this, Platform::runLater)
     private val status = Bindings.createObjectBinding(Callable { getStatus() }, statuses, speakerData, tasks)
 
 
@@ -124,7 +138,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
             getter = Supplier { speakerData.value?.value },
             setter = Consumer { value -> updateSelectedFile(false); cloud.pushSynchronized(PlayerData.Target(value)) })
     // Playback information - depend on status of (remote) PlaybackEngine(s)
-    val speakers: ObservableList<Speaker> = cloud.getAll(Speaker::class.java)
+    val speakers: ObservableList<Speaker> = cloud.getAll(Speaker::class.java, this, Platform::runLater)
     val currentFileProperty: ObjectProperty<CloudFile?> = CustomObjectProperty<CloudFile?>(listOf(status, selectedFile),
             getter = Supplier<CloudFile?> { if(selectedFile.value.file != null) status.value?.task?.file else null },
             setter = Consumer { value -> cloud.pushSynchronized(PlayerData.SelectedFile(value, 0.0, selectedFile.value.jumpCount + 1)) })
@@ -138,7 +152,7 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
             setter = Consumer { throw UnsupportedOperationException() }))  // this is a read-only property
     val titleProperty: ReadOnlyStringProperty = CastToStringProperty(CustomObjectProperty<String>(listOf(status),
             getter = Supplier {
-                status.value?.message()?.plus("") ?: AudioFiles.inferTitle(status.value?.task?.file?.getPath())
+                status.value?.message() ?: AudioFiles.inferTitle(status.value?.task?.file?.getPath())
             },
             setter = Consumer { throw UnsupportedOperationException() }))  // this is a read-only property
     val playingProperty: BooleanProperty = CastToBooleanProperty(CustomObjectProperty<Boolean?>(listOf(pausedData),
@@ -263,7 +277,10 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
     private fun getStatus(): PlayTaskStatus? {
         val scheduled = statuses.filter { status -> status.task.creator == CREATOR && status.task.target == speakerData.value?.value && status.task in tasks }
         scheduled.firstOrNull { status -> status.active }?.let { status -> return status }
-        return scheduled.firstOrNull()
+        val result = scheduled.firstOrNull()
+//        if (result == null)
+//            println("No status")
+        return result
     }
 
     private fun updateSelectedFile(onlyIfOwner: Boolean = true) {

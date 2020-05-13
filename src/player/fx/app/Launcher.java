@@ -19,6 +19,7 @@ import systemcontrol.LocalMachine;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -101,7 +102,15 @@ public class Launcher extends Application {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		launch(args);
+		launch(fixArgs(args));
+	}
+
+	/** If file is split at spaces, recombines the parts into a single file. */
+	private static String[] fixArgs(String[] args) {
+		if (args.length <= 1) return args;
+		File singleFile = new File(String.join(" ", args));
+		if(singleFile.exists()) return new String[]{singleFile.getPath()};
+		else return args;
 	}
 
 
@@ -112,7 +121,7 @@ public class Launcher extends Application {
         	cm.register(manager);
 
         	cm.addCombination(new MediaCommand[]{ MediaCommand.PLAY_PAUSE }, c -> {
-        		player.getPlayingProperty().set(!player.getPlayingProperty().get());
+        		Platform.runLater(() -> player.getPlayingProperty().set(!player.getPlayingProperty().get()));
         	});
         	cm.addCombination(new MediaCommand[]{ MediaCommand.STOP }, c -> player.stop() );
         	cm.addCombination(new MediaCommand[]{ MediaCommand.NEXT }, c -> player.next() );

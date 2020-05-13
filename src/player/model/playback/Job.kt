@@ -2,7 +2,6 @@ package player.model.playback
 
 import audio.MediaFile
 import audio.Player
-import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
@@ -30,17 +29,17 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
 
 
     init {
-        task.addListener(InvalidationListener { taskOrDependenciesUpdated() })
+        task.addListener(InvalidationListener { update() })
         previous.addListener { _, _, value ->
-            value?.started?.addListener { _, _, _ -> taskOrDependenciesUpdated() }
-            value?.finished?.addListener { _, _, _ -> taskOrDependenciesUpdated() }
+            value?.started?.addListener { _, _, _ -> update() }
+            value?.finished?.addListener { _, _, _ -> update() }
         }
-        finished.addListener(InvalidationListener { Platform.runLater { status.value = status() } })
+        finished.addListener(InvalidationListener { engine.mainThread.submit { status.value = status() } })
         engine.masterGain.addListener(InvalidationListener { player.value?.gain = task.value?.let { it1 -> mixGain(it1) } ?: 0.0 })
     }
 
 
-    private fun taskOrDependenciesUpdated() {
+    private fun update() {
         val task = this.task.value ?: run {
             dispose()
             return
@@ -55,11 +54,15 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
 
         if (!started.value) started.value = checkTriggerCondition()
         if(checkPrepareCondition()) {
-            if (player.value == null) player.value = createPlayer()
+            if (player.value == null)
+                engine.jobThreads.submit {
+                    player.value = createPlayer()
+                    update()
+                }
             player.value?.let { pl -> adjustPlayer(pl, task) }
         }  // else destroy player?
 
-        Platform.runLater { status.value = status() }
+        engine.mainThread.submit { status.value = status() }
 
         updateEndListener()
     }
@@ -106,20 +109,23 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
         val paused = task.paused && player?.isPlaying == false
         val expandedTask = PlayTask(target!!, task.file, gain, mute, balance, position, restartCount.value, duration, task.creator, paused, task.trigger, task.id)
         val active = player != null && started.value && !finished.value
-        return PlayTaskStatus(expandedTask, active, finished.value, busyMessage.value, errorMessage.value, System.currentTimeMillis())
+        return PlayTaskStatus(expandedTask, active, finished.value, busyMessage.value, errorMessage.value, System.currentTimeMillis(), true)
     }
 
 
     private fun createPlayer(): Player? {
-        val file: MediaFile = DMediaFile(task.value!!.file)
+        val file = DMediaFile(task.value!!.file)
+        busyMessage.value = "Loading '$file'"
         try {
             val player = engine.audioEngine.newPlayer(file)
             player.prepare()
+            simulateWait()
             player.addEndOfMediaListener { finished.value = true; }
             if (player.getDuration() < 0) {
                 Thread {
                     try {
                         player.waitForDurationProperty()
+                        simulateWait()
                         status.value = status()
                         updateEndListener()
                     } catch (exc: IllegalStateException) {
@@ -128,6 +134,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
                     } catch (_: InterruptedException) {}
                 }.start()
             }
+            busyMessage.value = null
             return player
         } catch (exc: Exception) {
             errorMessage.value = "${exc.javaClass}: ${exc.message}"
@@ -146,7 +153,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
             }
             if(task.restartCount > restartCount.value) {
                 if (task.position >= 0)
-                    player.setPositionAsync(task.position) { Platform.runLater { status.value = status(); updateEndListener() } }
+                    player.setPositionAsync(task.position) { engine.mainThread.submit { status.value = status(); updateEndListener() } }
                 restartCount.value = task.restartCount
             }
             if (targetDevice != null) {

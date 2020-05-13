@@ -1,8 +1,8 @@
 package player.model.data
 
-import cloud.CloudFile
-import cloud.Data
-import cloud.SynchronizedData
+import cloud.*
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.io.Serializable
 
 
@@ -11,6 +11,9 @@ import java.io.Serializable
  * It is added to the individual gain levels of the tasks.
  */
 data class MasterGain(val value: Double) : SynchronizedData()
+{
+    constructor() : this(0.0)
+}
 
 
 /**
@@ -87,7 +90,8 @@ data class PlayTaskStatus(
         val finished: Boolean,
         val busyMessage: String?,
         val errorMessage: String?,
-        val time: Long
+        var time: Long,
+        val updateTimeOnDeserialization: Boolean
 ) : Data()
 {
     fun message(): String? {
@@ -116,6 +120,17 @@ data class PlayTaskStatus(
     fun displayString(): String {
         val status = if(finished) "Finished" else if(active) "Active" else "Inactive"
         return if(message() != null) status + message() else status
+    }
+
+    private fun writeObject(stream: ObjectOutputStream) {
+        stream.defaultWriteObject()
+    }
+
+    private fun readObject(stream: ObjectInputStream) {
+        stream.defaultReadObject()
+        if (updateTimeOnDeserialization) {
+            time = System.currentTimeMillis()
+        }
     }
 }
 

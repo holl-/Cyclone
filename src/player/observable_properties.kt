@@ -1,13 +1,11 @@
 package player
 
-import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.beans.Observable
 import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.function.BooleanSupplier
 import java.util.function.Consumer
 import java.util.function.Supplier
 
@@ -157,18 +155,18 @@ class CastToStringProperty(val property: Property<String?>) : StringPropertyBase
 }
 
 
-class FireLater<T>(val value: ObservableValue<T>) : ObservableValue<T>
+class FireLater<T>(val value: ObservableValue<T>, observerThread: (r: Runnable) -> Unit) : ObservableValue<T>
 {
     private val changeListeners: MutableList<ChangeListener<in T>> = CopyOnWriteArrayList()
     private val invalidationListeners: MutableList<InvalidationListener> = CopyOnWriteArrayList()
 
     init {
-        value.addListener { prop, old, new -> Platform.runLater {
+        value.addListener { prop, old, new -> observerThread( Runnable {
             changeListeners.forEach { l -> l.changed(prop, old, new) }
-        } }
-        value.addListener { _ -> Platform.runLater {
+        } ) }
+        value.addListener { _ -> observerThread( Runnable {
             invalidationListeners.forEach { l -> l.invalidated(this) }
-        } }
+        } ) }
     }
 
     override fun removeListener(l: ChangeListener<in T>?) {

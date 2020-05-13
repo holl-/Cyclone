@@ -37,8 +37,8 @@ class Snapshot(val index: Int, val tasks: List<PlayTask>, val statuses: List<Pla
 
 class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
 {
-    val tasks = cloud.getAll(PlayTask::class.java)
-    val statuses = cloud.getAll(PlayTaskStatus::class.java)
+    val tasks = cloud.getAll(PlayTask::class.java, this, Platform::runLater)
+    val statuses = cloud.getAll(PlayTaskStatus::class.java, this, Platform::runLater)
 
     @FXML private var immediateTasks: VBox? = null
     @FXML private var scheduledTasks: VBox? = null
@@ -163,7 +163,7 @@ class TaskCreator(val cloud: Cloud) : Initializable
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
         file?.text = "C:\\stereo.mp3"
-        target?.items = cloud.getAll(Speaker::class.java)
+        target?.items = cloud.getAll(Speaker::class.java, this, Platform::runLater)
         target?.items?.addListener { change: ListChangeListener.Change<out Speaker>? -> println("targets changed") }
         target?.selectionModel?.select(target?.items?.firstOrNull { speaker -> speaker.isDefault })
         duration?.text = "5"

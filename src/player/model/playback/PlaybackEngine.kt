@@ -16,9 +16,8 @@ import player.model.data.MasterGain
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
-import java.lang.IllegalArgumentException
 import java.util.concurrent.Callable
-import java.util.function.Supplier
+import java.util.concurrent.Executors
 import java.util.stream.Collectors
 
 /**
@@ -32,8 +31,11 @@ import java.util.stream.Collectors
 class PlaybackEngine (val cloud: Cloud, val config: CycloneConfig)
 {
     val audioEngine: AudioEngine = createEngine(config.audioEngine.value)
-    private val tasks = cloud.getAll(PlayTask::class.java)
-    private val masterGainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(0.0) })
+    val mainThread = Executors.newFixedThreadPool(1)
+    val jobThreads = Executors.newFixedThreadPool(2)
+
+    private val tasks = cloud.getAll(PlayTask::class.java, this) { r -> mainThread.submit(r) }
+    private val masterGainData = cloud.getSynchronized(MasterGain::class.java) { r -> mainThread.submit(r) }
 
     // Public properties
     val jobs = FXCollections.observableArrayList<Job>()
@@ -42,11 +44,12 @@ class PlaybackEngine (val cloud: Cloud, val config: CycloneConfig)
 
     val speakerMap: Map<Speaker, AudioDevice> = audioEngine.devices.stream().collect(Collectors.toMap({ dev -> Speaker(getLocal(), dev.id, dev.name, dev.minGain, dev.maxGain, dev.isDefault) }, { dev -> dev}))
 
+
     init {
 //        supportedTypes = ArrayList(audio.supportedMediaTypes.stream().map { t: MediaType -> t.fileExtension }.collect(Collectors.toList()))
         cloud.push(Speaker::class.java, speakerMap.keys, this, true)
-        tasksUpdated()
-        tasks.addListener(ListChangeListener<PlayTask> { tasksUpdated() })
+        mainThread.submit { tasksUpdated() }
+        tasks.addListener(ListChangeListener { mainThread.submit { tasksUpdated() } })
         statusInvalid.addListener(InvalidationListener { if(statusInvalid.value == true) publishInfo() })
     }
 

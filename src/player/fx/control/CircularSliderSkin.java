@@ -1,7 +1,10 @@
 package player.fx.control;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
@@ -50,9 +53,8 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
     private final Scale centralScale;
 
     // Ticks
-    private final List<TimeTick> ticks = new ArrayList<>();
+    private List<TimeTick> ticks = new ArrayList<>();
     private final Group tickGroup;
-    private final Duration tickAnimationLength = new Duration(1000);
     private DoubleProperty currentTickOpacy;
 
     // Bar
@@ -336,30 +338,43 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
         boolean mjv = getSkinnable().isShowTickMarks();
         boolean mnv = getSkinnable().isMinorTickVisible();
         for(TimeTick tick : ticks) {
-            tick.getNode().setVisible(mjv && (tick.isMajor() ? true : mnv));
+            tick.setVisible(mjv && (tick.isMajor() ? true : mnv));
         }
     }
 
+    private Object currentTickDependencies = Collections.emptyList();
+    private double currentMin, currentMax;
+
     private void updateTicks() {
-    	// Fade old
-    	if(currentTickOpacy != null) {
-    		List<TimeTick> oldTicks = new ArrayList<>(ticks);
-    		Timeline fadeOut = new Timeline(new KeyFrame(Duration.ZERO, new KeyValue(currentTickOpacy, 1)),
-                    new KeyFrame(tickAnimationLength, new KeyValue(currentTickOpacy, 0)));
-    		fadeOut.play();
-    		fadeOut.setOnFinished(e -> {
-    			tickGroup.getChildren().removeAll(oldTicks);
-    		});
-    	}
-
-        ticks.clear();
-
         double min = getSkinnable().getMin();
         double max = getSkinnable().getMax();
         double majorUnit = getSkinnable().getMajorTickUnit();
         double minorUnit = getSkinnable().getMajorTickUnit() / getSkinnable().getMinorTickCount();
 
-        currentTickOpacy = new SimpleDoubleProperty();
+        Object newTickDependencies = Arrays.asList(barWidth, barRadius, min, max, majorUnit, minorUnit, getSkinnable().getTickLength());
+        if (newTickDependencies.equals(currentTickDependencies)) return;
+        currentTickDependencies = newTickDependencies;
+        boolean animate = Math.abs((currentMin - min) / (currentMax - currentMin + 1e-5)) > 1e-2
+                || Math.abs((currentMax - max) / (currentMax - currentMin + 1e-5)) > 1e-2;
+        currentMax = max; currentMin = min;
+
+
+    	// Fade old
+    	if(currentTickOpacy != null) {
+    	    if (animate) {
+                Timeline fadeOut = new Timeline(
+                        new KeyFrame(Duration.ZERO, new KeyValue(currentTickOpacy, 1)),
+                        new KeyFrame(new Duration(300), new KeyValue(currentTickOpacy, 0)));
+                fadeOut.play();
+                fadeOut.setOnFinished(e -> {
+                    removeOldTicks();
+                });
+            } else removeOldTicks();
+    	}
+
+    	// Create new
+        currentTickOpacy = new SimpleDoubleProperty(animate ? 0.0 : 1.0);
+        List<TimeTick> newTicks = new ArrayList<>();
 
         for(double pos = Math.ceil(min / minorUnit) * minorUnit; pos < max; pos += minorUnit) {
             boolean major = isInt(pos/majorUnit, 1e-6);
@@ -370,19 +385,28 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
                     preTransformLength * preTransformLength * tickScale,
                     major ? "axis-tick-mark" : "axis-minor-tick-mark");
             tick.fitBounds(barWidth/barRadius);
-            ticks.add(tick);
+            newTicks.add(tick);
             tick.updatePosition(min, max);
-            tick.getNode().opacityProperty().bind(currentTickOpacy);
-            tickGroup.getChildren().add(tick.getNode());
+            tick.opacityProperty().bind(currentTickOpacy);
+            tickGroup.getChildren().add(tick);
         }
+
+        ticks = newTicks;
 
         updateTickVisibility();
 
-        Timeline fadeIn = new Timeline(new KeyFrame(Duration.ZERO, new KeyValue(currentTickOpacy, 0)),
-                new KeyFrame(tickAnimationLength, new KeyValue(currentTickOpacy, 1)));
-        fadeIn.play();
+        if (animate) {
+            Timeline fadeIn = new Timeline(
+                    new KeyFrame(new Duration(200), new KeyValue(currentTickOpacy, 0)),
+                    new KeyFrame(new Duration(1000), new KeyValue(currentTickOpacy, 1)));
+            fadeIn.play();
+        }
 
         foregroundMask.toFront();
+    }
+
+    private void removeOldTicks() {
+        tickGroup.getChildren().removeAll(tickGroup.getChildren().stream().filter(tick -> !ticks.contains(tick)).collect(Collectors.toList()));
     }
 
     private void rebuildBar() {

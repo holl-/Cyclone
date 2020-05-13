@@ -3,6 +3,7 @@ package mediacommand;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +21,7 @@ public class JIntellitypeMediaCommandManager extends MediaCommandManager impleme
 	public JIntellitypeMediaCommandManager() {
 		File lib = getLibraryFile();
 		if(!lib.exists()) System.err.println(""+lib.getAbsolutePath()+" does not exist");
-		JIntellitype.setLibraryLocation(lib); // this method only accepts relative paths
+		JIntellitype.setLibraryLocation(lib.getPath()); // path to JIntellitype(64).dll
 		try {
 			jIntellitype = JIntellitype.getInstance();
 		}catch(JIntellitypeException exc) {
@@ -64,20 +65,38 @@ public class JIntellitypeMediaCommandManager extends MediaCommandManager impleme
 			filename = "JIntellitype.dll";
 		}
 
-		File inAppDir = new File("app", filename);
-		if(inAppDir.exists()) return inAppDir;
-		
-		File extracted = new File(filename);
-		if(!extracted.exists()) {
-			// Extract
-			InputStream in = JIntellitypeMediaCommandManager.class.getResourceAsStream(filename);
-			try {
-				Files.copy(in, extracted.toPath());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		// Location when deployed
+		File dir = null;
+		try {
+			dir = new File(JIntellitypeMediaCommandManager.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
 		}
-		return extracted;
+		File deployedFile = new File(dir, filename);
+		if(deployedFile.exists()) return deployedFile;
+
+		// Non-deployed - Use file from src/
+		File srcFile = null;
+		try {
+			srcFile = new File(JIntellitypeMediaCommandManager.class.getResource(filename).toURI());
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		if (srcFile.exists()) return srcFile;
+
+		throw new RuntimeException("Cannot find file "+filename);
+		
+//		File extracted = new File(filename);
+//		if(!extracted.exists()) {
+//			// Extract
+//			InputStream in = JIntellitypeMediaCommandManager.class.getResourceAsStream(filename);
+//			try {
+//				Files.copy(in, extracted.toPath());
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		return extracted;
 	}
 	
 	public static boolean isSupported() {

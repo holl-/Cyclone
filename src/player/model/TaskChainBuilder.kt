@@ -2,6 +2,7 @@ package player.model
 
 import cloud.Cloud
 import cloud.CloudFile
+import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
 import javafx.beans.property.SimpleBooleanProperty
@@ -23,12 +24,11 @@ import kotlin.collections.ArrayList
  */
 class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, CloudFile?>, val creator: String, val maxTasks: Int = 3)
 {
-    private val statuses = cloud.getAll(PlayTaskStatus::class.java)
+    private val statuses = cloud.getAll(PlayTaskStatus::class.java, this, Platform::runLater)  // ToDo not on this thread
     private val tasks = ArrayList<PlayTask>()
     private var active = false
     private var speaker: Speaker? = null
     val currentTask = SimpleObjectProperty<PlayTask?>()
-    val currentStatus = Bindings.createObjectBinding(Callable { currentTask.value?.let { task -> status(task) } }, currentTask, statuses)
     val pauseOnFinish = SimpleBooleanProperty(false)
     val paused = SimpleBooleanProperty(false)
     val finishedFlag = SimpleBooleanProperty(false)

@@ -1,22 +1,17 @@
 package cloud
 
-import javafx.application.Platform
-import javafx.beans.InvalidationListener
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
-import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import player.FireLater
 import java.io.*
-import java.lang.IllegalStateException
 import java.util.concurrent.Callable
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
-import java.util.function.Supplier
-import java.util.logging.*
-import java.util.stream.Stream
+import java.util.logging.Level
+import java.util.logging.Logger
 
 /**
  * Main class for setting up a virtual distributed platform.
@@ -30,8 +25,7 @@ import java.util.stream.Stream
  */
 class Cloud {
     internal val allData = HashMap<Peer, ArrayList<Data>>()
-    private val dataListeners = HashMap<Class<out Data>, Runnable>()
-    private val viewedLists = HashMap<Class<out Data>, ObservableList<out Data>>()
+    private val dataListeners = HashMap<Class<out Data>, MutableList<Runnable>>()
 
     internal val sData = HashMap<Class<out SynchronizedData>, SimpleObjectProperty<out SynchronizedData>>()
     private val ownerMap = HashMap<Data, Any>()
@@ -46,6 +40,8 @@ class Cloud {
 
     val peers = FXCollections.observableArrayList(Peer.getLocal())  // also contains disconnected peers
     val connectionStatus = SimpleStringProperty(null)
+
+    val updateLogger: Logger? = null
 
 
     init {
@@ -88,7 +84,7 @@ class Cloud {
         multicast.startReceiving()
         this.tcp = tcp
         this.multicast = multicast
-        Platform.runLater { connectionStatus.value = "UDP: ${multicastAddress}:${multicastPort}, TCP: ${tcp.serverSocket.localPort}" }
+        connectionStatus.value = "UDP: ${multicastAddress}:${multicastPort}, TCP: ${tcp.serverSocket.localPort}"
     }
 
     @Throws(IOException::class)
@@ -97,7 +93,7 @@ class Cloud {
         tcp?.disconnect()
         multicast = null
         tcp = null
-        Platform.runLater { connectionStatus.value = null }
+        connectionStatus.value = null
     }
 
     fun isConnected(peer: Peer): Boolean {
@@ -124,17 +120,17 @@ class Cloud {
 
 
 
-    fun<T : SynchronizedData> getSynchronized(cls: Class<T>, default: Supplier<T>, observeOnPlatformThread: Boolean = true): ObservableValue<T> {
+    fun<T : SynchronizedData> getSynchronized(cls: Class<T>, observerThread: ((r: Runnable) -> Unit)?): ObservableValue<T> {
         @Suppress("UNCHECKED_CAST")
         val result =  if(cls in sData) sData[cls] as ObservableValue<T>
         else {
-            val defaultValue = default.get()
+            val defaultValue = cls.getDeclaredConstructor().newInstance() as T
             val property = SimpleObjectProperty(defaultValue)
             sData[cls] = property
             pushSynchronized(defaultValue)
             property
         }
-        return if (!observeOnPlatformThread) result else FireLater(result)
+        return if (observerThread == null) result else FireLater(result, observerThread)
     }
 
     /**
@@ -160,10 +156,8 @@ class Cloud {
             val resolved = if (isDataOlder) data.resolveConflict(localVersion) else localVersion.resolveConflict(data)
             logger?.fine("conflict: local = $localVersion, remote = $data -> $resolved")
             if (resolved.javaClass != data.javaClass) throw IllegalStateException("resolveConflict must return object of the same class")
-            Platform.runLater {
-                sData[data.javaClass]?.value = resolved
-                fireUpdate()
-            }
+            sData[data.javaClass]?.value = resolved
+            fireUpdate()
         } else {
             pushSynchronizedImpl(data, false)
         }
@@ -171,7 +165,7 @@ class Cloud {
 
     fun getAllCurrentSynchronized(): List<SynchronizedData> {
         val result = ArrayList<SynchronizedData>()
-        for ((cls, prop) in sData) {
+        for ((_, prop) in sData) {
             result.add(prop.value)
         }
         return result
@@ -185,23 +179,38 @@ class Cloud {
      *
      * @return read-only list
      */
-    fun<T : Data> getAll(cls: Class<T>): ObservableList<T> {
-        @Suppress("UNCHECKED_CAST")
-        if (cls in viewedLists)
-            return viewedLists[cls] as ObservableList<T>
-
-        val result = FXCollections.observableArrayList<T>()
+    fun<T : Data> getAll(cls: Class<T>, observer: Any, observerThread: ((r: Runnable) -> Unit)?): ObservableList<T> {
+        val mirrorList = FXCollections.observableArrayList<T>()  // this list will only be changed on the observerThread
 
         val listBuilder = Runnable {
             @Suppress("UNCHECKED_CAST")
             val filteredList = assembleAllData(cls) as List<T>
-            Platform.runLater { result.setAll(filteredList) }
+            updateLogger?.info("Updating list of class $cls for observer $observer")
+            if (observerThread != null) observerThread(Runnable { setAll(mirrorList, filteredList) })
+            else setAll(mirrorList, filteredList)
         }
 
         listBuilder.run()
-        dataListeners[cls] = listBuilder
-        viewedLists[cls] = result
-        return result
+        dataListeners[cls]?.add(listBuilder) ?: run {
+            dataListeners[cls] = ArrayList(listOf(listBuilder))
+        }
+        return mirrorList
+    }
+
+    private fun<T : Data> setAll(editableList: ObservableList<T>, items: List<T>) {
+        val toRemove = editableList.filter { item -> item !in items }
+        val toAdd = items.filter { item -> item !in editableList }
+        // Remove old items
+        editableList.removeAll(toRemove)
+        // Replace updated items
+        for ((index, oldItem) in editableList.withIndex()) {
+            val newItem = items.find { item -> item == oldItem }
+            if (newItem != null && !newItem.identical(oldItem)) {
+                editableList[index] = newItem
+            }
+        }
+        // Add new items
+        editableList.addAll(toAdd)
     }
 
     private fun assembleAllData(cls: Class<*>): List<Data> {
@@ -266,9 +275,9 @@ class Cloud {
     }
 
     private fun notifyDataListeners(classes: Iterable<Class<out Data>>) {
-        for ((listenerCls, listener) in dataListeners) {
+        for ((listenerCls, listeners) in dataListeners) {
             if(classes.any { cls ->  listenerCls.isAssignableFrom(cls)}) {
-                listener.run()
+                listeners.forEach { it.run() }
             }
         }
     }
@@ -302,7 +311,7 @@ class Cloud {
 
     fun peerDisconnected(peer: Peer) {
         allData.remove(peer)
-        Platform.runLater { fireUpdate() }
+        fireUpdate()
     }
 
     internal fun fireUpdate() {

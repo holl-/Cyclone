@@ -87,9 +87,9 @@ class AmbienceExtension : CycloneExtension("Ambience", "Lets you configure ambie
 class AmbienceApp(val settings: AmbienceSettings, val cloud: Cloud, val extension: AmbienceExtension) : Initializable {
     private val root: Parent
 
-    private val playlistData = cloud.getSynchronized(PlayerData.Playlist::class.java, Supplier { PlayerData.Playlist(emptyList()) })
+    private val playlistData = cloud.getSynchronized(PlayerData.Playlist::class.java, Platform::runLater)
     val playlist: ObservableList<CloudFile> = FXCollections.observableArrayList(playlistData.value.files)
-    private val gainData = cloud.getSynchronized(MasterGain::class.java, default = Supplier { MasterGain(0.0) })
+    private val gainData = cloud.getSynchronized(MasterGain::class.java, Platform::runLater)
     val gainProperty: DoubleProperty = CastToDoubleProperty(CustomObjectProperty<Number?>(listOf(gainData),
             getter = Supplier<Number?> { gainData.value?.value ?: 0 },
             setter = Consumer { value -> cloud.pushSynchronized(MasterGain(value!!.toDouble())) }))
@@ -234,7 +234,7 @@ class EffectPane(val ambience: Ambience) : StackPane(), Initializable, Function<
         children.add(root)
         countdown.finished.addListener { _, _, finished -> if (finished) updatePlayer(false) }
         player.pauseOnFinish.bind(continuous!!.selectedProperty().not())
-        player.finishedFlag.addListener { _, _, _ -> updatePlayer(false) }
+        player.finishedFlag.addListener { _, _, isFinished -> if (isFinished) Platform.runLater { updatePlayer(false) } }
         Platform.runLater {
             if (direction!!.selectionModel.selectedItem == null && direction!!.items.isNotEmpty()) {
                 direction!!.selectionModel.select(0)
@@ -452,7 +452,7 @@ class AmbienceSettings(val cloud: Cloud) : StackPane(), Initializable {
 
 class SoundSource(val cloud: Cloud, val settings: AmbienceSettings) : StackPane(), Initializable
 {
-    private val speakers = cloud.getAll(Speaker::class.java)
+    private val speakers = cloud.getAll(Speaker::class.java, this, Platform::runLater)
 
     @FXML var name: TextField? = null
     @FXML private var speaker: ComboBox<Speaker>? = null

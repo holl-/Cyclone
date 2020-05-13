@@ -140,10 +140,12 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
                 removeOthersButton!!.disableProperty().bind(Bindings.createBooleanBinding(
                         Callable { player.playlist.size == 0 || player.playlist.size == 1 && player.currentFileProperty.get() === player.playlist[0] },
                         player.playlist, player.currentFileProperty))
-                playlist!!.selectionModel.selectedItemProperty().addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? ->
-                    if (n != null) {
-                        player.currentFileProperty.set(n)
-                        player.playingProperty.set(true)
+                playlist!!.selectionModel.selectedItemProperty().addListener { _, _, selectedFile ->
+                    selectedFile?.let {
+                        if (player.currentFileProperty.value != selectedFile) {
+                            player.currentFileProperty.set(selectedFile)
+                            player.playingProperty.set(true)
+                        }
                     }
                 }
                 player.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> playlist!!.selectionModel.select(player.currentFileProperty.get()) }
