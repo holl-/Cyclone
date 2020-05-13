@@ -32,6 +32,8 @@ import javafx.stage.Stage
 import javafx.stage.WindowEvent
 import javafx.util.Callback
 import javafx.util.Duration
+import player.CastToBooleanProperty
+import player.CustomObjectProperty
 import player.fx.control.FileDropOverlay
 import player.fx.control.PlayerControl
 import player.fx.control.SpeakerCell
@@ -50,7 +52,9 @@ import java.io.IOException
 import java.net.URL
 import java.util.*
 import java.util.concurrent.Callable
+import java.util.function.Consumer
 import java.util.function.Function
+import java.util.function.Supplier
 import java.util.stream.Collectors
 
 
@@ -58,6 +62,11 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
                                         private val engine: PlaybackEngine, config: CycloneConfig?) : Initializable {
     private val root: StackPane
     private var currentOverlay: Node? = null
+
+    // Menu
+    private val connected = CastToBooleanProperty(CustomObjectProperty<Boolean?>(listOf(player.cloud.connectionStatus),
+            getter = Supplier<Boolean?> { player.cloud.connectionStatus.value != null },
+            setter = Consumer { conn -> if (conn == true) settings.connect() else settings.disconnect() }))
 
     // Default
     @FXML private var currentSongMenu: Menu? = null
@@ -68,6 +77,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     @FXML private var menuBar: MenuBar? = null
     @FXML private var volume: Slider? = null
     @FXML private var speakerSelection: ComboBox<Speaker>? = null
+    @FXML private var networkShare: CheckMenuItem? = null
 
     // Playlist
     private val playlistRoot: Node
@@ -99,6 +109,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         speakerSelection!!.selectionModel.selectedItemProperty().addListener { _, _, n -> if (n != null) player.speakerProperty.set(n) }
         player.speakerProperty.addListener { _, _, n -> speakerSelection!!.selectionModel.select(n) }
         if (!settings.config.debug.value) debugMenu!!.parentMenu.items.remove(debugMenu)
+        networkShare!!.selectedProperty().bindBidirectional(connected)
     }
 
 
