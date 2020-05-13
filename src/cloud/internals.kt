@@ -227,9 +227,10 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
         })
         val remote = receiver.accept()
         val stream = remote.getInputStream()
-        val buffer = ByteArrayOutputStream(fileSize.toInt())
-        stream.transferTo(buffer)
-        return ByteArrayInputStream(buffer.toByteArray())
+        return stream
+//        val buffer = ByteArrayOutputStream(fileSize.toInt())
+//        stream.transferTo(buffer)
+//        return ByteArrayInputStream(buffer.toByteArray())
     }
 
     fun handleSingleInput() {

@@ -105,7 +105,7 @@ class CloudFile(file: File) : Data() {
 
 
     override fun toString(): String {
-        return path
+        return "$path ($origin)"
     }
 
 

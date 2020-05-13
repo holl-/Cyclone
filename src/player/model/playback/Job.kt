@@ -19,6 +19,8 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
     private val restartCount = SimpleIntegerProperty(-1)
 
     var player = SimpleObjectProperty<Player?>()  // inactive when not null
+    private var creatingPlayer = false
+
     val started = SimpleBooleanProperty(false)
     val finished = SimpleBooleanProperty(false)
     val errorMessage = SimpleStringProperty(null)
@@ -54,11 +56,13 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
 
         if (!started.value) started.value = checkTriggerCondition()
         if(checkPrepareCondition()) {
-            if (player.value == null)
+            if (player.value == null && !creatingPlayer) {
+                creatingPlayer = true
                 engine.jobThreads.submit {
-                    player.value = createPlayer()
-                    update()
+                    val player = createPlayer()
+                    engine.mainThread.submit { this.player.value = player; creatingPlayer = false; update() }
                 }
+            }
             player.value?.let { pl -> adjustPlayer(pl, task) }
         }  // else destroy player?
 
@@ -114,7 +118,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
 
 
     private fun createPlayer(): Player? {
-        val file = DMediaFile(task.value!!.file)
+        val file = engine.files.get(task.value!!.file)
         busyMessage.value = "Loading '$file'"
         try {
             val player = engine.audioEngine.newPlayer(file)

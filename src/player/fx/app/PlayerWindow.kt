@@ -135,7 +135,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
             @FXML private var playlist: ListView<CloudFile>? = null
 
             override fun initialize(location: URL?, resources: ResourceBundle?) {
-                playlist!!.setItems(player.playlist)
+                playlist!!.items = player.playlist
                 playlist!!.addEventFilter(KeyEvent.KEY_PRESSED, TabAndEnterHandler(playlist))
                 removeOthersButton!!.disableProperty().bind(Bindings.createBooleanBinding(
                         Callable { player.playlist.size == 0 || player.playlist.size == 1 && player.currentFileProperty.get() === player.playlist[0] },
@@ -148,8 +148,8 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
                         }
                     }
                 }
-                player.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> playlist!!.selectionModel.select(player.currentFileProperty.get()) }
-                playlist!!.setCellFactory { list: ListView<CloudFile?>? -> MediaCell() }
+                player.currentFileProperty.addListener { _, _, file: CloudFile? -> playlist!!.selectionModel.select(file) }
+                playlist!!.setCellFactory { MediaCell() }
                 playlistListView = playlist
             }
 
