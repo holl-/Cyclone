@@ -55,6 +55,29 @@ public class JIntellitypeMediaCommandManager extends MediaCommandManager impleme
 			fireCommandReceived(command);
 		}
 	}
+
+	public static File getBinaryApplicationFile(Class<?> owningClass, String relativePath) {
+		// Location when deployed
+		File dir = null;
+		try {
+			dir = new File(owningClass.getProtectionDomain().getCodeSource().getLocation().toURI()).getParentFile();
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		File deployedFile = new File(dir, relativePath);
+		if(deployedFile.exists()) return deployedFile;
+
+		// Non-deployed - Use file from src/
+		File srcFile = null;
+		try {
+			srcFile = new File(owningClass.getResource(relativePath).toURI());
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		if (srcFile.exists()) return srcFile;
+
+		throw new RuntimeException("Cannot find file "+relativePath);
+	}
 	
 	private static File getLibraryFile() {
 		String bitnessJVM = System.getProperty("sun.arch.data.model");
@@ -64,27 +87,8 @@ public class JIntellitypeMediaCommandManager extends MediaCommandManager impleme
 		}else {
 			filename = "JIntellitype.dll";
 		}
+		return getBinaryApplicationFile(JIntellitypeMediaCommandManager.class, filename);
 
-		// Location when deployed
-		File dir = null;
-		try {
-			dir = new File(JIntellitypeMediaCommandManager.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-		}
-		File deployedFile = new File(dir, filename);
-		if(deployedFile.exists()) return deployedFile;
-
-		// Non-deployed - Use file from src/
-		File srcFile = null;
-		try {
-			srcFile = new File(JIntellitypeMediaCommandManager.class.getResource(filename).toURI());
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-		}
-		if (srcFile.exists()) return srcFile;
-
-		throw new RuntimeException("Cannot find file "+filename);
 		
 //		File extracted = new File(filename);
 //		if(!extracted.exists()) {

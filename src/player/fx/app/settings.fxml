@@ -203,6 +203,51 @@
                   </ScrollPane>
                </content>
             </Tab>
+            <Tab text="Media Keys">
+               <content>
+                  <VBox prefHeight="200.0" prefWidth="100.0" spacing="6.0">
+                     <children>
+                        <Label prefHeight="17.0" prefWidth="488.0" text="Key combinations use global keys such as media keys and volume keys." />
+                        <Label prefHeight="17.0" prefWidth="490.0" text="Multiple keys must be pressed within a short amount of time to activate the command." />
+                        <CheckBox fx:id="keyCombinations" mnemonicParsing="false" prefHeight="17.0" prefWidth="304.0" text="Enable key combinations" />
+                        <Label prefHeight="17.0" prefWidth="439.0" text="The application has to be restarted for changes to take effect." />
+                        <Separator prefWidth="200.0">
+                           <padding>
+                              <Insets bottom="4.0" top="4.0" />
+                           </padding>
+                        </Separator>
+                        <GridPane>
+                          <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="283.0" minWidth="10.0" prefWidth="182.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="394.0" minWidth="10.0" prefWidth="394.0" />
+                          </columnConstraints>
+                          <rowConstraints>
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                          </rowConstraints>
+                           <children>
+                              <Label text="Play / Pause" />
+                              <Label text="Turn off monitor" GridPane.rowIndex="3" />
+                              <Label text="Next song" GridPane.rowIndex="1" />
+                              <Label text="Previous song" GridPane.rowIndex="2" />
+                              <Label text="Remove from playlist" GridPane.rowIndex="4" />
+                              <Label text="Play/Pause or Volume up, Volume down" GridPane.columnIndex="1" />
+                              <Label text="Volume down, Volume up" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                              <Label text="Next or Volume up, Volume up, Volume down, Volume down" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                              <Label text="Previous or Volume down, Volume down, Volume up, Volume up" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                              <Label text="Volume down, mute, unmute, Volume up" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                           </children>
+                        </GridPane>
+                     </children>
+                     <padding>
+                        <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
+                     </padding>
+                  </VBox>
+               </content>
+            </Tab>
         </tabs>
       </TabPane>
    </center>

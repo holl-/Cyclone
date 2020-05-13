@@ -3,6 +3,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import static mediacommand.JIntellitypeMediaCommandManager.getBinaryApplicationFile;
+
 
 public abstract class LocalMachine {
 
@@ -39,14 +41,7 @@ public abstract class LocalMachine {
 
 		@Override
 		public boolean turnOffMonitors() {
-			File exe = new File("Turn Off Monitor.exe");
-			if(!exe.exists()) {
-				try {
-					Files.copy(getClass().getResourceAsStream("Turn Off Monitor.exe"), exe.toPath());
-				} catch (IOException e) {
-					return false;
-				}
-			}
+			File exe = getBinaryApplicationFile(LocalMachine.class, "Turn Off Monitor.exe");
 			try {
 				Runtime.getRuntime().exec(exe.getAbsolutePath());
 				return true;

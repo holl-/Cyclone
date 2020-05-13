@@ -79,7 +79,6 @@ public class Launch2 extends Application {
 		PlaylistPlayer player = new PlaylistPlayer(cloud1, config);
 		window = new PlayerWindow(primaryStage, player, engine, config);
 		window.show();
-		addControl(window.getPlayer());
 
 
 		if (config.getConnectOnStartup().get()) {
@@ -129,38 +128,4 @@ public class Launch2 extends Application {
 	public static void main(String[] args) {
 		launch(args);
 	}
-
-
-	public static void addControl(PlaylistPlayer player) {
-		if(MediaCommandManager.isSupported()) {
-        	MediaCommandManager manager = MediaCommandManager.getInstance();
-        	CombinationManager cm = new CombinationManager();
-        	cm.register(manager);
-
-        	cm.addCombination(new MediaCommand[]{ MediaCommand.PLAY_PAUSE }, c -> {
-        		player.getPlayingProperty().set(!player.getPlayingProperty().get());
-        	});
-        	cm.addCombination(new MediaCommand[]{ MediaCommand.STOP }, c -> player.stop() );
-        	cm.addCombination(new MediaCommand[]{ MediaCommand.NEXT }, c -> player.next() );
-        	cm.addCombination(new MediaCommand[]{ MediaCommand.PREVIOUS }, c -> player.previous() );
-
-        	MediaCommand[] playCombination = new MediaCommand[]{ MediaCommand.VOLUME_UP, MediaCommand.VOLUME_DOWN};
-        	MediaCommand[] monitorOffCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_UP};
-        	MediaCommand[] nextCombination = new MediaCommand[]{ MediaCommand.VOLUME_UP, MediaCommand.VOLUME_UP, MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_DOWN};
-        	MediaCommand[] previousCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_UP, MediaCommand.VOLUME_UP};
-        	MediaCommand[] deleteCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.MUTE, MediaCommand.MUTE, MediaCommand.VOLUME_UP };
-
-        	cm.addCombination(playCombination, c -> {
-				player.getPlayingProperty().set(!player.getPlayingProperty().get());
-        	});
-        	cm.addCombination(monitorOffCombination, c -> {
-        		LocalMachine machine = LocalMachine.getLocalMachine();
-        		if(machine != null) machine.turnOffMonitors();
-        	});
-        	cm.addCombination(nextCombination, c -> player.next());
-        	cm.addCombination(previousCombination, c -> player.previous());
-        	cm.addCombination(deleteCombination, c -> System.out.println("Delete not implemented yet"));
-        }
-	}
-
 }

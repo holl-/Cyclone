@@ -52,6 +52,8 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     @FXML var connectionStatus: Label? = null
     // Extensions
     @FXML var extensions: VBox? = null
+    // Key combinations
+    @FXML var keyCombinations: CheckBox? = null
 
     private val windows = FilteredList<Window>(Window.getWindows(), Predicate { w -> w is Stage })
     private var saveDisabled: Boolean = false
@@ -111,6 +113,8 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
             pane.enabledProperty().addListener { _, _, _ -> config.setEnabledExtensions(extensions!!.children.map { n -> n as ExtensionInfo }.filter { e -> e.isEnabled() }.map { e -> e.extension.name }) }
             extensions!!.children.add(pane)
         }
+        // Key combinations
+        keyCombinations!!.selectedProperty().bindBidirectional(config.keyCombinations)
     }
 
     fun applyStyle(style: String, windows: List<Window>) {

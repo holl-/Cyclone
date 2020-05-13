@@ -9,6 +9,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
 import mediacommand.CombinationManager;
+import mediacommand.JIntellitypeMediaCommandManager;
 import mediacommand.MediaCommand;
 import mediacommand.MediaCommandManager;
 import player.model.CycloneConfig;
@@ -18,8 +19,8 @@ import systemcontrol.LocalMachine;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -75,6 +76,7 @@ public class Launcher extends Application {
 		PlaylistPlayer player = new PlaylistPlayer(cloud1, config);
 		window = new PlayerWindow(primaryStage, player, engine, config);
 		window.show();
+
 		addControl(window.getPlayer());
 
 		if (config.getConnectOnStartup().get()) {
@@ -97,8 +99,14 @@ public class Launcher extends Application {
 
 	public static void main(String[] args)
 	{
+		File dir = null;
 		try {
-			Files.write(getConfigFile("launch_args.txt").toPath(), Arrays.asList(args));
+			dir = new File(JIntellitypeMediaCommandManager.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParentFile();
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		try {
+			Files.write(getConfigFile("libs.txt").toPath(), Arrays.asList(dir.getPath()));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -114,7 +122,7 @@ public class Launcher extends Application {
 	}
 
 
-	public static void addControl(PlaylistPlayer player) {
+	public void addControl(PlaylistPlayer player) {
 		if(MediaCommandManager.isSupported()) {
         	MediaCommandManager manager = MediaCommandManager.getInstance();
         	CombinationManager cm = new CombinationManager();
@@ -127,22 +135,24 @@ public class Launcher extends Application {
         	cm.addCombination(new MediaCommand[]{ MediaCommand.NEXT }, c -> player.next() );
         	cm.addCombination(new MediaCommand[]{ MediaCommand.PREVIOUS }, c -> player.previous() );
 
-        	MediaCommand[] playCombination = new MediaCommand[]{ MediaCommand.VOLUME_UP, MediaCommand.VOLUME_DOWN};
-        	MediaCommand[] monitorOffCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_UP};
-        	MediaCommand[] nextCombination = new MediaCommand[]{ MediaCommand.VOLUME_UP, MediaCommand.VOLUME_UP, MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_DOWN};
-        	MediaCommand[] previousCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_UP, MediaCommand.VOLUME_UP};
-        	MediaCommand[] deleteCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.MUTE, MediaCommand.MUTE, MediaCommand.VOLUME_UP };
+			if (config.getKeyCombinations().get()) {
+				MediaCommand[] playCombination = new MediaCommand[]{ MediaCommand.VOLUME_UP, MediaCommand.VOLUME_DOWN};
+				MediaCommand[] monitorOffCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_UP};
+				MediaCommand[] nextCombination = new MediaCommand[]{ MediaCommand.VOLUME_UP, MediaCommand.VOLUME_UP, MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_DOWN};
+				MediaCommand[] previousCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_DOWN, MediaCommand.VOLUME_UP, MediaCommand.VOLUME_UP};
+				MediaCommand[] deleteCombination = new MediaCommand[]{ MediaCommand.VOLUME_DOWN, MediaCommand.MUTE, MediaCommand.MUTE, MediaCommand.VOLUME_UP };
 
-        	cm.addCombination(playCombination, c -> {
-				player.getPlayingProperty().set(!player.getPlayingProperty().get());
-        	});
-        	cm.addCombination(monitorOffCombination, c -> {
-        		LocalMachine machine = LocalMachine.getLocalMachine();
-        		if(machine != null) machine.turnOffMonitors();
-        	});
-        	cm.addCombination(nextCombination, c -> player.next());
-        	cm.addCombination(previousCombination, c -> player.previous());
-        	cm.addCombination(deleteCombination, c -> System.out.println("Delete not implemented yet"));
+				cm.addCombination(playCombination, c -> {
+					Platform.runLater(() -> player.getPlayingProperty().set(!player.getPlayingProperty().get()));
+				});
+				cm.addCombination(monitorOffCombination, c -> {
+					LocalMachine machine = LocalMachine.getLocalMachine();
+					if(machine != null) machine.turnOffMonitors();
+				});
+				cm.addCombination(nextCombination, c -> Platform.runLater(player::next));
+				cm.addCombination(previousCombination, c -> Platform.runLater(player::previous));
+				cm.addCombination(deleteCombination, c -> Platform.runLater(player::removeCurrentFileFromPlaylist));
+			}
         }
 	}
 

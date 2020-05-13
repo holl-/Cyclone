@@ -40,9 +40,11 @@ class CycloneConfig(val file: File)
     val broadcastIntervalString = CastToStringProperty(CustomObjectProperty<String>(listOf(broadcastInterval), Supplier { broadcastInterval.value.toString() }, Consumer<String?> { v -> broadcastInterval.value = v!!.toDouble() }))
     // Extensions
     val enabledExtensions = SimpleStringProperty(this, "enabledExtensions", "")
+    // Key combinations
+    val keyCombinations = SimpleBooleanProperty(this, "keyCombinations", true)
 
     private val allProperties = listOf(
-            debug, singleInstance, skin,
+            debug, keyCombinations, singleInstance, skin,
             audioEngine, bufferTime,
             library,
             connectOnStartup, computerName, multicastAddress, multicastPort, broadcastInterval,
