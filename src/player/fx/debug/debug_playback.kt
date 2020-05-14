@@ -15,6 +15,7 @@ import javafx.scene.control.Label
 import javafx.scene.control.TitledPane
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
+import player.FireLater
 import player.fx.icons.FXIcons
 import player.model.playback.Job
 import player.model.playback.PlaybackEngine
@@ -46,7 +47,7 @@ class PlaybackViewer(val playback: PlaybackEngine) : Initializable
 
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
-        playback.jobs.addListener(InvalidationListener { rebuild() })
+        playback.jobs.addListener(InvalidationListener { Platform.runLater { rebuild() } })
     }
 
     private fun rebuild() {
@@ -61,6 +62,8 @@ class PlaybackViewer(val playback: PlaybackEngine) : Initializable
 
 
 private class JobView(val job: Job) : Initializable {
+    private val fxJobStatus = FireLater(job.status, Platform::runLater)
+    private val fxJobTask = FireLater(job.task, Platform::runLater)
     val root: TitledPane
 
     private var refresh = SimpleLongProperty()
@@ -88,11 +91,11 @@ private class JobView(val job: Job) : Initializable {
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
         title!!.text = job.taskId
         file!!.textProperty().bind(fileName())
-        playerStatus!!.textProperty().bind(Bindings.createStringBinding(Callable { getPlayerStatus() }, job.status, refresh))
-        playerStatus!!.graphicProperty().bind(Bindings.createObjectBinding(Callable { getPlayerStatusGraphic() }, job.status, refresh))
+        playerStatus!!.textProperty().bind(Bindings.createStringBinding(Callable { getPlayerStatus() }, fxJobStatus, refresh))
+        playerStatus!!.graphicProperty().bind(Bindings.createObjectBinding(Callable { getPlayerStatusGraphic() }, fxJobStatus, refresh))
         position!!.textProperty().bind(Bindings.createStringBinding(Callable { "${job.player.value?.position ?: ""}" }, refresh))
-        message!!.textProperty().bind(Bindings.createObjectBinding(Callable { job.status.value?.message() }, job.status))
-        jobStatus!!.textProperty().bind(Bindings.createStringBinding(Callable { getJobStatus() }, job.status, refresh))
+        message!!.textProperty().bind(Bindings.createObjectBinding(Callable { job.status.value?.message() }, fxJobStatus))
+        jobStatus!!.textProperty().bind(Bindings.createStringBinding(Callable { getJobStatus() }, fxJobStatus, refresh))
     }
 
     private fun getPlayerStatus(): String {
@@ -119,6 +122,6 @@ private class JobView(val job: Job) : Initializable {
     }
 
     fun fileName(): ObservableStringValue {
-        return Bindings.createStringBinding(Callable { job.task.value?.file?.getName() }, job.task)
+        return Bindings.createStringBinding(Callable { job.task.value?.file?.getName() }, fxJobTask)
     }
 }
