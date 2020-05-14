@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import audio.AbstractPlayer;
 import audio.AudioBuffer;
-import audio.AudioDataFormat;
+import audio.AudioFormat;
 import audio.AudioDevice;
 import audio.AudioEngine;
 import audio.AudioEngineException;
@@ -136,13 +136,13 @@ public class JavaFXPlayer extends AbstractPlayer {
 	}
 
 	@Override
-	public AudioDataFormat getEncodedFormat() {
-		if(info != null) return info.getFormat().getAudioDataFormat();
+	public AudioFormat getEncodedFormat() {
+		if(info != null) return info.getFormat().getAudioFormat();
 		else return null;
 	}
 
 	@Override
-	public AudioDataFormat getDecodedFormat() {
+	public AudioFormat getDecodedFormat() {
 		return null;
 	}
 

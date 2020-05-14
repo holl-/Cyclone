@@ -103,7 +103,7 @@ public class JavaSoundEngine extends AudioEngine
 		if(format == null) return null;
 		if(!format.matchesAudioEngine(this)) throw new IllegalArgumentException("format not compatible with this AudioEngine");
 
-		boolean isMP3 = format.getType().getFileExtension().toLowerCase().equals("mp3");
+		boolean isMP3 = format.type.getFileExtension().toLowerCase().equals("mp3");
 		if(isMP3) {
 			return new MP3Info(format);
 		}

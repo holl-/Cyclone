@@ -27,7 +27,8 @@ public class JavaFXAudioEngine extends AudioEngine
 		super("JavaFX");
 
 		// see https://docs.oracle.com/javafx/2/media/overview.htm
-		supportedFormats = Arrays.asList(new MediaType("MP3", "mp3"),
+		supportedFormats = Arrays.asList(
+				new MediaType("MP3", "mp3"),
 				new MediaType("AIFF", "aif"),
 				new MediaType("WAVE", "wav"));
 	}
@@ -87,37 +88,4 @@ public class JavaFXAudioEngine extends AudioEngine
 		return false;
 	}
 
-
-	public static final AudioDevice DEVICE = new AudioDevice() {
-
-		@Override
-		public boolean isDefault() {
-			return true;
-		}
-
-		@Override
-		public String getName() {
-			return "Primary device";
-		}
-
-		@Override
-		public double getMinGain() {
-			return Double.NEGATIVE_INFINITY;
-		}
-
-		@Override
-		public double getMaxGain() {
-			return 0;
-		}
-
-		@Override
-		public int getMaxActivePlayers() {
-			return -1;
-		}
-
-		@Override
-		public String getID() {
-			return "FX_DEVICE";
-		}
-	};
 }

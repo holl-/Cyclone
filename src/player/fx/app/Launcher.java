@@ -99,17 +99,6 @@ public class Launcher extends Application {
 
 	public static void main(String[] args)
 	{
-		File dir = null;
-		try {
-			dir = new File(JIntellitypeMediaCommandManager.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParentFile();
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-		}
-		try {
-			Files.write(getConfigFile("libs.txt").toPath(), Arrays.asList(dir.getPath()));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 		launch(fixArgs(args));
 	}
 

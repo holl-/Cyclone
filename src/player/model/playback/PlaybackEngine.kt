@@ -31,7 +31,6 @@ import java.util.stream.Collectors
 class PlaybackEngine (val cloud: Cloud, val config: CycloneConfig)
 {
     val audioEngine: AudioEngine = createEngine(config.audioEngine.value)
-    val files = MediaFileManager()
 
     val mainThread = Executors.newFixedThreadPool(1)
     val jobThreads = Executors.newFixedThreadPool(2)

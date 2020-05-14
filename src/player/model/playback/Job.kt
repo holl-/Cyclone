@@ -1,15 +1,16 @@
 package player.model.playback
 
-import audio.MediaFile
 import audio.Player
 import javafx.beans.InvalidationListener
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
+import javafx.scene.media.MediaPlayer
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
+import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -37,7 +38,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
             value?.finished?.addListener { _, _, _ -> update() }
         }
         finished.addListener(InvalidationListener { engine.mainThread.submit { status.value = status() } })
-        engine.masterGain.addListener(InvalidationListener { player.value?.gain = task.value?.let { it1 -> mixGain(it1) } ?: 0.0 })
+        engine.masterGain.addListener(InvalidationListener { player.value?.gain?.value = task.value?.let { it1 -> mixGain(it1) } ?: 0.0 })
     }
 
 
@@ -75,9 +76,9 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
         if (finished.value) return 0.0
         val task = this.task.value ?: return null
         val player = this.player.value ?: return task.duration
-        val duration = task.duration ?: player.duration
+        val duration = task.duration ?: player.duration.value ?: return null
         if (duration < 0) return null
-        return duration + task.position - player.position
+        return duration + task.position - player.position.doubleValue()
     }
 
     private fun checkTriggerCondition(): Boolean {
@@ -105,12 +106,12 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
         if (task.target in engine.speakerMap)
             target = task.target
         val player = this.player.value
-        val gain = player?.gain ?: mixGain(task)
-        val mute = player?.isMute ?: task.mute
-        val balance = player?.balance ?: task.balance
-        val position = player?.position ?: task.position
-        val duration = player?.duration ?: task.duration
-        val paused = task.paused && player?.isPlaying == false
+        val gain = player?.gain?.value ?: mixGain(task)
+        val mute = player?.mute?.value ?: task.mute
+        val balance = player?.balance?.value ?: task.balance
+        val position = player?.position?.value?.toDouble() ?: task.position
+        val duration = player?.duration?.value ?: task.duration
+        val paused = task.paused && player?.status?.value != MediaPlayer.Status.PLAYING
         val expandedTask = PlayTask(target!!, task.file, gain, mute, balance, position, restartCount.value, duration, task.creator, paused, task.trigger, task.id)
         val active = player != null && started.value && !finished.value
         return PlayTaskStatus(expandedTask, active, finished.value, busyMessage.value, errorMessage.value, System.currentTimeMillis(), true)
@@ -118,54 +119,32 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
 
 
     private fun createPlayer(): Player? {
-        val file = engine.files.get(task.value!!.file)
+        val file = task.value!!.file
         busyMessage.value = "Loading '$file'"
-        try {
-            val player = engine.audioEngine.newPlayer(file)
-            player.prepare()
-            simulateWait()
-            player.addEndOfMediaListener { finished.value = true; }
-            if (player.getDuration() < 0) {
-                Thread {
-                    try {
-                        player.waitForDurationProperty()
-                        simulateWait()
-                        status.value = status()
-                        updateEndListener()
-                    } catch (exc: IllegalStateException) {
-                        errorMessage.value = "${exc.javaClass}: ${exc.message}"
-                        exc.printStackTrace()
-                    } catch (_: InterruptedException) {}
-                }.start()
-            }
-            busyMessage.value = null
-            return player
-        } catch (exc: Exception) {
-            errorMessage.value = "${exc.javaClass}: ${exc.message}"
-            exc.printStackTrace()
-            return null
+        val player = if (file.originatesHere()) engine.audioEngine.createPlayer(File(file.getPath()), file) else engine.audioEngine.createPlayer(file.openStream(), file.length(), file)
+        player.prepare()  // ToDo this is done asynchronously
+        player.status.addListener { _, _, status -> if (status == MediaPlayer.Status.STOPPED) finished.value = true }
+        if (player.duration.value == null) {
+            player.duration.addListener { _, _, _ -> status.value = status(); updateEndListener() }
         }
+        busyMessage.value = null
+        return player
     }
 
     private fun adjustPlayer(player: Player, task: PlayTask) {
         try {
             val targetDevice = engine.speakerMap[task.target]
-            if (targetDevice == null) player.deactivate()
-            else {
-                if(player.device != null) player.switchDevice(targetDevice, bufferTime)
-                else player.activate(targetDevice, bufferTime)
-            }
+            player.setOutput(targetDevice)
             if(task.restartCount > restartCount.value) {
                 if (task.position >= 0)
-                    player.setPositionAsync(task.position) { engine.mainThread.submit { status.value = status(); updateEndListener() } }
+                    player.seek(task.position, Runnable { engine.mainThread.submit { status.value = status(); updateEndListener() } })
                 restartCount.value = task.restartCount
             }
             if (targetDevice != null) {
-                player.gain = mixGain(task)
-                player.isMute = task.mute
-                player.balance = task.balance
-                val shouldPlay = !task.paused && started.value && !finished.value
-                if (shouldPlay) player.start() else player.pause()
+                player.gain.value = mixGain(task)
+                player.mute.value = task.mute
+                player.balance.value = task.balance
+                player.paused.value = task.paused || !started.value || finished.value
             }
         } catch (exc: Exception) {
             exc.printStackTrace()
@@ -207,12 +186,12 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
     private fun updateEndListener() {
         end?.cancel(false)
         val task = this.task.value ?: return
-        if (player.value?.isPlaying == true && task.duration != null) {
+        if (player.value?.status?.value == MediaPlayer.Status.PLAYING && task.duration != null) {
             val remaining = remaining()
             if (remaining != null) {
                 end = endPool.schedule({
                     if (remaining() ?: 1.0 < 0.0) {
-                        player.value?.pause()
+                        player.value?.paused?.value = true
                         finished.value = true
                     } else {
                         updateEndListener()

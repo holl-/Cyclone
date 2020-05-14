@@ -15,7 +15,7 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 
 import audio.javasound.lib.AudioSystem2;
 import audio.javasound.lib.MemoryAudioBuffer;
-import audio.AudioDataFormat;
+import audio.AudioFormat;
 import audio.MediaFile;
 import audio.MediaFormat;
 import audio.MediaInfo;
@@ -32,8 +32,8 @@ public class Media
 
 	// Objects after Preparation
 	private MediaInfo info;
-	private AudioDataFormat encodedAudioFormat;
-	private AudioDataFormat decodedAudioFormat;
+	private AudioFormat encodedAudioFormat;
+	private AudioFormat decodedAudioFormat;
 	private MemoryAudioBuffer buffer;
 	private CountDownLatch bufferFilledLatch;
 
@@ -74,20 +74,20 @@ public class Media
 		} else { // MediaStream
 			AudioFormat streamAf;
 			try {
-				streamAf = AudioSystem2.toAudioFormat(stream.getAudioDataFormat());
+				streamAf = AudioSystem2.toAudioFormat(stream.getAudioFormat());
 			} catch (UnsupportedAudioFileException e) {
 				throw new UnsupportedMediaFormatException(e);
 			}
 			in = new AudioInputStream(stream.getStream(), streamAf, stream.getFrameLength());
 		}
-		engine.getLogger().finer("Opened mediaFile stream "+in.getFormat());
+		engine.logger.finer("Opened mediaFile stream "+in.getFormat());
 
 
 		// Decode stream
 	    AudioInputStream decodedStream = AudioSystem2.convert(in);
-	    engine.getLogger().finer("Decoded format is "+decodedStream.getFormat());
+	    engine.logger.finer("Decoded format is "+decodedStream.getFormat());
 
-	    decodedAudioFormat = AudioSystem2.toAudioDataFormat(decodedStream.getFormat());
+	    decodedAudioFormat = AudioSystem2.toAudioFormat(decodedStream.getFormat());
 
 
 	    // Create and fill buffer
@@ -98,11 +98,11 @@ public class Media
 		buffer.startFilling(decodedStream,
 	    		() -> {
 	    			bufferFilledLatch.countDown();
-	    			engine.getLogger().fine("Buffer Filled "+buffer);
+	    			engine.logger.fine("Buffer Filled "+buffer);
     			},
 	    		() -> {
 	    			bufferFilledLatch.countDown();
-	    			engine.getLogger().warning("Buffer closed before filled "+buffer);
+	    			engine.logger.warning("Buffer closed before filled "+buffer);
     			});
 
 	}
@@ -210,16 +210,16 @@ public class Media
 			}
 			MediaFormat format = AudioSystem2.toMediaFormat(engine, aff);
 			info = engine.createMediaInfo(mediaFile, format);
-			encodedAudioFormat = format.getAudioDataFormat();
+			encodedAudioFormat = format.getAudioFormat();
 		}
 		else // MediaStream
 		{
 			MediaFormat format = stream.getMediaFormat();
 			if(format != null) {
 				info = engine.createMediaInfo(stream);
-				encodedAudioFormat = format.getAudioDataFormat();
+				encodedAudioFormat = format.getAudioFormat();
 			} else {
-				encodedAudioFormat = stream.getAudioDataFormat();
+				encodedAudioFormat = stream.getAudioFormat();
 				throw new UnsupportedOperationException("format of stream unknown");
 			}
 		}
@@ -252,12 +252,12 @@ public class Media
 	}
 
 
-	public AudioDataFormat getEncodedAudioFormat() {
+	public AudioFormat getEncodedAudioFormat() {
 		return encodedAudioFormat;
 	}
 
 
-	public AudioDataFormat getDecodedAudioFormat() {
+	public AudioFormat getDecodedAudioFormat() {
 		return decodedAudioFormat;
 	}
 

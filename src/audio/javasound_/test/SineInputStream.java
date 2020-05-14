@@ -1,4 +1,4 @@
-package audio.javasound.lib;
+package audio.javasound.test;
 
 import static java.lang.Math.PI;
 import static java.lang.Math.sin;
@@ -23,7 +23,7 @@ public class SineInputStream extends InputStream
 		this.frequency = sineFrequency;
 		this.sampleRate = sampleRate;
 		format = new AudioFormat(sampleRate, 8, 1, true, false);
-//		format = new AudioDataFormat("PCM_SIGNED", null, sampleRate, 8, 1, 8, sampleRate, false, null);
+//		format = new AudioFormat("PCM_SIGNED", null, sampleRate, 8, 1, 8, sampleRate, false, null);
 		sample = samplePhase(10);
 		pos = 0;
 		mark = 0;

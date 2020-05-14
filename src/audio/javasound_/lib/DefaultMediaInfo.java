@@ -30,7 +30,7 @@ public class DefaultMediaInfo extends MediaInfo {
 	@Override
 	public double getDuration() {
 		int frameLength = format.getFrameLength();
-		float framerate = format.getAudioDataFormat().getFrameRate();
+		float framerate = format.getAudioFormat().getFrameRate();
 		if(frameLength == AudioSystem.NOT_SPECIFIED || framerate == AudioSystem.NOT_SPECIFIED)
 			return -1;
 		return frameLength / framerate;
@@ -44,7 +44,7 @@ public class DefaultMediaInfo extends MediaInfo {
 		
 		// Estimate from estimateFrameLength()
 		long frameLength = estimateFrameLength();
-		float framerate = format.getAudioDataFormat().getFrameRate();
+		float framerate = format.getAudioFormat().getFrameRate();
 		if(framerate == AudioSystem.NOT_SPECIFIED) return -1;
 		return frameLength / framerate;
 	}
@@ -55,7 +55,7 @@ public class DefaultMediaInfo extends MediaInfo {
 		// Estimate from file size
 		long filesize = contentSize;
 		if(filesize < 0) return -1;
-		int frameSize = format.getAudioDataFormat().getFrameSize();
+		int frameSize = format.getAudioFormat().getFrameSize();
 		if(frameSize <= 0) return -1;
 		long frameLength = (filesize) / frameSize; 
 		return frameLength;

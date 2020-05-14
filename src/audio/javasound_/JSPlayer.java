@@ -8,7 +8,7 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import audio.javasound.lib.JavaSoundMixer;
 import audio.javasound.lib.MemoryAudioBuffer;
 import audio.AbstractPlayer;
-import audio.AudioDataFormat;
+import audio.AudioFormat;
 import audio.AudioDevice;
 import audio.AudioEngineException;
 import audio.MarkerListener;
@@ -292,12 +292,12 @@ public class JSPlayer extends AbstractPlayer
 	}
 
 	@Override
-	public AudioDataFormat getEncodedFormat() {
+	public AudioFormat getEncodedFormat() {
 		return media.getEncodedAudioFormat();
 	}
 
 	@Override
-	public AudioDataFormat getDecodedFormat() {
+	public AudioFormat getDecodedFormat() {
 		return media.getDecodedAudioFormat();
 	}
 

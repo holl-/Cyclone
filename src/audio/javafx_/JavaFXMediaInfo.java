@@ -2,7 +2,7 @@ package audio.javafx;
 
 import java.util.HashMap;
 
-import audio.AudioDataFormat;
+import audio.AudioFormat;
 import audio.AudioEngine;
 import audio.MediaFile;
 import audio.MediaFormat;
@@ -15,7 +15,7 @@ public class JavaFXMediaInfo extends MediaInfo {
 	
 	public JavaFXMediaInfo(javafx.scene.media.Media fxMedia, MediaFile media, AudioEngine engine) {
 		super(null);
-		AudioDataFormat audioDataFormat = null;
+		AudioFormat audioDataFormat = null;
 		if(!fxMedia.getTracks().isEmpty()) {
 			Track track = fxMedia.getTracks().get(0);
 			String encoding;
@@ -24,7 +24,7 @@ public class JavaFXMediaInfo extends MediaInfo {
 			} else {
 				encoding = track.getName();
 			}
-			audioDataFormat = new AudioDataFormat(encoding, null, -1, -1, -1, -1, -1, false,
+			audioDataFormat = new AudioFormat(encoding, null, -1, -1, -1, -1, -1, false,
 					new HashMap<String, Object>(track.getMetadata()));
 		}
 		

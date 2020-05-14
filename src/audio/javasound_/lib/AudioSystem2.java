@@ -9,7 +9,7 @@ import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioFormat.Encoding;
 
-import audio.AudioDataFormat;
+import audio.AudioFormat;
 import audio.AudioEngine;
 import audio.MediaFormat;
 import audio.MediaType;
@@ -137,7 +137,7 @@ public class AudioSystem2 {
 	}
 	
 	
-	public static AudioDataFormat toAudioDataFormat(AudioFormat format) {
+	public static AudioFormat toAudioFormat(AudioFormat format) {
 		String encodingName = format.getEncoding().toString();
 		String encodingClassName = format.getEncoding().getClass().getName();
 		float sampleRate = format.getSampleRate();
@@ -148,7 +148,7 @@ public class AudioSystem2 {
 		boolean bigEndian = format.isBigEndian();
 		HashMap<String, Object> properties = serializableMap(format.properties());
 		
-		return new AudioDataFormat(
+		return new AudioFormat(
 				encodingName,
 				encodingClassName,
 				sampleRate,
@@ -160,7 +160,7 @@ public class AudioSystem2 {
 				properties);
 	}
 	
-	public static AudioFormat toAudioFormat(AudioDataFormat format) throws UnsupportedAudioFileException {
+	public static AudioFormat toAudioFormat(AudioFormat format) throws UnsupportedAudioFileException {
 		Encoding encoding;
 		Class<?> encodingClass = null;
 		try {
@@ -188,21 +188,21 @@ public class AudioSystem2 {
 		String formatExtension = format.getType().getExtension();
 		int frameLength = format.getFrameLength();
 		HashMap<String, Object> properties = serializableMap(format.properties());
-		AudioDataFormat audioDataFormat = null;
+		AudioFormat audioDataFormat = null;
 		if(format.getFormat() != null) {
-			audioDataFormat = toAudioDataFormat(format.getFormat());
+			audioDataFormat = toAudioFormat(format.getFormat());
 		}
 		MediaType type = new MediaType(formatName, formatExtension);
 		return new MediaFormat(audioEngine, type, frameLength, properties, audioDataFormat);
 	}
 	
 	public static AudioFileFormat toAudioFileFormat(MediaFormat format) throws UnsupportedAudioFileException {
-		AudioFileFormat.Type type = new AudioFileFormat.Type(format.getType().getName(), format.getType().getFileExtension());
+		AudioFileFormat.Type type = new AudioFileFormat.Type(format.type.getName(), format.type.getFileExtension());
 		AudioFormat audioFormat = null;
-		if(format.getAudioDataFormat() != null) {
-			audioFormat = toAudioFormat(format.getAudioDataFormat());
+		if(format.getAudioFormat() != null) {
+			audioFormat = toAudioFormat(format.getAudioFormat());
 		}
-		return new AudioFileFormat(type, audioFormat, format.getFrameLength(), format.getProperties());
+		return new AudioFileFormat(type, audioFormat, format.frameLength, format.properties);
 	}
 	
 	private static HashMap<String, Object> serializableMap(Map<String, Object> properties) {

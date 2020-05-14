@@ -54,7 +54,7 @@ public class MP3Info extends MediaInfo
 		System.out.println("File Properties");
 		printProperties(format.getProperties());
 		System.out.println("MP3 Properties");
-		printProperties(format.getAudioDataFormat().getProperties());
+		printProperties(format.getAudioFormat().getProperties());
 		
 	}
 	
@@ -95,7 +95,7 @@ public class MP3Info extends MediaInfo
 		
 		long frameLength = format.getFrameLength();
 		if(frameLength < 0) frameLength = estimateFrameLength();
-		double durationSec = frameLength / format.getAudioDataFormat().getFrameRate();
+		double durationSec = frameLength / format.getAudioFormat().getFrameRate();
 		return durationSec;
 	}
 	
