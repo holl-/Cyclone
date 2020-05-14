@@ -56,7 +56,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
 
         if (!started.value) started.value = checkTriggerCondition()
         if(checkPrepareCondition()) {
-            if (player.value == null && !creatingPlayer) {
+            if (player.value == null && !creatingPlayer && errorMessage.value == null) {
                 creatingPlayer = true
                 engine.jobThreads.submit {
                     val player = createPlayer()
@@ -138,6 +138,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
                     } catch (_: InterruptedException) {}
                 }.start()
             }
+            errorMessage.value = null
             busyMessage.value = null
             return player
         } catch (exc: Exception) {
