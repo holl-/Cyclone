@@ -39,6 +39,10 @@ class PlayerData
         override fun resolveConflict(other: SynchronizedData): SynchronizedData {
             return if (files.isEmpty()) other else this
         }
+
+        override fun fromFile(): SynchronizedData? {
+            return Playlist(files.filter { f -> f.originatesHere() })
+        }
     }
 
     data class Looping(val value: Boolean) : SynchronizedData()
@@ -85,7 +89,7 @@ class PlayerData
         constructor() : this(null, 0.0, 0)
 
         override fun fromFile(): SynchronizedData? {
-            return if (file != null && File(file.getPath()).exists()) {
+            return if (file != null && file.originatesHere() && File(file.getPath()).exists()) {
                 SelectedFile(file, 0.0, 0)
             } else {
                 SelectedFile(null, 0.0, 0)
