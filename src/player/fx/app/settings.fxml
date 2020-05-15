@@ -58,18 +58,21 @@
                         <Label text="Audio engine" />
                         <GridPane>
                           <columnConstraints>
-                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="286.85711669921875" minWidth="10.0" prefWidth="130.28573608398438" />
-                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="453.7142639160156" minWidth="10.0" prefWidth="453.7142639160156" />
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="286.85711669921875" minWidth="10.0" prefWidth="114.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="453.7142639160156" minWidth="10.0" prefWidth="175.4285888671875" />
+                              <ColumnConstraints hgrow="SOMETIMES" maxWidth="453.7142639160156" minWidth="10.0" prefWidth="300.5714111328125" />
                           </columnConstraints>
                           <rowConstraints>
                             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                           </rowConstraints>
                            <children>
-                              <RadioButton fx:id="javaSound" mnemonicParsing="false" text="Java Sound" />
-                              <RadioButton fx:id="javaFXSound" mnemonicParsing="false" text="JavaFX" GridPane.rowIndex="1" />
+                              <RadioButton fx:id="javaSound" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Java Sound" />
+                              <RadioButton fx:id="javaFXSound" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="JavaFX" GridPane.rowIndex="1" />
                               <Label text="Enables device selection" GridPane.columnIndex="1" />
                               <Label text="Loads files more quickly" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                              <Label text="Supports MP3, AIF, WAV" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                              <Label text="Supports MP3, AIF, WAV, OGG" GridPane.columnIndex="2" />
                            </children>
                         </GridPane>
                         <Separator layoutX="18.0" layoutY="102.0" prefWidth="200.0">
