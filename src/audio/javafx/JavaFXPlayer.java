@@ -256,6 +256,14 @@ public class JavaFXPlayer extends AbstractPlayer {
 
 	@Override
 	public void setPositionAsync(double position, Runnable onFinished) {
+		if (fxPlayer.getStatus() == Status.UNKNOWN) {
+			fxPlayer.statusProperty().addListener((p, o, status) -> {
+				if (status == Status.READY) {
+					setPositionAsync(position, onFinished);
+				}
+			});
+			return;
+		}
 		double oldPosition = getPosition();
 		fxPlayer.seek(Duration.seconds(position));
 		informMarkerListenersOnJump(oldPosition, position);
@@ -273,6 +281,12 @@ public class JavaFXPlayer extends AbstractPlayer {
 
 	@Override
 	public void setPositionBlocking(double position, double timeout) throws InterruptedException {
+		if (fxPlayer.getStatus() == Status.UNKNOWN) {
+			CountDownLatch latch = new CountDownLatch(1);
+			fxPlayer.statusProperty().addListener((p, o, status) -> latch.countDown());
+			latch.wait();
+		}
+
 		double oldPosition = getPosition();
 
 		if(Math.abs(oldPosition - position) < 0.1) return;
