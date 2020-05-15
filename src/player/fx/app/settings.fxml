@@ -91,14 +91,29 @@
                               <Insets bottom="4.0" top="4.0" />
                            </padding>
                         </Separator>
-                        <Label text="Minimum volume" />
-                        <HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="6.0">
                            <children>
+                              <Label text="Minimum volume" />
                               <TextField disable="true" text="0.01" />
                            </children>
                         </HBox>
+                        <HBox />
                         <Label text="The volume at the left-most position of the volume slider." />
                         <Separator layoutX="22.0" layoutY="128.0" prefWidth="200.0">
+                           <padding>
+                              <Insets bottom="4.0" top="4.0" />
+                           </padding>
+                        </Separator>
+                        <HBox alignment="CENTER_LEFT" spacing="6.0">
+                           <children>
+                              <Label text="Fade out duration:" />
+                              <Slider fx:id="fadeOutDuration" max="5.0" />
+                              <Label fx:id="fadeOutDurationDisplay" text="?" />
+                              <Label text="seconds" />
+                           </children>
+                        </HBox>
+                        <Label text="When selecting a new song, the old song fades out over this duration." />
+                        <Separator layoutX="22.0" layoutY="271.0" prefWidth="200.0">
                            <padding>
                               <Insets bottom="4.0" top="4.0" />
                            </padding>

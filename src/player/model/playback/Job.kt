@@ -198,11 +198,26 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
         return listOfNotNull(previous.value)
     }
 
+    private var disposing = false
+
     fun dispose() {
-        player.value?.dispose()
-        player.value = null
-        task.value = null
-        LocalMachine.getLocalMachine()?.setPreventStandby(false, this)
+        if (disposing) return;
+        disposing = true
+        Thread(Runnable {
+            if (player.value?.isPlaying == true && engine.config.fadeOutDuration.value > 0) {
+                val stepInterval: Long = 50  // low values can cause stuttering with Java Audio
+                val steps = (engine.config.fadeOutDuration.value * 1000 / stepInterval).toInt()
+                val decreasePerStep = engine.config.fadeOutGain.value / steps
+                for (index in 1..steps) {
+                    player.value?.gain = (player.value?.gain ?: 0.0) - decreasePerStep
+                    Thread.sleep(stepInterval)
+                }
+            }
+            player.value?.dispose()
+            player.value = null
+            task.value = null
+            LocalMachine.getLocalMachine()?.setPreventStandby(false, this)
+        }).start()
     }
 
     override fun toString(): String {

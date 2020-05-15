@@ -29,6 +29,7 @@ import java.util.concurrent.Callable
 import java.util.function.Consumer
 import java.util.function.Predicate
 import java.util.function.Supplier
+import kotlin.math.roundToInt
 
 class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initializable {
     var stage: Stage = Stage()
@@ -41,6 +42,8 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     @FXML var javaFXSound: RadioButton? = null
     @FXML var bufferTime: Slider? = null
     @FXML var bufferTimeDisplay: Label? = null
+    @FXML var fadeOutDuration: Slider? = null
+    @FXML var fadeOutDurationDisplay: Label? = null
     // Library
     @FXML var libraryDirectories: ListView<CloudFile>? = null
     // Network
@@ -99,6 +102,8 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         bufferTime!!.valueProperty().bindBidirectional(config.bufferTime)
         bufferTimeDisplay!!.textProperty().bind(Bindings.createStringBinding(Callable { "${(bufferTime!!.value * 1000).toInt()}" }, bufferTime!!.valueProperty()))
         bufferTime!!.disableProperty().bind(javaFXSound!!.selectedProperty())
+        fadeOutDuration!!.valueProperty().bindBidirectional(config.fadeOutDuration);
+        fadeOutDurationDisplay!!.textProperty().bind(Bindings.createStringBinding(Callable { (Math.round(config.fadeOutDuration.value * 10.0) / 10.0).toString() }, config.fadeOutDuration))
         // Network
         connectOnStartup!!.selectedProperty().bindBidirectional(config.connectOnStartup)
         computerName!!.textProperty().bindBidirectional(config.computerName)

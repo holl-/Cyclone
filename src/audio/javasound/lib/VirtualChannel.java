@@ -374,6 +374,8 @@ public class VirtualChannel
 
 
 	public void setGain(double gain) {
+		gain = Math.max(gain, masterGain.getMinimum());
+		gain = Math.min(gain, masterGain.getMaximum());
 		masterGain.setValue((float) gain);
 	}
 
