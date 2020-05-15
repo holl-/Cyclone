@@ -9,6 +9,7 @@ import javafx.beans.property.SimpleStringProperty
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
+import systemcontrol.LocalMachine
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -74,6 +75,8 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
         }  // else destroy player?
 
         engine.mainThread.submit { status.value = status() }
+
+        LocalMachine.getLocalMachine()?.setPreventStandby(player.value?.isPlaying == true, this)
 
         updateEndListener()
     }
@@ -199,6 +202,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
         player.value?.dispose()
         player.value = null
         task.value = null
+        LocalMachine.getLocalMachine()?.setPreventStandby(false, this)
     }
 
     override fun toString(): String {

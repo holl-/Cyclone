@@ -79,6 +79,11 @@ public class Launcher extends Application {
 
 		addControl(window.getPlayer());
 
+		window.getPlayer().getPlayingProperty().addListener((p, o, playing) -> {
+			if (LocalMachine.getLocalMachine() != null)
+				LocalMachine.getLocalMachine().setPreventStandby(playing, this);
+		});
+
 		if (config.getConnectOnStartup().get()) {
 			cloud1.connect(config.getMulticastAddress().get(), config.getMulticastPort().get(), true, 1000);
 		}

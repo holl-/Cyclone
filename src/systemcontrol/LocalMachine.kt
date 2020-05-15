@@ -1,55 +1,90 @@
-package systemcontrol;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
+package systemcontrol
 
-import static mediacommand.JIntellitypeMediaCommandManager.getBinaryApplicationFile;
+import javafx.application.Platform
+import javafx.scene.robot.Robot
+import mediacommand.JIntellitypeMediaCommandManager
+import java.io.IOException
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
+abstract class LocalMachine {
+    abstract fun setPreventStandby(preventStandby: Boolean, source: Any)
+    abstract fun enterStandby(): Boolean
+    abstract fun turnOffMonitors(): Boolean
 
-public abstract class LocalMachine {
+    private class WindowsMachine : LocalMachine()
+    {
+        private val standbyPreventionInterval: Long = 115
+        private val standbyPreventers = HashSet<Any>()
+        private var standbyPrevention: ScheduledExecutorService? = null
+        private var robot: Robot? = null
+        private var initializingRobot = false
 
-	public static LocalMachine getLocalMachine() {
-		String os = System.getProperty("os.name");
-		if(os.toLowerCase().contains("windows")) {
-			return new WindowsMachine();
-		}
-		return null;
-	}
-	
-	
-	public abstract boolean enterStandby();
-	
-	public abstract boolean turnOffMonitors();
-	
-	
-	
-	private static class WindowsMachine extends LocalMachine
-	{
-		@Override
-		public boolean enterStandby()
-		{
-			String windir = System.getenv("windir");
-			String command = windir+"/System32/rundll32.exe powrprof.dll,SetSuspendState";
-			try {
-				Runtime.getRuntime().exec(command);
-				return true;
-			} catch (IOException e) {
-				e.printStackTrace();
-				return false;
-			}
-		}
+        override fun setPreventStandby(preventStandby: Boolean, source: Any) {
+            synchronized(this) {
+                if (preventStandby) standbyPreventers.add(source)
+                else standbyPreventers.remove(source)
+                if (standbyPreventers.isNotEmpty() && standbyPrevention == null) {
+                    if (robot == null && !initializingRobot) {
+                        initializingRobot = true
+                        Platform.runLater { robot = Robot() }
+                    }
+                    standbyPrevention = Executors.newSingleThreadScheduledExecutor()
+                    standbyPrevention!!.scheduleAtFixedRate({ Platform.runLater {
+                        val robot = this.robot
+                        if (robot != null) {
+                            val position = robot.mousePosition
+                            robot.mouseMove(position.add(1.0, 0.0));
+                            robot.mouseMove(position);
+                        }
+                    } }, standbyPreventionInterval, standbyPreventionInterval, TimeUnit.SECONDS);
+                }
+                if (standbyPreventers.isEmpty() && standbyPrevention != null) {
+                    standbyPrevention?.shutdown()
+                    standbyPrevention = null
+                }
+            }
+        }
 
-		@Override
-		public boolean turnOffMonitors() {
-			File exe = getBinaryApplicationFile(LocalMachine.class, "Turn Off Monitor.exe");
-			try {
-				Runtime.getRuntime().exec(exe.getAbsolutePath());
-				return true;
-			} catch (IOException e) {
-				e.printStackTrace();
-				return false;
-			}
-		}
-	}
-	
+        override fun enterStandby(): Boolean {
+            val windir = System.getenv("windir")
+            val command = "$windir/System32/rundll32.exe powrprof.dll,SetSuspendState"
+            return try {
+                Runtime.getRuntime().exec(command)
+                true
+            } catch (e: IOException) {
+                e.printStackTrace()
+                false
+            }
+        }
+
+        override fun turnOffMonitors(): Boolean {
+            val exe = JIntellitypeMediaCommandManager.getBinaryApplicationFile(LocalMachine::class.java, "Turn Off Monitor.exe")
+            return try {
+                Runtime.getRuntime().exec(exe.absolutePath)
+                true
+            } catch (e: IOException) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    companion object {
+        private var LOCAL_MACHINE: LocalMachine? = null
+
+        private fun createLocalMachine(): LocalMachine? {
+            val os = System.getProperty("os.name")
+            return if (os.toLowerCase().contains("windows")) {
+                WindowsMachine()
+            } else null
+        }
+
+        @JvmStatic
+        fun getLocalMachine(): LocalMachine? {
+            if (LOCAL_MACHINE == null) LOCAL_MACHINE = createLocalMachine()
+            return LOCAL_MACHINE
+        }
+    }
 }
