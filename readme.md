@@ -20,8 +20,8 @@ Technical features
 - Detailed File information
 - Interactive Debug view for developers
 
-## Documentaiton
+## Documentation
 
 [Architecture](architecture.md)
 
-[Deploy Instructions](deploy/deploy.md)
+[Deploy Instructions for Windows](deploy/deploy.md)
