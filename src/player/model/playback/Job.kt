@@ -1,6 +1,5 @@
 package player.model.playback
 
-import audio.MediaFile
 import audio.Player
 import javafx.beans.InvalidationListener
 import javafx.beans.property.SimpleBooleanProperty
@@ -60,7 +59,15 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
                 creatingPlayer = true
                 engine.jobThreads.submit {
                     val player = createPlayer()
-                    engine.mainThread.submit { this.player.value = player; creatingPlayer = false; update() }
+                    engine.mainThread.submit {
+                        if (isAlive()) {
+                            this.player.value = player
+                        } else {
+                            player?.dispose()
+                        }
+                        creatingPlayer = false
+                        update()
+                    }
                 }
             }
             player.value?.let { pl -> adjustPlayer(pl, task) }

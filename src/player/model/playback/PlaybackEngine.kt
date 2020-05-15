@@ -77,6 +77,7 @@ class PlaybackEngine (val cloud: Cloud, val config: CycloneConfig)
         for (job in ArrayList(jobs)) {
             if (!job.isAlive()) {
                 if (jobs.none { j -> job in j.references() }) {
+                    job.dispose()
                     jobs.remove(job)
                 }
             }
