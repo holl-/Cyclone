@@ -109,7 +109,7 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
     }
 
 
-    private fun update() {
+    fun update() {
         if (tasks.isEmpty()) return  // play() must be called
         if (speaker == null) return // activate() must be called
 

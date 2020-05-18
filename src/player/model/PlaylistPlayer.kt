@@ -269,6 +269,8 @@ class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
             if (selectedFile.value.jumpCount > jumpCount || !builder.isPlaying()) {
                 jumpCount = selectedFile.value.jumpCount
                 builder.play(file, selectedFile.value.position)
+            } else {
+                builder.update()
             }
             builder.paused.value = pausedData.value.value
         }
