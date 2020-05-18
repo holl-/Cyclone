@@ -102,6 +102,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         currentSongMenu!!.textProperty().bind(player.titleProperty)
         currentSongMenu!!.disableProperty().bind(player.isFileSelectedProperty.not())
         volume!!.valueProperty().bindBidirectional(player.gainProperty)
+        volume!!.minProperty().bind(player.config.minGain)
         speakerSelection!!.setCellFactory { SpeakerCell() }
         speakerSelection!!.buttonCell = SpeakerCell()
         speakerSelection!!.items = player.speakers

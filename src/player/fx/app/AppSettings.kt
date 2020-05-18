@@ -2,7 +2,6 @@ package player.fx.app
 
 import cloud.CloudFile
 import com.aquafx_project.AquaFx
-import player.extensions.ambience.AmbienceExtension
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
@@ -20,16 +19,19 @@ import javafx.stage.Window
 import player.CastToBooleanProperty
 import player.CustomObjectProperty
 import player.FireLater
+import player.extensions.ambience.AmbienceExtension
 import player.model.CycloneConfig
 import player.model.PlaylistPlayer
 import java.io.File
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.net.URL
 import java.util.*
 import java.util.concurrent.Callable
 import java.util.function.Consumer
 import java.util.function.Predicate
 import java.util.function.Supplier
-import kotlin.math.roundToInt
+import kotlin.math.pow
 
 class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initializable {
     var stage: Stage = Stage()
@@ -43,7 +45,8 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     @FXML var bufferTime: Slider? = null
     @FXML var bufferTimeDisplay: Label? = null
     @FXML var fadeOutDuration: Slider? = null
-    @FXML var fadeOutDurationDisplay: Label? = null
+    @FXML var minGain: Slider? = null
+    @FXML var minVolumeDisplay: Label? = null
     // Library
     @FXML var libraryDirectories: ListView<CloudFile>? = null
     // Network
@@ -100,10 +103,11 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         javaSound!!.selectedProperty().bindBidirectional(isJavaSound)
         javaFXSound!!.selectedProperty().bindBidirectional(isJavaFXSound)
         bufferTime!!.valueProperty().bindBidirectional(config.bufferTime)
-        bufferTimeDisplay!!.textProperty().bind(Bindings.createStringBinding(Callable { "${(bufferTime!!.value * 1000).toInt()}" }, bufferTime!!.valueProperty()))
+        bufferTimeDisplay!!.textProperty().bind(Bindings.createStringBinding(Callable { "(${(bufferTime!!.value * 1000).toInt()} milliseconds)" }, bufferTime!!.valueProperty()))
         bufferTime!!.disableProperty().bind(javaFXSound!!.selectedProperty())
-        fadeOutDuration!!.valueProperty().bindBidirectional(config.fadeOutDuration);
-        fadeOutDurationDisplay!!.textProperty().bind(Bindings.createStringBinding(Callable { (Math.round(config.fadeOutDuration.value * 10.0) / 10.0).toString() }, config.fadeOutDuration))
+        fadeOutDuration!!.valueProperty().bindBidirectional(config.fadeOutDuration)
+        minGain!!.valueProperty().bindBidirectional(config.minGain)
+        minVolumeDisplay!!.textProperty().bind(Bindings.createStringBinding(Callable { "${BigDecimal(10.0.pow(config.minGain.value / 20)).setScale(4, RoundingMode.HALF_EVEN)}" }, config.minGain))
         // Network
         connectOnStartup!!.selectedProperty().bindBidirectional(config.connectOnStartup)
         computerName!!.textProperty().bindBidirectional(config.computerName)

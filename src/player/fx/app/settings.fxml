@@ -20,9 +20,9 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
    <center>
-      <TabPane minHeight="350.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE">
+      <TabPane tabClosingPolicy="UNAVAILABLE">
         <tabs>
           <Tab text="General">
                <content>
@@ -80,12 +80,12 @@
                               <Insets bottom="4.0" top="4.0" />
                            </padding>
                         </Separator>
-                        <Label text="Audio buffer length" />
                         <HBox spacing="4.0">
                            <children>
-                              <Slider fx:id="bufferTime" max="0.5" value="0.2" />
+                              <Label text="Audio buffer length" />
+                              <Slider fx:id="bufferTime" majorTickUnit="0.1" max="0.5" minorTickCount="1" showTickLabels="true" value="0.2" />
+                              <Label text="seconds" />
                               <Label fx:id="bufferTimeDisplay" text="200" />
-                              <Label text="milliseconds" />
                            </children>
                         </HBox>
                         <Label text="Small values can cause stuttering, large values increase latency for volume control." />
@@ -97,7 +97,8 @@
                         <HBox alignment="CENTER_LEFT" spacing="6.0">
                            <children>
                               <Label text="Minimum volume" />
-                              <TextField disable="true" text="0.01" />
+                              <Slider fx:id="minGain" majorTickUnit="20.0" max="-20.0" min="-80.0" minorTickCount="1" showTickMarks="true" value="-40.0" />
+                              <Label fx:id="minVolumeDisplay" text="?" />
                            </children>
                         </HBox>
                         <HBox />
@@ -110,8 +111,7 @@
                         <HBox alignment="CENTER_LEFT" spacing="6.0">
                            <children>
                               <Label text="Fade out duration:" />
-                              <Slider fx:id="fadeOutDuration" max="5.0" />
-                              <Label fx:id="fadeOutDurationDisplay" text="?" />
+                              <Slider fx:id="fadeOutDuration" majorTickUnit="1.0" max="5.0" showTickLabels="true" />
                               <Label text="seconds" />
                            </children>
                         </HBox>

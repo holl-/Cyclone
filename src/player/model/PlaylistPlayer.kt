@@ -104,7 +104,7 @@ class PlayerData
 /**
  * Issues tasks to the cloud, interprets results for simple displaying.
  */
-class PlaylistPlayer(val cloud: Cloud, private val config: CycloneConfig) {
+class PlaylistPlayer(val cloud: Cloud, val config: CycloneConfig) {
     val library: MediaLibrary = MediaLibrary()
     private var jumpCount: Long = 0
     private val builder = TaskChainBuilder(cloud, Function { file -> after(file) }, CREATOR)

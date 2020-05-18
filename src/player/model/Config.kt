@@ -30,6 +30,7 @@ class CycloneConfig(val file: File)
     val bufferTime = SimpleDoubleProperty(this, "bufferTime", 0.0)
     val fadeOutDuration = SimpleDoubleProperty(this, "fadeOutDuration", 0.0)
     val fadeOutGain = SimpleDoubleProperty(this, "fadeOutGain", 0.0)
+    val minGain = SimpleDoubleProperty(this, "minGain", 0.0)
     // Library
     val library = SimpleStringProperty(this, "library", "")
     // Network
@@ -47,7 +48,7 @@ class CycloneConfig(val file: File)
 
     private val allProperties = listOf(
             debug, keyCombinations, singleInstance, skin,
-            audioEngine, bufferTime, fadeOutDuration, fadeOutGain,
+            audioEngine, bufferTime, fadeOutDuration, fadeOutGain, minGain,
             library,
             connectOnStartup, computerName, multicastAddress, multicastPort, broadcastInterval,
             enabledExtensions
@@ -72,6 +73,7 @@ class CycloneConfig(val file: File)
         bufferTime.value = 0.2
         fadeOutDuration.value = 2.0
         fadeOutGain.value = 40.0
+        minGain.value = -40.0
         // Library
         val music = File(System.getProperty("user.home"), "Music")
         library.value = if (music.isDirectory) music.toString() else ""
