@@ -8,10 +8,8 @@ import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
-import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
-import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -21,6 +19,7 @@ import javafx.scene.Node
 import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.control.Alert.AlertType
+import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseButton
@@ -29,7 +28,6 @@ import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.stage.Modality
 import javafx.stage.Stage
-import javafx.stage.WindowEvent
 import javafx.util.Callback
 import javafx.util.Duration
 import player.CastToBooleanProperty
@@ -38,9 +36,6 @@ import player.fx.control.FileDropOverlay
 import player.fx.control.PlayerControl
 import player.fx.control.SpeakerCell
 import player.fx.control.WindowDrag
-import player.extensions.debug.CloudViewer
-import player.extensions.debug.PlaybackViewer
-import player.extensions.debug.TaskViewer
 import player.fx.icons.FXIcons
 import player.model.*
 import player.model.data.Speaker
@@ -89,8 +84,6 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     private val settings: AppSettings
 
 
-
-
     init {
         library = player.library
         settings = AppSettings(config!!, player, engine)
@@ -98,14 +91,13 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         root.children.add(loadPlayer())
         playlistRoot = loadPlaylist()
         searchRoot = loadSearch()
-        player.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> updateAddToLibraryMenu() }
+        player.currentFileProperty.addListener { _, _, _ -> updateAddToLibraryMenu() }
         val overlay = FileDropOverlay(root)
         overlay.actionGenerator = Function { files: List<File> -> generateDropButtons(files) }
-        var scene: Scene?
-        stage.scene = Scene(root).also { scene = it }
+        stage.scene = Scene(root)
         stage.title = "Cyclone"
         stage.icons.add(FXIcons.get("Play2.png", 32.0).image)
-        stage.onHidden = EventHandler { e: WindowEvent? -> quit() }
+        stage.onHidden = EventHandler { quit() }
         stage.setOnCloseRequest { quit() }
     }
 
@@ -115,7 +107,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         settingsMenu!!.graphic = FXIcons.get("Settings.png", 24.0)
         currentSongMenu!!.graphic = FXIcons.get("Media.png", 24.0)
         currentSongMenu!!.textProperty().bind(player.titleProperty)
-        currentSongMenu!!.disableProperty().bind(player.isFileSelectedProperty.not())
+        currentSongMenu!!.disableProperty().bind(Bindings.not(player.isFileSelectedProperty))
         volume!!.valueProperty().bindBidirectional(player.gainProperty)
         volume!!.minProperty().bind(player.config.minGain)
         speakerSelection!!.setCellFactory { SpeakerCell() }
@@ -141,11 +133,11 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         control.playlistAvailableProperty().bind(player.playlistAvailableProperty)
         control.shuffledProperty().bindBidirectional(player.shuffledProperty)
         control.loopProperty().bindBidirectional(player.loopingProperty)
-        control.onNext = EventHandler { e: ActionEvent? -> player.next() }
-        control.onPrevious = EventHandler { e: ActionEvent? -> player.previous() }
-        control.onStop = EventHandler { e: ActionEvent? -> player.stop() }
-        control.onShowPlaylist = EventHandler { e: ActionEvent? -> showPlaylist() }
-        control.onSearch = EventHandler { e: ActionEvent? -> showSearch() }
+        control.onNext = EventHandler { player.next() }
+        control.onPrevious = EventHandler { player.previous() }
+        control.onStop = EventHandler { player.stop() }
+        control.onShowPlaylist = EventHandler { showPlaylist() }
+        control.onSearch = EventHandler { showSearch() }
         playerRoot.center = control
 
         WindowDrag(stage, control)
@@ -209,17 +201,17 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
             @FXML private var searchField: TextField? = null
 
             override fun initialize(location: URL?, resources: ResourceBundle?) {
-                searchField!!.textProperty().addListener { p: ObservableValue<out String>?, o: String?, n: String ->
+                searchField!!.textProperty().addListener { _, _, n ->
                     if (n.isEmpty()) {
                         searchResult!!.setItems(library.recentlyUsed)
                     } else {
                         searchResult!!.setItems(library.startSearch(n))
                     }
                     if (!searchResult!!.items.isEmpty()) searchResult!!.selectionModel.select(0)
-                    searchResult!!.items.addListener(ListChangeListener { change: ListChangeListener.Change<out CloudFile>? -> if (!searchResult!!.items.isEmpty()) searchResult!!.selectionModel.select(0) })
+                    searchResult!!.items.addListener(ListChangeListener { if (!searchResult!!.items.isEmpty()) searchResult!!.selectionModel.select(0) })
                 }
-                searchResult!!.setItems(library.recentlyUsed)
-                searchResult!!.setCellFactory { list: ListView<CloudFile>? -> MediaCell() }
+                searchResult!!.items = library.recentlyUsed
+                searchResult!!.setCellFactory { MediaCell() }
                 searchResult!!.onKeyPressed = EventHandler { e: KeyEvent -> if (e.code == KeyCode.ENTER) playSelected(e.isControlDown) }
                 searchField!!.onKeyPressed = EventHandler { e: KeyEvent ->
                     if (e.code == KeyCode.ENTER) {
@@ -263,14 +255,14 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         // Play / New Playlist
         if (!audioFiles.isEmpty()) {
             val play = ToggleButton("Play", FXIcons.get("Play2.png", 32.0))
-            play.onAction = EventHandler { e: ActionEvent? -> play(audioFiles, files[0]) }
+            play.onAction = EventHandler { play(audioFiles, files[0]) }
             result.add(play)
         }
 
         // Add to Playlist
         if (!cold && !audioFiles.isEmpty()) {
             val append = ToggleButton("Add to playlist", FXIcons.get("Append.png", 32.0))
-            append.onAction = EventHandler { e: ActionEvent? ->
+            append.onAction = EventHandler {
                 val dfiles = audioFiles.stream().map { file: File? -> CloudFile(file!!) }.collect(Collectors.toList())
                 player.addToPlaylist(dfiles)
                 if (player.currentFileProperty.get() == null) {
@@ -286,7 +278,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
             val allAudioFiles = AudioFiles.allAudioFilesIn(files[0].parentFile)
             if (allAudioFiles.size > 1) {
                 val playFolder = ToggleButton("Play folder", FXIcons.get("PlayFolder.png", 32.0))
-                playFolder.onAction = EventHandler { e: ActionEvent? -> play(allAudioFiles, if (AudioFiles.isAudioFile(file)) file else allAudioFiles[0]) }
+                playFolder.onAction = EventHandler { play(allAudioFiles, if (AudioFiles.isAudioFile(file)) file else allAudioFiles[0]) }
                 result.add(playFolder)
             }
         }
@@ -341,7 +333,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         fade.fromValue = 1.0
         fade.toValue = 0.0
         fade.play()
-        fade.onFinished = EventHandler { e: ActionEvent? -> root.children.remove(node) }
+        fade.onFinished = EventHandler { root.children.remove(node) }
         currentOverlay = null
     }
 
@@ -369,7 +361,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
                         val finalFile = localFile!!
                         val item = MenuItem(if (localFile.name.isEmpty()) localFile.absolutePath else localFile.name)
                         item.graphic = FXIcons.get(if (localFile.isDirectory) "PlayFolder.png" else "Media.png", 28.0)
-                        item.onAction = EventHandler { e: ActionEvent? -> library.roots.add(CloudFile(finalFile)) }
+                        item.onAction = EventHandler { library.roots.add(CloudFile(finalFile)) }
                         addToLibraryMenu!!.items.add(item)
                         localFile = localFile.parentFile
                     } while (localFile != null)
@@ -385,9 +377,9 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     private fun playFromLibrary(file: CloudFile, append: Boolean) {
         val files: List<CloudFile>
         files = if (file.isDirectory()) {
-            val allFiles = AudioFiles.unfold(Arrays.asList(File(file.getPath())))
-            allFiles.stream().filter { file: File? -> AudioFiles.isAudioFile(file) }.map { file: File? -> CloudFile(file!!) }.collect(Collectors.toList())
-        } else Arrays.asList(file)
+            val allFiles = AudioFiles.unfold(listOf(File(file.getPath())))
+            allFiles.stream().filter(AudioFiles::isAudioFile).map(::CloudFile).collect(Collectors.toList())
+        } else listOf(file)
         if (!append) {
             player.setPlaylist(files)
             player.currentFileProperty.set(files[0])
@@ -400,8 +392,8 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     }
 
     internal class MediaCell : ListCell<CloudFile>() {
-        var fileIcon = FXIcons.get("Play.png", 32.0)
-        var dirIcon = FXIcons.get("PlayFolder.png", 32.0)
+        var fileIcon: ImageView = FXIcons.get("Play.png", 32.0)
+        var dirIcon: ImageView = FXIcons.get("PlayFolder.png", 32.0)
 
         override fun updateItem(item: CloudFile?, empty: Boolean) {
             super.updateItem(item, empty)
@@ -479,7 +471,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     @FXML
     @Throws(IOException::class)
     fun showFileInfo() {
-        val file = player.currentFileProperty.get() ?: return
+        val currentFile = player.currentFileProperty.get() ?: return
         val loader = FXMLLoader(javaClass.getResource("fileinfo.fxml"))
         loader.setController(object : Initializable {
             @FXML
@@ -560,7 +552,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
             @FXML
             private var playbackEngine: Label? = null
             override fun initialize(location: URL?, resources: ResourceBundle?) {
-                val opJob = engine.jobs.stream().filter { j: Job -> j.task.get() != null && j.task.get()!!.file === file && j.player.get() != null }.findFirst()
+                val opJob = engine.jobs.stream().filter { j: Job -> j.task.get() != null && j.task.get()!!.file === currentFile && j.player.get() != null }.findFirst()
                 if (opJob.isPresent) {
                     val player = opJob.get().player.get()!!
                     try {
@@ -610,8 +602,8 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
                     dEndianness!!.text = "Endianness: " + if (df.isBigEndian) "big endian" else "little endian"
                     dProperties!!.text = if (df.properties.isEmpty()) "" else df.properties.toString()
                 } else {
-                    titleLabel!!.text = file.getName()
-                    pathLink!!.text = file.getPath()
+                    titleLabel!!.text = currentFile.getName()
+                    pathLink!!.text = currentFile.getPath()
                     durationLabel!!.text = "Media details are unavailable because file is not stored locally."
                     encodingTab!!.isDisable = true
                     playbackTab!!.isDisable = true
@@ -622,7 +614,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
 
             @FXML
             protected fun showFolder() {
-                openFileLocation(file)
+                openFileLocation(currentFile)
             }
         })
         val playerRoot = loader.load<BorderPane>()

@@ -1,34 +1,15 @@
 package audio.javasound;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-
-import javax.sound.sampled.AudioFileFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Line;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.Mixer;
-import javax.sound.sampled.SourceDataLine;
-
+import audio.*;
 import audio.javasound.lib.AudioSystem2;
 import audio.javasound.lib.DefaultMediaInfo;
 import audio.javasound.lib.JavaSoundMixer;
 import audio.javasound.lib.MP3Info;
-import audio.AudioDevice;
-import audio.AudioEngine;
-import audio.AudioEngineException;
-import audio.MediaFile;
-import audio.MediaFormat;
-import audio.MediaInfo;
-import audio.MediaStream;
-import audio.MediaType;
-import audio.Player;
+
+import javax.sound.sampled.*;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
 
 public class JavaSoundEngine extends AudioEngine
 {

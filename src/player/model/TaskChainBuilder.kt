@@ -4,7 +4,6 @@ import cloud.Cloud
 import cloud.CloudFile
 import javafx.application.Platform
 import javafx.beans.InvalidationListener
-import javafx.beans.binding.Bindings
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.beans.property.SimpleObjectProperty
@@ -12,9 +11,7 @@ import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
 import player.model.data.TaskTrigger
-import java.lang.IllegalStateException
 import java.util.*
-import java.util.concurrent.Callable
 import java.util.function.Function
 import kotlin.collections.ArrayList
 
@@ -82,7 +79,7 @@ class TaskChainBuilder(val cloud: Cloud, val fileChain: Function<CloudFile, Clou
      * Starts playing the chain from the given position.
      */
     fun play(file: CloudFile, position: Double) {
-        val speaker = this.speaker ?: throw IllegalStateException("No speaker set")
+        this.speaker ?: throw IllegalStateException("No speaker set")
         when {
             tasks.isEmpty() -> {
                 tasks.add(createTask(file, position, 0, null, newId()))

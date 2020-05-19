@@ -1,11 +1,11 @@
 package audio.javasound.lib;
 
-import javax.sound.sampled.AudioSystem;
-
 import audio.MediaFile;
 import audio.MediaFormat;
 import audio.MediaInfo;
 import audio.MediaStream;
+
+import javax.sound.sampled.AudioSystem;
 
 public class DefaultMediaInfo extends MediaInfo {
 	private long contentSize;

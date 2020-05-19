@@ -1,9 +1,9 @@
 package audio.javasound.lib;
 
-import java.util.Map;
-
 import audio.MediaFormat;
 import audio.MediaInfo;
+
+import java.util.Map;
 
 
 /**

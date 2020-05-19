@@ -95,8 +95,8 @@ class TaskViewer(val cloud: Cloud) : Initializable
     }
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
-        tasks.addListener { change: ListChangeListener.Change<out PlayTask>? -> takeSnapshot() }
-        statuses.addListener { change: ListChangeListener.Change<out PlayTaskStatus>? -> takeSnapshot() }
+        tasks.addListener { _: ListChangeListener.Change<out PlayTask> -> takeSnapshot() }
+        statuses.addListener { _: ListChangeListener.Change<out PlayTaskStatus> -> takeSnapshot() }
         snapshotView?.items = snapshots
         snapshotView?.selectionModel?.selectedItemProperty()?.addListener(InvalidationListener { rebuild() })
     }
@@ -201,7 +201,6 @@ class TaskCreator(val cloud: Cloud) : Initializable
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
         file?.text = "C:\\stereo.mp3"
         target?.items = cloud.getAll(Speaker::class.java, this, Platform::runLater)
-        target?.items?.addListener { change: ListChangeListener.Change<out Speaker>? -> println("targets changed") }
         target?.selectionModel?.select(target?.items?.firstOrNull { speaker -> speaker.isDefault })
         duration?.text = "5"
         startPosition?.text = "10"

@@ -8,15 +8,18 @@ import cloud.Cloud
 import cloud.Peer.Companion.getLocal
 import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
+import javafx.beans.binding.DoubleBinding
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
+import javafx.collections.ObservableList
 import player.model.CycloneConfig
 import player.model.data.MasterGain
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
 import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.stream.Collectors
 
@@ -33,16 +36,16 @@ class PlaybackEngine (val cloud: Cloud, val config: CycloneConfig)
     val audioEngine: AudioEngine = createEngine(config.audioEngine.value)
     val files = MediaFileManager()
 
-    val mainThread = Executors.newFixedThreadPool(1)
-    val jobThreads = Executors.newFixedThreadPool(2)
+    val mainThread: ExecutorService = Executors.newFixedThreadPool(1)
+    val jobThreads: ExecutorService = Executors.newFixedThreadPool(2)
 
     private val tasks = cloud.getAll(PlayTask::class.java, this) { r -> mainThread.submit(r) }
     private val masterGainData = cloud.getSynchronized(MasterGain::class.java) { r -> mainThread.submit(r) }
 
     // Public properties
-    val jobs = FXCollections.observableArrayList<Job>()
-    val masterGain = Bindings.createDoubleBinding(Callable { masterGainData.value.value }, masterGainData)
-    val statusInvalid = SimpleBooleanProperty()
+    val jobs: ObservableList<Job> = FXCollections.observableArrayList()
+    val masterGain: DoubleBinding = Bindings.createDoubleBinding(Callable { masterGainData.value.value }, masterGainData)
+    private val statusInvalid = SimpleBooleanProperty()
 
     val speakerMap: Map<Speaker, AudioDevice> = audioEngine.devices.stream().collect(Collectors.toMap({ dev -> Speaker(getLocal(), dev.id, dev.name, dev.minGain, dev.maxGain, dev.isDefault) }, { dev -> dev}))
 

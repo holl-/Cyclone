@@ -1,12 +1,12 @@
 package audio;
 
+import audio.util.SystemTimeManager;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import audio.util.SystemTimeManager;
 
 /**
  * <code>AudioEngine</code> represents a backend interface for playing audio.

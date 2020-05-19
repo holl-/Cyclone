@@ -1,16 +1,13 @@
 package mediacommand;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.melloware.jintellitype.IntellitypeListener;
 import com.melloware.jintellitype.JIntellitype;
 import com.melloware.jintellitype.JIntellitypeException;
+
+import java.io.File;
+import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class JIntellitypeMediaCommandManager extends MediaCommandManager implements IntellitypeListener {
 

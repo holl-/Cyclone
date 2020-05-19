@@ -27,18 +27,18 @@ class Cloud {
     internal val allData = HashMap<Peer, ArrayList<Data>>()
     private val dataListeners = HashMap<Class<out Data>, MutableList<Runnable>>()
 
-    internal val sData = HashMap<Class<out SynchronizedData>, SimpleObjectProperty<out SynchronizedData>>()
+    private val sData = HashMap<Class<out SynchronizedData>, SimpleObjectProperty<out SynchronizedData>>()
     private val ownerMap = HashMap<Data, Any>()
 
     val onUpdate = CopyOnWriteArrayList<Runnable>()
 
-    internal var multicast: CloudMulticast? = null
+    private var multicast: CloudMulticast? = null
     internal var tcp: CloudTCP? = null
     internal var localPeer = Peer.getLocal()
-    var logger = Logger.getLogger("cloud ${localPeer.id}")
+    var logger: Logger = Logger.getLogger("cloud ${localPeer.id}")
 
 
-    val peers = FXCollections.observableArrayList(Peer.getLocal())  // also contains disconnected peers
+    val peers: ObservableList<Peer> = FXCollections.observableArrayList(Peer.getLocal())  // also contains disconnected peers
     val connectionStatus = SimpleStringProperty(null)
 
     val updateLogger: Logger? = null
@@ -113,9 +113,9 @@ class Cloud {
 
 
     @Throws(IOException::class)
-    internal fun openStream(peer: Peer, path: String, fileSize: Long): InputStream {
+    internal fun openStream(peer: Peer, path: String): InputStream {
         val conn = tcp?.connections?.firstOrNull { c -> c.peer == peer } ?: throw IOException("Not connected")
-        return conn.openFileStream(path, fileSize)
+        return conn.openFileStream(path)
     }
 
 

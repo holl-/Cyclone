@@ -1,16 +1,8 @@
 package audio.javasound.test;
 
-import java.io.File;
-import java.io.IOException;
-
+import audio.*;
 import audio.javasound.JSPlayer;
 import audio.javasound.JavaSoundEngine;
-import audio.AudioDevice;
-import audio.AudioEngineException;
-import audio.LocalMediaFile;
-import audio.MediaFile;
-import audio.UnsupportedMediaFormatException;
-
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -19,6 +11,9 @@ import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+
+import java.io.File;
+import java.io.IOException;
 
 public class TestChangeDevice extends Application
 {

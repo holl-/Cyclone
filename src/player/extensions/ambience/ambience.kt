@@ -2,7 +2,6 @@ package player.extensions.ambience
 
 import cloud.Cloud
 import cloud.CloudFile
-import player.extensions.CycloneExtension
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.beans.binding.BooleanBinding
@@ -20,6 +19,7 @@ import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.control.cell.TextFieldListCell
+import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.StackPane
 import javafx.scene.layout.VBox
@@ -29,6 +29,7 @@ import javafx.util.Callback
 import javafx.util.StringConverter
 import player.CastToDoubleProperty
 import player.CustomObjectProperty
+import player.extensions.CycloneExtension
 import player.fx.control.SpeakerCell
 import player.fx.icons.FXIcons
 import player.model.PlayerData
@@ -38,7 +39,6 @@ import player.model.data.Speaker
 import java.io.File
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-import java.lang.IllegalArgumentException
 import java.net.URL
 import java.util.*
 import java.util.concurrent.Callable
@@ -91,12 +91,12 @@ class AmbienceApp(val settings: AmbienceSettings, val cloud: Cloud, val extensio
     private val playlistData = cloud.getSynchronized(PlayerData.Playlist::class.java, Platform::runLater)
     val playlist: ObservableList<CloudFile> = FXCollections.observableArrayList(playlistData.value.files)
     private val gainData = cloud.getSynchronized(MasterGain::class.java, Platform::runLater)
-    val gainProperty: DoubleProperty = CastToDoubleProperty(CustomObjectProperty<Number?>(listOf(gainData),
+    private val gainProperty: DoubleProperty = CastToDoubleProperty(CustomObjectProperty<Number?>(listOf(gainData),
             getter = Supplier<Number?> { gainData.value?.value ?: 0 },
             setter = Consumer { value -> cloud.pushSynchronized(MasterGain(value!!.toDouble())) }))
 
-    val pauseIcon = FXIcons.get("Pause.png", 20.0)
-    val playIcon = FXIcons.get("Play.png", 20.0)
+    private val pauseIcon: ImageView = FXIcons.get("Pause.png", 20.0)
+    private val playIcon: ImageView = FXIcons.get("Play.png", 20.0)
 
     @FXML private var playing: ToggleButton? = null
     @FXML private var masterVolume: Slider? = null
@@ -414,7 +414,7 @@ class EffectPane(val ambience: Ambience) : StackPane(), Initializable, Function<
 class AmbienceSettings(val cloud: Cloud) : StackPane(), Initializable {
     @FXML private var sources: VBox? = null
 
-    val soundSources = FXCollections.observableArrayList<SoundSource>()
+    val soundSources: ObservableList<SoundSource> = FXCollections.observableArrayList()
 
     init {
         val loader = FXMLLoader(javaClass.getResource("ambience-settings.fxml"))

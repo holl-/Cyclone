@@ -1,30 +1,19 @@
 package audio.javasound.lib;
 
-import java.io.File;
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.sound.sampled.AudioFileFormat;
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioFormat.Encoding;
-
 import audio.AudioDataFormat;
 import audio.AudioEngine;
 import audio.MediaFormat;
 import audio.MediaType;
-
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.FloatControl;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.Mixer;
-import javax.sound.sampled.SourceDataLine;
-import javax.sound.sampled.UnsupportedAudioFileException;
-
 import javazoom.spi.mpeg.sampled.file.MpegEncoding;
 import javazoom.spi.mpeg.sampled.file.MpegFileFormatType;
 import javazoom.spi.vorbis.sampled.file.VorbisFileFormatType;
+
+import javax.sound.sampled.*;
+import javax.sound.sampled.AudioFormat.Encoding;
+import java.io.File;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AudioSystem2 {
 

@@ -1,13 +1,12 @@
 package cloud
 
 import java.io.*
-import java.util.*
-import java.util.stream.Stream
 
 
 /**
  * Cloud files can lie on any machine that is connected to the cloud.
- * While the origin machine is connected, [CloudFile.list] and [CloudFile.openStream] can be used to query file information from the host.
+ * Path, file size and type (directory or file) are available even after the origin device disconnects.
+ * While the origin device is connected, [CloudFile.openStream] can be used to stream the file to the local device.
  */
 class CloudFile(file: File) : Data() {
     private var path: String = file.path
@@ -85,7 +84,7 @@ class CloudFile(file: File) : Data() {
         return if(originatesHere()) {
             FileInputStream(File(path))
         } else {
-            cloud!!.openStream(origin, getPath(), size!!)
+            cloud!!.openStream(origin, getPath())
         }
     }
 

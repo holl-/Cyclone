@@ -1,21 +1,17 @@
 package player.fx.control;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.value.WritableValue;
-import javafx.css.CssMetaData;
-import javafx.css.Styleable;
-import javafx.css.StyleableBooleanProperty;
-import javafx.css.StyleableDoubleProperty;
-import javafx.css.StyleableProperty;
+import javafx.css.*;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.control.Skin;
 import javafx.scene.control.Slider;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class CircularSlider extends Slider {
 	/* properties from NumberAxis (Slider):

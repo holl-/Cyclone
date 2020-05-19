@@ -1,9 +1,9 @@
 package audio;
 
+import audio.PlayerEvent.EventType;
+
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import audio.PlayerEvent.EventType;
 
 public abstract class AbstractPlayer implements Player {
 

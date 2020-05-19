@@ -149,13 +149,13 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer, val pla
             "Dark" -> {
                 Application.setUserAgentStylesheet("MODENA")
                 for(stage in windows) {
-                    stage.scene.getStylesheets().clear()
-                    stage.scene.getStylesheets().add(javaClass.getResource("dark.css").toExternalForm())
+                    stage.scene.stylesheets.clear()
+                    stage.scene.stylesheets.add(javaClass.getResource("dark.css").toExternalForm())
                 }
             }
             else -> {
                 for(stage in windows) {
-                    stage.scene.getStylesheets().clear()
+                    stage.scene.stylesheets.clear()
                 }
                 Application.setUserAgentStylesheet(style.toUpperCase())
             }

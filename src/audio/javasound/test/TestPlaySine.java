@@ -1,14 +1,14 @@
 package audio.javasound.test;
 
-import java.io.IOException;
-
-import audio.javasound.JavaSoundEngine;
-import audio.javasound.lib.AudioSystem2;
-import audio.javasound.lib.SineInputStream;
 import audio.AudioEngineException;
 import audio.MediaStream;
 import audio.Player;
 import audio.UnsupportedMediaFormatException;
+import audio.javasound.JavaSoundEngine;
+import audio.javasound.lib.AudioSystem2;
+import audio.javasound.lib.SineInputStream;
+
+import java.io.IOException;
 
 public class TestPlaySine {
 

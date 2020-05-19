@@ -1,14 +1,9 @@
 package audio.javafx;
 
-import java.util.HashMap;
-
-import audio.AudioDataFormat;
-import audio.AudioEngine;
-import audio.MediaFile;
-import audio.MediaFormat;
-import audio.MediaInfo;
-
+import audio.*;
 import javafx.scene.media.Track;
+
+import java.util.HashMap;
 
 public class JavaFXMediaInfo extends MediaInfo {
 	private double duration;

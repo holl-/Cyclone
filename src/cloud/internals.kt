@@ -2,17 +2,26 @@ package cloud
 
 import javafx.application.Platform
 import javafx.collections.FXCollections
+import javafx.collections.ObservableList
 import java.io.*
-import java.lang.Exception
 import java.net.*
 import java.util.concurrent.*
 import java.util.logging.Logger
 
 
-internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int, val tcpPort: Int, val tcp: CloudTCP, val logger: Logger?, val autoConnect: Boolean, val broadcastInterval: Long) {
-    val socket = MulticastSocket(port)
+internal class CloudMulticast(
+        val cloud: Cloud,
+        host: String,
+        val port: Int,
+        private val tcpPort: Int,
+        private val tcp: CloudTCP,
+        private val logger: Logger?,
+        private val autoConnect: Boolean,
+        private val broadcastInterval: Long
+) {
     val address = InetSocketAddress(InetAddress.getByName(host), port)
-    val peers = ArrayList<Peer>(listOf(cloud.localPeer))
+    private val socket = MulticastSocket(port)
+    private val peers = ArrayList<Peer>(listOf(cloud.localPeer))
     private val maxPacketLength = 1024
     private val receivedPacket = DatagramPacket(ByteArray(maxPacketLength), maxPacketLength)
     private val connectionTime = System.nanoTime()
@@ -90,7 +99,7 @@ internal class CloudMulticast(val cloud: Cloud, val host: String, val port: Int,
 
 internal class CloudTCP(val cloud: Cloud, val logger: Logger?) {
     val serverSocket = ServerSocket(0)
-    val connections = FXCollections.observableArrayList<CloudTCPConnection>()
+    val connections: ObservableList<CloudTCPConnection> = FXCollections.observableArrayList()
 
     var acceptService: Future<*>? = null
 
@@ -162,7 +171,7 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
     val isPeerOlder: Boolean
 
     var inputService: Future<*>? = null
-    val senderThread = Executors.newFixedThreadPool(1)
+    val senderThread: ExecutorService = Executors.newFixedThreadPool(1)
 
     var sharedSData: List<SynchronizedData>? = null
 
@@ -216,7 +225,7 @@ internal class CloudTCPConnection(val socket: Socket, val cloud: Cloud, val logg
         }
     }
 
-    fun openFileStream(path: String, fileSize: Long): InputStream {
+    fun openFileStream(path: String): InputStream {
         val receiver = ServerSocket(0)
         senderThread.submit(Runnable {
             logger?.info("Sending file request to $peer: $path")

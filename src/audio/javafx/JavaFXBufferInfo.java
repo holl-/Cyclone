@@ -1,7 +1,6 @@
 package audio.javafx;
 
 import audio.AudioBuffer;
-
 import javafx.scene.media.MediaPlayer;
 
 public class JavaFXBufferInfo implements AudioBuffer {

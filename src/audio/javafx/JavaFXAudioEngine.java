@@ -1,19 +1,9 @@
 package audio.javafx;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
+import audio.*;
 
-import audio.AudioDevice;
-import audio.AudioEngine;
-import audio.MediaFile;
-import audio.MediaStream;
-import audio.MediaType;
-import audio.Player;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class JavaFXAudioEngine extends AudioEngine
 {

@@ -1,12 +1,12 @@
 package audio.javasound;
 
+import audio.javasound.lib.JavaSoundMixer;
+import audio.javasound.lib.VirtualChannel;
+
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
-
-import audio.javasound.lib.JavaSoundMixer;
-import audio.javasound.lib.VirtualChannel;
 
 public class JSChannel
 {

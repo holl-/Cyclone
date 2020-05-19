@@ -1,7 +1,6 @@
 package player.fx.app
 
 import cloud.Cloud
-import player.extensions.CycloneExtension
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.beans.property.BooleanProperty
@@ -14,11 +13,10 @@ import javafx.scene.control.Label
 import javafx.scene.control.TitledPane
 import javafx.scene.layout.StackPane
 import javafx.stage.Stage
+import player.extensions.CycloneExtension
 import player.model.getConfigFile
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-import java.lang.Exception
-import java.lang.IllegalStateException
 import java.net.URL
 import java.util.*
 import java.util.concurrent.Callable
@@ -60,7 +58,7 @@ class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, 
         description!!.text = extension.description
         version!!.text = extension.version
         enabled!!.selectedProperty().addListener { _, _, enabledV ->
-            if (enabled!!.isSelected) {
+            if (enabledV) {
                 extension.activate(cloud)
                 load()
                 extension.settings()?.let { node -> settings!!.children.setAll(node) }

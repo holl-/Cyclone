@@ -1,17 +1,15 @@
 package player.model
 
+import cloud.CloudFile
 import javafx.application.Platform
-import java.io.File
-import java.io.IOException
-import java.util.ArrayList
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.stream.Collectors
-
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
-import cloud.CloudFile
+import java.io.File
+import java.util.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.stream.Collectors
 
 class MediaLibrary {
     val roots: ObservableList<CloudFile> = FXCollections.observableArrayList()
@@ -28,13 +26,8 @@ class MediaLibrary {
 
     init {
         indexingService = Executors.newSingleThreadExecutor { r -> Thread(r, "Index Service") }
-        roots.addListener{ e: ListChangeListener.Change<out CloudFile> -> updateIndex() }
-        recentlyUsed.addListener {e: ListChangeListener.Change<out CloudFile> -> removeDuplicates(recentlyUsed, recentlyUsedSize); }
-    }
-
-    @Throws(IOException::class)
-    private fun save(file: File) {
-        TODO()
+        roots.addListener{ _: ListChangeListener.Change<out CloudFile> -> updateIndex() }
+        recentlyUsed.addListener { _: ListChangeListener.Change<out CloudFile> -> removeDuplicates(recentlyUsed, recentlyUsedSize); }
     }
 
     fun startSearch(pattern: String): ObservableList<CloudFile> {

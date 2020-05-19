@@ -1,27 +1,6 @@
 package audio.javafx;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import audio.AbstractPlayer;
-import audio.AudioBuffer;
-import audio.AudioDataFormat;
-import audio.AudioDevice;
-import audio.AudioEngine;
-import audio.AudioEngineException;
-import audio.MarkerEvent;
-import audio.MarkerListener;
-import audio.MediaFile;
-import audio.MediaFormat;
-import audio.MediaInfo;
-import audio.MediaStream;
-import audio.Player;
-import audio.PlayerEvent;
-import audio.UnsupportedMediaFormatException;
-
+import audio.*;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.value.ChangeListener;
@@ -29,6 +8,12 @@ import javafx.scene.media.MediaMarkerEvent;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaPlayer.Status;
 import javafx.util.Duration;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class JavaFXPlayer extends AbstractPlayer {
 	private AudioEngine engine;

@@ -1,17 +1,16 @@
 package audio.javafx;
 
+import audio.MediaFile;
+import audio.UnsupportedMediaFormatException;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaException;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
-
-import audio.MediaFile;
-import audio.UnsupportedMediaFormatException;
-
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaException;
 
 public class JavaFXMedia
 {

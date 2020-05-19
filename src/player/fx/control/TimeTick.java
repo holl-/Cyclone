@@ -1,6 +1,5 @@
 package player.fx.control;
 
-import javafx.scene.Node;
 import javafx.scene.shape.ArcTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;

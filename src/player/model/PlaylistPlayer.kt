@@ -1,11 +1,14 @@
 package player.model
 
-import cloud.*
+import cloud.Cloud
+import cloud.CloudFile
+import cloud.SynchronizedData
 import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
 import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
+import javafx.beans.value.ObservableBooleanValue
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
@@ -13,7 +16,10 @@ import player.CastToBooleanProperty
 import player.CastToDoubleProperty
 import player.CastToStringProperty
 import player.CustomObjectProperty
-import player.model.data.*
+import player.model.data.MasterGain
+import player.model.data.PlayTask
+import player.model.data.PlayTaskStatus
+import player.model.data.Speaker
 import java.io.File
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -21,7 +27,6 @@ import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.function.Function
 import java.util.function.Supplier
-import kotlin.collections.ArrayList
 import kotlin.math.abs
 
 
@@ -162,8 +167,8 @@ class PlaylistPlayer(val cloud: Cloud, val config: CycloneConfig) {
     val playingProperty: BooleanProperty = CastToBooleanProperty(CustomObjectProperty<Boolean?>(listOf(pausedData),
             getter = Supplier<Boolean?> { pausedData.value?.value != true }, // status.value?.active == true && status.value?.task?.paused == false
             setter = Consumer { value -> cloud.pushSynchronized(PlayerData.Paused(!value!!)) }))
-    val isFileSelectedProperty = Bindings.createBooleanBinding(Callable{ selectedFile.value.file != null }, currentFileProperty)
-    val playlistAvailableProperty = Bindings.createBooleanBinding(Callable{ playlist.size > 1 }, playlist)
+    val isFileSelectedProperty: ObservableBooleanValue = Bindings.createBooleanBinding(Callable{ selectedFile.value.file != null }, currentFileProperty)
+    val playlistAvailableProperty: ObservableBooleanValue = Bindings.createBooleanBinding(Callable{ playlist.size > 1 }, playlist)
 
 
     init {

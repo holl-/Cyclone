@@ -1,12 +1,11 @@
 package audio.javasound.lib;
 
-import static java.lang.Math.PI;
-import static java.lang.Math.sin;
-
+import javax.sound.sampled.AudioFormat;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.sound.sampled.AudioFormat;
+import static java.lang.Math.PI;
+import static java.lang.Math.sin;
 
 public class SineInputStream extends InputStream
 {

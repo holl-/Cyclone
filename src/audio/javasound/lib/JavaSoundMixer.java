@@ -1,12 +1,12 @@
 package audio.javasound.lib;
 
+import audio.AudioDevice;
+import audio.javasound.JavaSoundEngine;
+
 import javax.sound.sampled.Line;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
-
-import audio.javasound.JavaSoundEngine;
-import audio.AudioDevice;
 
 public class JavaSoundMixer implements AudioDevice
 {

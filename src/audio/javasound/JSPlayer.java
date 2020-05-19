@@ -1,24 +1,12 @@
 package audio.javasound;
 
-import java.io.IOException;
+import audio.*;
+import audio.javasound.lib.JavaSoundMixer;
+import audio.javasound.lib.MemoryAudioBuffer;
 
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
-
-import audio.javasound.lib.JavaSoundMixer;
-import audio.javasound.lib.MemoryAudioBuffer;
-import audio.AbstractPlayer;
-import audio.AudioDataFormat;
-import audio.AudioDevice;
-import audio.AudioEngineException;
-import audio.MarkerListener;
-import audio.MediaFile;
-import audio.MediaFormat;
-import audio.MediaInfo;
-import audio.MediaStream;
-import audio.Player;
-import audio.PlayerEvent;
-import audio.UnsupportedMediaFormatException;
+import java.io.IOException;
 
 public class JSPlayer extends AbstractPlayer
 {

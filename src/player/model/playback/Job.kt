@@ -135,7 +135,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
             player.prepare()
             simulateWait()
             player.addEndOfMediaListener { finished.value = true; }
-            if (player.getDuration() < 0) {
+            if (player.duration < 0) {
                 Thread {
                     try {
                         player.waitForDurationProperty()

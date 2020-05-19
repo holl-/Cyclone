@@ -1,8 +1,8 @@
 package audio.javasound.test;
 
-import java.util.Arrays;
-
 import audio.javasound.lib.ByteQueue;
+
+import java.util.Arrays;
 
 public class TestByteQueue {
 

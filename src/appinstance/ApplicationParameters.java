@@ -1,12 +1,12 @@
 package appinstance;
 
+import javafx.application.Application;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javafx.application.Application;
 
 public class ApplicationParameters implements Serializable {
 	private static final long serialVersionUID = -7512050182139140930L;
