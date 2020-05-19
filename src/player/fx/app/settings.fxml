@@ -42,6 +42,13 @@
                               </Separator>
                               <Label text="Appearance" />
                               <ComboBox fx:id="skin" prefWidth="150.0" promptText="Skin" />
+                              <Separator layoutX="22.0" layoutY="64.0" prefWidth="200.0">
+                                 <padding>
+                                    <Insets bottom="4.0" top="8.0" />
+                                 </padding>
+                              </Separator>
+                              <CheckBox fx:id="debugMode" mnemonicParsing="false" prefHeight="17.0" prefWidth="180.0" text="Debug mode" />
+                              <Label text="Debug mode cannot be enabled from the settings window." />
                            </children>
                            <padding>
                               <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />

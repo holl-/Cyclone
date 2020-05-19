@@ -37,8 +37,9 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
     var stage: Stage = Stage()
 
     // General
-    @FXML var skin: ComboBox<String>? = null
     @FXML var singleInstance: CheckBox? = null
+    @FXML var skin: ComboBox<String>? = null
+    @FXML var debugMode: CheckBox? = null
     // Audio
     @FXML var javaSound: RadioButton? = null
     @FXML var javaFXSound: RadioButton? = null
@@ -91,6 +92,8 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         skin!!.selectionModel.select(config.skin.value)
         skin!!.selectionModel.selectedItemProperty().addListener { _, _, v -> config.skin.value = v }
         config.skin.addListener { _, _, v -> skin!!.selectionModel.select(v) }
+        debugMode!!.selectedProperty().bindBidirectional(config.debug)
+        debugMode!!.isDisable = !config.debug.value
         // Library
         libraryDirectories!!.items = player.library.roots
         if(!player.library.roots.isEmpty()) {
