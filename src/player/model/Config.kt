@@ -23,7 +23,7 @@ class CycloneConfig(val file: File)
 {
     // General
     val debug = SimpleBooleanProperty(this, "debug", false)
-    val singleInstance = SimpleBooleanProperty(this, "singleInstance", true);
+    val singleInstance = SimpleBooleanProperty(this, "singleInstance", true)
     val skin = SimpleStringProperty(this, "skin", "")
     // Audio
     val audioEngine = SimpleStringProperty(this, "audioEngine", "")
@@ -43,6 +43,7 @@ class CycloneConfig(val file: File)
     val broadcastIntervalString = CastToStringProperty(CustomObjectProperty<String>(listOf(broadcastInterval), Supplier { broadcastInterval.value.toString() }, Consumer<String?> { v -> broadcastInterval.value = v!!.toDouble() }))
     // Extensions
     val enabledExtensions = SimpleStringProperty(this, "enabledExtensions", "")
+    val autoShowExtensions = SimpleStringProperty(this, "autoShowExtensions", "")
     // Key combinations
     val keyCombinations = SimpleBooleanProperty(this, "keyCombinations", true)
 
@@ -51,7 +52,7 @@ class CycloneConfig(val file: File)
             audioEngine, bufferTime, fadeOutDuration, fadeOutGain, minGain,
             library,
             connectOnStartup, computerName, multicastAddress, multicastPort, broadcastInterval,
-            enabledExtensions
+            enabledExtensions, autoShowExtensions
     )
 
     val hasUnsavedChanges = SimpleBooleanProperty(false)
@@ -83,6 +84,9 @@ class CycloneConfig(val file: File)
         multicastAddress.value = "225.139.25.1"
         multicastPort.value = 5324
         broadcastInterval.value = 1.0
+        // Extensions
+        enabledExtensions.value = ""
+        autoShowExtensions.value = ""
     }
 
     fun save() {
@@ -129,6 +133,15 @@ class CycloneConfig(val file: File)
 
     fun setEnabledExtensions(extensions: List<String>) {
         enabledExtensions.value = extensions.stream().collect(Collectors.joining(";"))
+    }
+
+    fun getAutoShowExtensions(): List<String> {
+        val extensions = autoShowExtensions.value.split(";".toRegex()).toTypedArray()
+        return extensions.map { s -> s.trim() }.filter { s -> s.isNotEmpty() }
+    }
+
+    fun setAutoShowExtensions(extensions: List<String>) {
+        autoShowExtensions.value = extensions.stream().collect(Collectors.joining(";"))
     }
 
 

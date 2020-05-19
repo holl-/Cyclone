@@ -49,7 +49,7 @@ import java.util.function.Function
 import java.util.function.Supplier
 
 
-class AmbienceExtension : CycloneExtension("Ambience", "Lets you configure ambient sounds effects.", "0.1", true)
+class AmbienceExtension : CycloneExtension("Ambience", "Lets you configure ambient sounds effects.", "0.1", true, true)
 {
     private var window: AmbienceApp? = null
     private var settings: AmbienceSettings? = null
@@ -60,6 +60,7 @@ class AmbienceExtension : CycloneExtension("Ambience", "Lets you configure ambie
     }
 
     override fun deactivate() {
+        settings = null
         window = null
     }
 

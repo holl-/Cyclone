@@ -4,6 +4,7 @@
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
@@ -22,7 +23,19 @@
                   <Label fx:id="version" text="unknown" />
                </children>
             </HBox>
-            <Button fx:id="showNow" mnemonicParsing="false" onAction="#show" text="Open Window" />
+            <BorderPane>
+               <right>
+                  <Button fx:id="reset" mnemonicParsing="false" onAction="#reset" text="Reset" BorderPane.alignment="CENTER" />
+               </right>
+               <center>
+                  <HBox alignment="CENTER_LEFT" spacing="6.0" BorderPane.alignment="CENTER">
+                     <children>
+                        <Button fx:id="showNow" mnemonicParsing="false" onAction="#show" text="Open Window" />
+                        <CheckBox fx:id="showOnStartup" mnemonicParsing="false" prefHeight="17.0" prefWidth="179.0" text="Open when Cyclone starts" />
+                     </children>
+                  </HBox>
+               </center>
+            </BorderPane>
             <StackPane fx:id="settings" />
          </children>
       </VBox>

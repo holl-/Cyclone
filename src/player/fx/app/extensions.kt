@@ -24,13 +24,17 @@ import java.util.*
 import java.util.concurrent.Callable
 
 
-class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, val cloud: Cloud) : StackPane(), Initializable {
+class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, val initialAutoShow: Boolean, val cloud: Cloud) : StackPane(), Initializable {
     val root: TitledPane
+
+    val saveFile = getConfigFile("ext_${extension.name}.obj")
 
     @FXML private var enabled: CheckBox? = null
     @FXML private var description: Label? = null
     @FXML private var version: Label? = null
     @FXML private var showNow: Button? = null
+    @FXML private var showOnStartup: CheckBox? = null
+    @FXML private var reset: Button? = null
     @FXML private var settings: StackPane? = null
 
     private var extensionStage: Stage? = null
@@ -43,10 +47,15 @@ class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, 
         children.add(root)
 
         if (initiallyEnabled) Platform.runLater { enable() }
+
+        Platform.runLater { if (initialAutoShow) show() }
     }
 
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
         showNow!!.disableProperty().bind(Bindings.createBooleanBinding(Callable { !enabled!!.isSelected || !extension.canShow }, enabled!!.selectedProperty()))
+        showOnStartup!!.disableProperty().bind(showNow!!.disableProperty())
+        showOnStartup!!.isSelected = initialAutoShow
+        reset!!.isDisable = !extension.canSave
         description!!.text = extension.description
         version!!.text = extension.version
         enabled!!.selectedProperty().addListener { _, _, enabledV ->
@@ -65,7 +74,8 @@ class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, 
     }
 
     @FXML fun show() {
-        if (!enabled!!.isSelected) throw IllegalStateException("must be enabled before showing")
+        if (!enabled!!.isSelected)
+            return
 
         if (extensionStage?.isShowing == true) {
             extensionStage!!.toFront()
@@ -80,8 +90,18 @@ class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, 
         extension.show(extensionStage!!)
     }
 
+    @FXML fun reset() {
+        val wasShowing = extensionStage?.isShowing == true
+        val wasEnabled = enabled!!.isSelected
+        enabled!!.isSelected = false  // this hides the window
+        extensionStage = null
+        saveFile.delete()
+        enabled!!.isSelected = wasEnabled
+        if (wasShowing) show()
+    }
+
     fun enable() {
-        enabled?.isSelected = true
+        enabled!!.isSelected = true
     }
 
     fun isEnabled(): Boolean {
@@ -92,15 +112,21 @@ class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, 
         return enabled!!.selectedProperty()
     }
 
+    fun isAutoShow(): Boolean {
+        return showOnStartup!!.isSelected
+    }
+
+    fun autoShowProperty(): BooleanProperty {
+        return showOnStartup!!.selectedProperty()
+    }
+
     fun save() {
-        val saveFile = getConfigFile("ext_${extension.name}.obj")
         ObjectOutputStream(saveFile.outputStream()).use {
             extension.save(it)
         }
     }
 
     fun load() {
-        val saveFile = getConfigFile("ext_${extension.name}.obj")
         if (!saveFile.exists()) return
         try {
             ObjectInputStream(saveFile.inputStream()).use {

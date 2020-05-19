@@ -55,7 +55,7 @@
                            <accelerator>
                               <KeyCodeCombination alt="UP" code="E" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
-                        <MenuItem mnemonicParsing="false" onAction="#displayInfo" text="Info" />
+                        <MenuItem mnemonicParsing="false" onAction="#displayInfo" text="About" />
                         <Menu fx:id="debugMenu" mnemonicParsing="false" text="Debug">
                           <items>
                             <MenuItem mnemonicParsing="false" onAction="#openTaskViewer" text="Tasks" />

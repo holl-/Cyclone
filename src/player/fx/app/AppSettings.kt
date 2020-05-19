@@ -118,8 +118,11 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         // Extensions
         val knownExtensions = listOf(AmbienceExtension())
         for (extension in knownExtensions) {
-            val pane = ExtensionInfo(extension, extension.name in config.getEnabledExtensions(), player.cloud)
+            val enabled = extension.name in config.getEnabledExtensions()
+            val autoShow = extension.name in config.getAutoShowExtensions()
+            val pane = ExtensionInfo(extension, enabled, autoShow, player.cloud)
             pane.enabledProperty().addListener { _, _, _ -> config.setEnabledExtensions(extensions!!.children.map { n -> n as ExtensionInfo }.filter { e -> e.isEnabled() }.map { e -> e.extension.name }) }
+            pane.autoShowProperty().addListener { _, _, _ -> config.setAutoShowExtensions(extensions!!.children.map { n -> n as ExtensionInfo }.filter { e -> e.isAutoShow() }.map { e -> e.extension.name }) }
             extensions!!.children.add(pane)
         }
         // Key combinations
