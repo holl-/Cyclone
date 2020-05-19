@@ -44,6 +44,7 @@ class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, 
         loader.setController(this)
         root = loader.load()
         root.text = extension.name
+        root.isExpanded = initiallyEnabled
         children.add(root)
 
         if (initiallyEnabled) Platform.runLater { enable() }
@@ -63,7 +64,7 @@ class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, 
                 extension.activate(cloud)
                 load()
                 extension.settings()?.let { node -> settings!!.children.setAll(node) }
-//                show()
+                root.isExpanded = true
             } else {
                 extensionStage?.close()
                 settings!!.children.clear()
@@ -86,6 +87,7 @@ class ExtensionInfo(val extension: CycloneExtension, initiallyEnabled: Boolean, 
             return
         }
         extensionStage = Stage()
+        extensionStage!!.title = extension.name
         extensionStage!!.setOnCloseRequest { save() }
         extension.show(extensionStage!!)
     }

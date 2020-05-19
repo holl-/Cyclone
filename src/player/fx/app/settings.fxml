@@ -219,7 +219,7 @@
                <content>
                   <ScrollPane fitToHeight="true" fitToWidth="true" vbarPolicy="ALWAYS">
                      <content>
-                        <VBox fx:id="extensions">
+                        <VBox fx:id="extensions" spacing="12.0">
                            <padding>
                               <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
                            </padding>

@@ -38,9 +38,9 @@ import player.fx.control.FileDropOverlay
 import player.fx.control.PlayerControl
 import player.fx.control.SpeakerCell
 import player.fx.control.WindowDrag
-import player.fx.debug.CloudViewer
-import player.fx.debug.PlaybackViewer
-import player.fx.debug.TaskViewer
+import player.extensions.debug.CloudViewer
+import player.extensions.debug.PlaybackViewer
+import player.extensions.debug.TaskViewer
 import player.fx.icons.FXIcons
 import player.model.*
 import player.model.data.Speaker
@@ -72,7 +72,6 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     @FXML private var currentSongMenu: Menu? = null
     @FXML private var settingsMenu: Menu? = null
     @FXML private var addToLibraryMenu: Menu? = null
-    @FXML private var debugMenu: Menu? = null
     @FXML private var cannotAddToLibraryItem: MenuItem? = null
     @FXML private var menuBar: MenuBar? = null
     @FXML private var volume: Slider? = null
@@ -90,7 +89,23 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     private val settings: AppSettings
 
 
+
+
     init {
+        library = player.library
+        settings = AppSettings(config!!, player, engine)
+        root = StackPane()
+        root.children.add(loadPlayer())
+        playlistRoot = loadPlaylist()
+        searchRoot = loadSearch()
+        player.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> updateAddToLibraryMenu() }
+        val overlay = FileDropOverlay(root)
+        overlay.actionGenerator = Function { files: List<File> -> generateDropButtons(files) }
+        var scene: Scene?
+        stage.scene = Scene(root).also { scene = it }
+        stage.title = "Cyclone"
+        stage.icons.add(FXIcons.get("Play2.png", 32.0).image)
+        stage.onHidden = EventHandler { e: WindowEvent? -> quit() }
         stage.setOnCloseRequest { quit() }
     }
 
@@ -109,7 +124,6 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         Platform.runLater { speakerSelection!!.selectionModel.select(player.speakerProperty.get()) }
         speakerSelection!!.selectionModel.selectedItemProperty().addListener { _, _, n -> if (n != null) player.speakerProperty.set(n) }
         player.speakerProperty.addListener { _, _, n -> speakerSelection!!.selectionModel.select(n) }
-        if (!settings.config.debug.value) debugMenu!!.parentMenu.items.remove(debugMenu)
         networkShare!!.selectedProperty().bindBidirectional(connected)
     }
 
@@ -621,41 +635,5 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
     @FXML
     fun showSettings() {
         settings.stage.show()
-    }
-
-    @FXML
-    fun openTaskViewer() {
-        val stage = Stage()
-        val viewer = TaskViewer(player.cloud, stage)
-        viewer.stage.show()
-    }
-
-    @FXML
-    fun openPlaybackWindow() {
-        val viewer = PlaybackViewer(engine)
-        viewer.stage.show()
-    }
-
-    @FXML
-    fun openCloudViewer() {
-        val viewer = CloudViewer(player.cloud, null)
-        viewer.stage.show()
-    }
-
-    init {
-        library = player.library
-        settings = AppSettings(config!!, player)
-        root = StackPane()
-        root.children.add(loadPlayer())
-        playlistRoot = loadPlaylist()
-        searchRoot = loadSearch()
-        player.currentFileProperty.addListener { p: ObservableValue<out CloudFile?>?, o: CloudFile?, n: CloudFile? -> updateAddToLibraryMenu() }
-        val overlay = FileDropOverlay(root)
-        overlay.actionGenerator = Function { files: List<File> -> generateDropButtons(files) }
-        var scene: Scene?
-        stage.scene = Scene(root).also { scene = it }
-        stage.title = "Cyclone"
-        stage.icons.add(FXIcons.get("Play2.png", 32.0).image)
-        stage.onHidden = EventHandler { e: WindowEvent? -> quit() }
     }
 }

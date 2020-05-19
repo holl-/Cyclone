@@ -8,14 +8,10 @@ import cloud.Peer;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
-import mediacommand.CombinationManager;
-import mediacommand.MediaCommand;
-import mediacommand.MediaCommandManager;
-import player.fx.debug.CloudViewer;
+import player.extensions.debug.CloudViewer;
 import player.model.CycloneConfig;
 import player.model.PlaylistPlayer;
 import player.model.playback.PlaybackEngine;
-import systemcontrol.LocalMachine;
 
 import java.io.File;
 import java.io.IOException;
@@ -66,11 +62,15 @@ public class Launch2 extends Application {
 		Cloud cloud2 = new Cloud();
 		cloud2.initLocalPeer$Cyclone(new Peer(true, "peer2", "localhost", "2"));
 
-		CloudViewer viewer1 = new CloudViewer(cloud1, "1");
-		viewer1.getStage().show();
-		CloudViewer viewer2 = new CloudViewer(cloud2, "2");
-		viewer2.getStage().setX(800);
-		viewer2.getStage().show();
+		Stage v1Stage = new Stage();
+		v1Stage.setTitle("1");
+		CloudViewer viewer1 = new CloudViewer(cloud1);
+		viewer1.show(v1Stage);
+		Stage v2Stage = new Stage();
+		v2Stage.setTitle("2");
+		CloudViewer viewer2 = new CloudViewer(cloud2);
+		v2Stage.setX(800);
+		viewer2.show(v2Stage);
 
 
 

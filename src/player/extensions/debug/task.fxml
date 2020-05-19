@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+
+<TitledPane fx:id="title" animated="false" collapsible="false" minHeight="180.0" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1">
+   <content>
+      <VBox>
+         <children>
+            <GridPane>
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="188.4285888671875" minWidth="10.0" prefWidth="49.428558349609375" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="396.1428527832031" minWidth="10.0" prefWidth="370.0" />
+                  <ColumnConstraints halignment="RIGHT" hgrow="SOMETIMES" maxWidth="168.4285888671875" minWidth="10.0" prefWidth="138.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <children>
+                  <Label text="File" />
+                  <Label text="Target" GridPane.rowIndex="1" />
+                  <Label fx:id="file" text="Label" textOverrun="CENTER_ELLIPSIS" GridPane.columnIndex="1" />
+                  <Label fx:id="target" text="Label" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                  <Label fx:id="filePeer" text="Label" textAlignment="RIGHT" GridPane.columnIndex="2">
+                     <font>
+                        <Font name="System Italic" size="12.0" />
+                     </font>
+                  </Label>
+                  <Label fx:id="targetPeer" text="Label" GridPane.columnIndex="2" GridPane.rowIndex="1">
+                     <font>
+                        <Font name="System Italic" size="12.0" />
+                     </font>
+                  </Label>
+               </children>
+            </GridPane>
+            <GridPane>
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <children>
+                  <Label fx:id="position" text="Position" />
+                  <Label fx:id="duration" text="Duration" GridPane.columnIndex="1" />
+                  <Label fx:id="restart" text="Restart" GridPane.columnIndex="2" />
+               </children>
+            </GridPane>
+            <HBox spacing="6.0">
+               <children>
+                  <Label text="Trigger: " />
+                  <Label fx:id="trigger" text="Label" />
+               </children>
+            </HBox>
+            <Separator prefWidth="200.0">
+               <opaqueInsets>
+                  <Insets bottom="4.0" top="4.0" />
+               </opaqueInsets>
+               <padding>
+                  <Insets bottom="4.0" top="4.0" />
+               </padding>
+            </Separator>
+            <VBox fx:id="statusesList" />
+         </children>
+      </VBox>
+   </content>
+</TitledPane>

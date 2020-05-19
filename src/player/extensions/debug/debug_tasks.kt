@@ -1,4 +1,4 @@
-package player.fx.debug
+package player.extensions.debug
 
 import cloud.Cloud
 import cloud.CloudFile
@@ -16,15 +16,45 @@ import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
+import player.extensions.CycloneExtension
 import player.fx.icons.FXIcons
 import player.model.data.PlayTask
 import player.model.data.PlayTaskStatus
 import player.model.data.Speaker
 import player.model.data.TaskTrigger
 import java.io.File
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.net.URL
 import java.util.*
 import kotlin.collections.ArrayList
+
+
+class TaskDebuggingExtension : CycloneExtension("Debug: Tasks", "View scheduled audio files and their status.", "same as Cyclone", true, false) {
+    var viewer: TaskViewer? = null
+
+    override fun activate(cloud: Cloud) {
+        viewer = TaskViewer(cloud)
+    }
+
+    override fun deactivate() {
+        viewer = null
+    }
+
+    override fun load(stream: ObjectInputStream) {
+    }
+
+    override fun save(stream: ObjectOutputStream) {
+    }
+
+    override fun show(stage: Stage) {
+        viewer!!.show(stage)
+    }
+
+    override fun settings(): Node? {
+        return null
+    }
+}
 
 
 class Snapshot(val index: Int, val tasks: List<PlayTask>, val statuses: List<PlayTaskStatus>)
@@ -35,10 +65,13 @@ class Snapshot(val index: Int, val tasks: List<PlayTask>, val statuses: List<Pla
 }
 
 
-class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
+class TaskViewer(val cloud: Cloud) : Initializable
 {
     val tasks = cloud.getAll(PlayTask::class.java, this, Platform::runLater)
     val statuses = cloud.getAll(PlayTaskStatus::class.java, this, Platform::runLater)
+
+    private val root: Parent
+    private var stage: Stage? = null
 
     @FXML private var immediateTasks: VBox? = null
     @FXML private var scheduledTasks: VBox? = null
@@ -52,11 +85,8 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
     init {
         val loader = FXMLLoader(javaClass.getResource("task-viewer.fxml"))
         loader.setController(this)
-        val root = loader.load<Parent>()
-        stage.title = "Cyclone Tasks"
-        stage.scene = Scene(root)
-        stage.x = 0.0
-        stage.y = 0.0
+        root = loader.load<Parent>()
+
 
         takeSnapshot()
 
@@ -71,10 +101,17 @@ class TaskViewer(val cloud: Cloud, val stage: Stage = Stage()) : Initializable
         snapshotView?.selectionModel?.selectedItemProperty()?.addListener(InvalidationListener { rebuild() })
     }
 
+    fun show(stage: Stage) {
+        stage.scene = Scene(root)
+        stage.x = 0.0
+        stage.y = 0.0
+        stage.show()
+    }
+
     @FXML fun createTask() {
         val creator = TaskCreator(cloud)
-        creator.stage.x = stage.x + stage.width
-        creator.stage.y = stage.y
+        creator.stage.x = stage!!.x + stage!!.width
+        creator.stage.y = stage!!.y
         creator.stage.show()
     }
 

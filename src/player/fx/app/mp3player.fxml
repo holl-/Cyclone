@@ -56,13 +56,6 @@
                               <KeyCodeCombination alt="UP" code="E" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
                         <MenuItem mnemonicParsing="false" onAction="#displayInfo" text="About" />
-                        <Menu fx:id="debugMenu" mnemonicParsing="false" text="Debug">
-                          <items>
-                            <MenuItem mnemonicParsing="false" onAction="#openTaskViewer" text="Tasks" />
-                              <MenuItem mnemonicParsing="false" onAction="#openPlaybackWindow" text="Local Playback" />
-                              <MenuItem mnemonicParsing="false" onAction="#openCloudViewer" text="Network &amp; Data" />
-                          </items>
-                        </Menu>
                         <SeparatorMenuItem mnemonicParsing="false" />
                         <MenuItem mnemonicParsing="false" onAction="#quit" text="Quit">
                            <accelerator>

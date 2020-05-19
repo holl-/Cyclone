@@ -1,4 +1,4 @@
-package player.fx.debug
+package player.extensions.debug
 
 import cloud.Cloud
 import cloud.Data
@@ -15,19 +15,50 @@ import javafx.collections.ObservableList
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
+import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import player.FireLater
+import player.extensions.CycloneExtension
 import player.fx.icons.FXIcons
 import player.model.data.MasterGain
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.net.URL
 import java.util.*
 import java.util.logging.Handler
 import java.util.logging.Level
 import java.util.logging.LogRecord
+
+
+class CloudDebuggingExtension : CycloneExtension("Debug: Network & Data", "View network traffic and internal data.", "same as Cyclone", true, false) {
+    var viewer: CloudViewer? = null
+
+    override fun activate(cloud: Cloud) {
+        viewer = CloudViewer(cloud)
+    }
+
+    override fun deactivate() {
+        viewer = null
+    }
+
+    override fun load(stream: ObjectInputStream) {
+    }
+
+    override fun save(stream: ObjectOutputStream) {
+    }
+
+    override fun show(stage: Stage) {
+        viewer!!.show(stage)
+    }
+
+    override fun settings(): Node? {
+        return null
+    }
+}
 
 
 class CloudSnapshot(val index: Int, val sync: List<SynchronizedData>, val data: Map<Peer, List<Data>>) {
@@ -37,9 +68,9 @@ class CloudSnapshot(val index: Int, val sync: List<SynchronizedData>, val data: 
 }
 
 
-class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
+class CloudViewer(val cloud: Cloud) : Initializable
 {
-    val stage: Stage = Stage()
+    val root: Parent
     val log = DisplayLog()
 
     // Synchronized
@@ -74,12 +105,7 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
     init {
         val loader = FXMLLoader(javaClass.getResource("cloud-viewer.fxml"))
         loader.setController(this)
-        val root = loader.load<Parent>()
-
-        stage.scene = Scene(root)
-        stage.title = title ?: "Cyclone Data"
-        stage.x = 0.0
-        stage.y = 500.0
+        root = loader.load<Parent>()
 
         takeSnapshot()
 
@@ -112,6 +138,13 @@ class CloudViewer(val cloud: Cloud, val title: String? = null) : Initializable
         dummyData!!.selectedProperty().addListener(ChangeListener { _, _, hasDummy -> setDummy(hasDummy) })
         multicastAddress!!.text = "225.139.25.1"
         multicastPort!!.text = "5324"
+    }
+
+    fun show(stage: Stage) {
+        stage.scene = Scene(root)
+        stage.x = 0.0
+        stage.y = 500.0
+        stage.show()
     }
 
     @FXML fun clearSnapshots() {

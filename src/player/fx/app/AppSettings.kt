@@ -19,9 +19,14 @@ import javafx.stage.Window
 import player.CastToBooleanProperty
 import player.CustomObjectProperty
 import player.FireLater
+import player.extensions.CycloneExtension
 import player.extensions.ambience.AmbienceExtension
+import player.extensions.debug.CloudDebuggingExtension
+import player.extensions.debug.PlaybackDebuggingExtension
+import player.extensions.debug.TaskDebuggingExtension
 import player.model.CycloneConfig
 import player.model.PlaylistPlayer
+import player.model.playback.PlaybackEngine
 import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -31,9 +36,10 @@ import java.util.concurrent.Callable
 import java.util.function.Consumer
 import java.util.function.Predicate
 import java.util.function.Supplier
+import kotlin.collections.ArrayList
 import kotlin.math.pow
 
-class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initializable {
+class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer, val playbackEngine: PlaybackEngine) : Initializable {
     var stage: Stage = Stage()
 
     // General
@@ -119,7 +125,12 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer) : Initi
         broadcastInterval!!.textProperty().bindBidirectional(config.broadcastIntervalString)
         connectionStatus!!.textProperty().bind(FireLater<String>(player.cloud.connectionStatus, Platform::runLater))
         // Extensions
-        val knownExtensions = listOf(AmbienceExtension())
+        val knownExtensions: MutableList<CycloneExtension> = ArrayList(listOf(AmbienceExtension()))
+        if (config.debug.value) {
+            knownExtensions.add(CloudDebuggingExtension())
+            knownExtensions.add(TaskDebuggingExtension())
+            knownExtensions.add(PlaybackDebuggingExtension(playbackEngine))
+        }
         for (extension in knownExtensions) {
             val enabled = extension.name in config.getEnabledExtensions()
             val autoShow = extension.name in config.getAutoShowExtensions()

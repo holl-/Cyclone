@@ -1,5 +1,6 @@
-package player.fx.debug
+package player.extensions.debug
 
+import cloud.Cloud
 import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
@@ -16,9 +17,12 @@ import javafx.scene.control.TitledPane
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import player.FireLater
+import player.extensions.CycloneExtension
 import player.fx.icons.FXIcons
 import player.model.playback.Job
 import player.model.playback.PlaybackEngine
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.net.URL
 import java.util.*
 import java.util.concurrent.Callable
@@ -26,28 +30,55 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 
+class PlaybackDebuggingExtension(val playback: PlaybackEngine) : CycloneExtension("Debug: Local Playback", "View jobs and loaded files.", "same as Cyclone", true, false) {
+    var viewer: PlaybackViewer? = null
+
+    override fun activate(cloud: Cloud) {
+        viewer = PlaybackViewer(playback)
+    }
+
+    override fun deactivate() {
+        viewer = null
+    }
+
+    override fun load(stream: ObjectInputStream) {
+    }
+
+    override fun save(stream: ObjectOutputStream) {
+    }
+
+    override fun show(stage: Stage) {
+        viewer!!.show(stage)
+    }
+
+    override fun settings(): Node? {
+        return null
+    }
+}
+
+
 class PlaybackViewer(val playback: PlaybackEngine) : Initializable
 {
-    val stage: Stage = Stage()
+    private val root: Parent
 
     @FXML private var jobView: VBox? = null
 
     init {
         val loader = FXMLLoader(javaClass.getResource("local-playback.fxml"))
         loader.setController(this)
-        val root = loader.load<Parent>()
-
-        stage.scene = Scene(root)
-        stage.title = "Local Playback"
-        stage.x = 1200.0
-        stage.y = 600.0
-
+        root = loader.load<Parent>()
         Platform.runLater { rebuild() }
     }
 
-
     override fun initialize(p0: URL?, p1: ResourceBundle?) {
         playback.jobs.addListener(InvalidationListener { Platform.runLater { rebuild() } })
+    }
+
+    fun show(stage: Stage) {
+        stage.scene = Scene(root)
+        stage.x = 1200.0
+        stage.y = 600.0
+        stage.show()
     }
 
     private fun rebuild() {
