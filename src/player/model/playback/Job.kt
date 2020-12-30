@@ -37,7 +37,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
             value?.finished?.addListener { _, _, _ -> update() }
         }
         finished.addListener(InvalidationListener { engine.mainThread.submit { status.value = status() } })
-        engine.masterGain.addListener(InvalidationListener { player.value?.gain = task.value?.let { it1 -> mixGain(it1) } ?: 0.0 })
+        engine.masterGain.addListener(InvalidationListener { if(!disposing) player.value?.gain = task.value?.let { it1 -> mixGain(it1) } ?: 0.0 })
     }
 
 
@@ -172,7 +172,9 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
                 restartCount.value = task.restartCount
             }
             if (targetDevice != null) {
-                player.gain = mixGain(task)
+                if(!disposing) {
+                    player.gain = mixGain(task)
+                }
                 player.isMute = task.mute
                 player.balance = task.balance
                 val shouldPlay = !task.paused && started.value && !finished.value
