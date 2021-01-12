@@ -44,6 +44,7 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer, val pla
 
     // General
     @FXML var singleInstance: CheckBox? = null
+    @FXML var preventStandby: CheckBox? = null
     @FXML var skin: ComboBox<String>? = null
     @FXML var debugMode: CheckBox? = null
     // Audio
@@ -94,6 +95,7 @@ class AppSettings(val config: CycloneConfig, var player: PlaylistPlayer, val pla
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         // General
         singleInstance!!.selectedProperty().bindBidirectional(config.singleInstance)
+        preventStandby!!.selectedProperty().bindBidirectional(config.preventStandby)
         skin!!.items.setAll("Modena", "Caspian", "AquaFX", "Dark")
         skin!!.selectionModel.select(config.skin.value)
         skin!!.selectionModel.selectedItemProperty().addListener { _, _, v -> config.skin.value = v }

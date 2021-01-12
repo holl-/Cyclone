@@ -24,6 +24,7 @@ class CycloneConfig(val file: File)
     // General
     val debug = SimpleBooleanProperty(this, "debug", false)
     val singleInstance = SimpleBooleanProperty(this, "singleInstance", true)
+    val preventStandby = SimpleBooleanProperty(this, "preventStandby", false)
     val skin = SimpleStringProperty(this, "skin", "")
     // Audio
     val audioEngine = SimpleStringProperty(this, "audioEngine", "")
@@ -48,7 +49,7 @@ class CycloneConfig(val file: File)
     val keyCombinations = SimpleBooleanProperty(this, "keyCombinations", true)
 
     private val allProperties = listOf(
-            debug, keyCombinations, singleInstance, skin,
+            debug, keyCombinations, singleInstance, skin, preventStandby,
             audioEngine, bufferTime, fadeOutDuration, fadeOutGain, minGain,
             library,
             connectOnStartup, computerName, multicastAddress, multicastPort, broadcastInterval,
@@ -68,6 +69,7 @@ class CycloneConfig(val file: File)
     fun reset() {
         // General
         singleInstance.value = true
+        preventStandby.value = false
         skin.value = "Modena"
         // Audio
         audioEngine.value = "java"

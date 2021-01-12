@@ -105,6 +105,7 @@ class TaskViewer(val cloud: Cloud) : Initializable
         stage.scene = Scene(root)
         stage.x = 0.0
         stage.y = 0.0
+        this.stage = stage
         stage.show()
     }
 

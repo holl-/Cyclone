@@ -76,7 +76,7 @@ class Job(val taskId: String, val engine: PlaybackEngine, val bufferTime: Double
 
         engine.mainThread.submit { status.value = status() }
 
-        LocalMachine.getLocalMachine()?.setPreventStandby(player.value?.isPlaying == true, this)
+        LocalMachine.getLocalMachine()?.setPreventStandby(player.value?.isPlaying == true && engine.config.preventStandby.value, this)
 
         updateEndListener()
     }

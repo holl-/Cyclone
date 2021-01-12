@@ -12,7 +12,7 @@ Extensions may use a centralized host to upload all tasks.
 ## Modules
 
 
-### Player.FX
+### [Player.FX](player_fx.md)
 
 JavaFX UI to display and control player (PlayerWindow) and settings (AppSettings).
 

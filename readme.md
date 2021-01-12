@@ -22,6 +22,6 @@ Technical features
 
 ## Documentation
 
-[Architecture](architecture.md)
+[Architecture](documentation/modules.md)
 
 [Deploy Instructions for Windows](deploy/deploy.md)

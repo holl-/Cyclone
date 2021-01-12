@@ -81,7 +81,7 @@ public class Launcher extends Application {
 
 		window.getPlayer().getPlayingProperty().addListener((p, o, playing) -> {
 			if (LocalMachine.getLocalMachine() != null)
-				LocalMachine.getLocalMachine().setPreventStandby(playing, this);
+				LocalMachine.getLocalMachine().setPreventStandby(playing && config.getPreventStandby().getValue(), this);
 		});
 
 		if (config.getConnectOnStartup().get()) {

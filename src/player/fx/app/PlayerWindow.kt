@@ -425,7 +425,7 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
         val info = Alert(AlertType.INFORMATION)
         info.title = "Info"
         info.headerText = "Cyclone"
-        info.contentText = "Version 0.5\nAuthor: Philipp Holl\nMay 2020"
+        info.contentText = "Version 0.6\nAuthor: Philipp Holl\nPublished: Jan 2021"
         info.initOwner(stage)
         info.initModality(Modality.NONE)
         info.show()
