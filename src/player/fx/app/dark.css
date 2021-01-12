@@ -6,6 +6,15 @@
     -fx-control-inner-background-alt: -fx-control-inner-background ;
 }
 
+.axis-tick-mark{
+    -fx-stroke: #8d9dc7;
+}
+
+.axis-minor-tick-mark{
+    -fx-stroke: #7c89ad;
+}
+
+
 .label{
     -fx-text-fill: lightgray;
 }

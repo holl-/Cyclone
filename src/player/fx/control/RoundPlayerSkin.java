@@ -6,6 +6,7 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.*;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
@@ -65,6 +66,19 @@ public class RoundPlayerSkin extends SkinBase<PlayerControl>
 		});
 		getChildren().add(slider);
 
+		getSkinnable().durationProperty().addListener((e, o, duration) -> {
+			if(duration.doubleValue() > 60 * 60) {
+				slider.setMajorTickUnit(60 * 60);
+				slider.setMinorTickCount(60);
+			} else if(duration.doubleValue() > 30 * 60) {
+				slider.setMajorTickUnit(60);
+				slider.setMinorTickCount(0);
+			} else {
+				slider.setMajorTickUnit(60);
+				slider.setMinorTickCount(6);
+			}
+		});
+
 		slider.maxProperty().bind(getSkinnable().durationProperty());
 		slider.valueProperty().bindBidirectional(getSkinnable().positionProperty());
 		slider.disableProperty().bind(getSkinnable().mediaSelectedProperty().not());
@@ -122,6 +136,16 @@ public class RoundPlayerSkin extends SkinBase<PlayerControl>
 			if(getSkinnable().getOnStop() != null)
 				getSkinnable().getOnStop().handle(e);
 		});
+		for(Node button : new Node[]{playButton, stopButton, nextButton, prevButton}) {
+			button.setOnMousePressed(e -> {
+				Node control = getNode();
+				control.fireEvent(e.copyFor(control, control));
+			});
+			button.setOnMouseDragged(e -> {
+				Node control = getNode();
+				control.fireEvent(e.copyFor(control, control));
+			});
+		}
 
 		// Loop
 		getChildren().add(loopButton = new ToggleButton(null, FXIcons.get("Loop.png", 24, heightScale)));

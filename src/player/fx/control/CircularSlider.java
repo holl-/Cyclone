@@ -58,7 +58,7 @@ public class CircularSlider extends Slider {
 
 
     /** The length of minor tick mark lines. Set to 0 to not display minor tick marks. */
-    private DoubleProperty minorTickLength = new StyleableDoubleProperty(5) {
+    private DoubleProperty minorTickLength = new StyleableDoubleProperty(8) {
         @Override
         public Object getBean() {
             return CircularSlider.this;
@@ -77,6 +77,28 @@ public class CircularSlider extends Slider {
     public final double getMinorTickLength() { return minorTickLength.get(); }
     public final void setMinorTickLength(double value) { minorTickLength.set(value); }
     public final DoubleProperty minorTickLengthProperty() { return minorTickLength; }
+
+
+    /** The length of minor tick mark lines. Set to 0 to not display minor tick marks. */
+    private DoubleProperty minorTickWidth = new StyleableDoubleProperty(0.3) {
+        @Override
+        public Object getBean() {
+            return CircularSlider.this;
+        }
+
+        @Override
+        public String getName() {
+            return "minorTickLength";
+        }
+
+        @Override
+        public CssMetaData<CircularSlider,Number> getCssMetaData() {
+            return StyleableProperties.MINOR_TICK_WIDTH;
+        }
+    };
+    public final double getMinorTickWidth() { return minorTickWidth.get(); }
+    public final void setMinorTickWidth(double value) { minorTickWidth.set(value); }
+    public final DoubleProperty minorTickWidthProperty() { return minorTickWidth; }
 
 
     /** true if minor tick marks should be displayed */
@@ -230,6 +252,21 @@ public class CircularSlider extends Slider {
                 return (StyleableProperty<Number>)(WritableValue<Number>)n.minorTickLengthProperty();
             }
         };
+
+        private  static final CssMetaData<CircularSlider,Number> MINOR_TICK_WIDTH =
+                new CssMetaData<CircularSlider,Number>("-fx-minor-tick-width",
+                        SizeConverter.getInstance(), 0.3) {
+
+                    @Override
+                    public boolean isSettable(CircularSlider n) {
+                        return n.minorTickWidth == null || !n.minorTickWidth.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<Number> getStyleableProperty(CircularSlider n) {
+                        return (StyleableProperty<Number>)(WritableValue<Number>)n.minorTickLengthProperty();
+                    }
+                };
 
         private static final CssMetaData<CircularSlider,Number> MINOR_TICK_COUNT =
             new CssMetaData<CircularSlider,Number>("-fx-minor-tick-count",

@@ -290,13 +290,9 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
     private void positionTooltipAtAngle(Tooltip tooltip, double angle) {
         double rad = barRadius + barWidth/2;
         double relPos = angle / 2 / Math.PI;
-        positionTooltipAt(tooltip, getLocationFromAngle(angle, rad), relPos < 0.5, relPos > 0.25 && relPos < 0.75);
-    }
-
-    private void positionTooltipAt(Tooltip tooltip, Point2D point, boolean left, boolean top) {
-        CircularSlider control = getSkinnable();
-        point = control.localToScreen(point);
-        tooltip.setAnchorLocation(left ?
+        Point2D point = getSkinnable().localToScreen(getLocationFromAngle(angle, rad));
+        boolean top = relPos > 0.25 && relPos < 0.75;
+        tooltip.setAnchorLocation(relPos < 0.5 ?
             (top ? AnchorLocation.WINDOW_TOP_LEFT : AnchorLocation.WINDOW_BOTTOM_LEFT) :
             (top ? AnchorLocation.WINDOW_TOP_RIGHT : AnchorLocation.WINDOW_BOTTOM_RIGHT));
         tooltip.setAnchorX(point.getX());
@@ -322,9 +318,9 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
 
     private void updateTickVisibility() {
         boolean mjv = getSkinnable().isShowTickMarks();
-        boolean mnv = getSkinnable().isMinorTickVisible();
+        boolean minorVisible = getSkinnable().isMinorTickVisible();
         for(TimeTick tick : ticks) {
-            tick.setVisible(mjv && (tick.isMajor() ? true : mnv));
+            tick.setVisible(mjv && (tick.isMajor() || minorVisible));
         }
     }
 
@@ -366,11 +362,12 @@ public class CircularSliderSkin extends SkinBase<CircularSlider> {
             boolean major = isInt(pos/majorUnit, 1e-6);
             double preTransformLength = (major ? getSkinnable().getTickLength() : getSkinnable().getMinorTickLength());
             double tickScale = 0.0005;
+            double tickWidth = major ? barWidth/barRadius : barWidth/barRadius * getSkinnable().getMinorTickWidth();
             TimeTick tick = new TimeTick(pos,
                     major,
                     preTransformLength * preTransformLength * tickScale,
+                    tickWidth,
                     major ? "axis-tick-mark" : "axis-minor-tick-mark");
-            tick.fitBounds(barWidth/barRadius);
             newTicks.add(tick);
             tick.updatePosition(min, max);
             tick.opacityProperty().bind(currentTickOpacy);
