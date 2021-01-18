@@ -592,15 +592,16 @@ class PlayerWindow internal constructor(val stage: Stage, val player: PlaylistPl
                     eEndianness!!.text = "Endianness: " + if (ef.isBigEndian) "big endian" else "little endian"
                     eProperties!!.text = if (ef.properties.isEmpty()) "" else ef.properties.toString()
                     playbackEngine!!.text = "Playback engine: " + format.audioEngineName
-                    val df = player.decodedFormat
-                    dEncoding!!.text = "Encoding: " + df.encodingName
-                    dChannels!!.text = "Channels: " + if (df.channels == 2) "Stereo" else if (df.channels == 1) "Mono" else df.channels
-                    dSampleRate!!.text = "Sample rate: " + df.sampleRate + " Hz"
-                    dSampleSize!!.text = "Sample size: " + if (df.sampleSizeInBits > 0) df.sampleSizeInBits.toString() + " bits" else "variable"
-                    dFrameSize!!.text = "Frame size: " + if (df.frameSize > 0) df.frameSize.toString() + " bytes" else "variable"
-                    dFrameRate!!.text = "Frame rate: " + df.frameRate + " Hz"
-                    dEndianness!!.text = "Endianness: " + if (df.isBigEndian) "big endian" else "little endian"
-                    dProperties!!.text = if (df.properties.isEmpty()) "" else df.properties.toString()
+                    player.decodedFormat?.let { df -> {
+                        dEncoding!!.text = "Encoding: " + df.encodingName
+                        dChannels!!.text = "Channels: " + if (df.channels == 2) "Stereo" else if (df.channels == 1) "Mono" else df.channels
+                        dSampleRate!!.text = "Sample rate: " + df.sampleRate + " Hz"
+                        dSampleSize!!.text = "Sample size: " + if (df.sampleSizeInBits > 0) df.sampleSizeInBits.toString() + " bits" else "variable"
+                        dFrameSize!!.text = "Frame size: " + if (df.frameSize > 0) df.frameSize.toString() + " bytes" else "variable"
+                        dFrameRate!!.text = "Frame rate: " + df.frameRate + " Hz"
+                        dEndianness!!.text = "Endianness: " + if (df.isBigEndian) "big endian" else "little endian"
+                        dProperties!!.text = if (df.properties.isEmpty()) "" else df.properties.toString()
+                    } }
                 } else {
                     titleLabel!!.text = currentFile.getName()
                     pathLink!!.text = currentFile.getPath()
